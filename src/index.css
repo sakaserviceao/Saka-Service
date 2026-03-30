@@ -1,0 +1,136 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
+@layer base {
+  :root {
+    --background: 40 20% 98%;
+    --foreground: 220 30% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 30% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 30% 12%;
+
+    --primary: 168 60% 38%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 40 30% 95%;
+    --secondary-foreground: 220 30% 12%;
+
+    --muted: 40 15% 93%;
+    --muted-foreground: 220 10% 46%;
+
+    --accent: 12 80% 60%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 15% 90%;
+    --input: 220 15% 90%;
+    --ring: 168 60% 38%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Custom tokens */
+    /* Custom modern gradient Green -> Teal -> Blue (Day) */
+    --gradient-hero: linear-gradient(135deg, #10b981 0%, #14b8a6 50%, #3b82f6 100%);
+    --gradient-hero-night: linear-gradient(135deg, #020617 0%, #0f766e 100%);
+    
+    --gradient-accent: linear-gradient(135deg, hsl(12 80% 60%), hsl(25 90% 55%));
+    --gradient-card-hover: linear-gradient(135deg, hsl(168 60% 38% / 0.05), hsl(12 80% 60% / 0.05));
+    --shadow-card: 0 1px 3px hsl(220 30% 12% / 0.06), 0 4px 12px hsl(220 30% 12% / 0.04);
+    --shadow-card-hover: 0 4px 12px hsl(220 30% 12% / 0.1), 0 12px 28px hsl(220 30% 12% / 0.06);
+    --shadow-hero: 0 20px 50px rgba(16, 185, 129, 0.3);
+  }
+
+  .dark {
+    --gradient-hero: var(--gradient-hero-night);
+    --background: 220 25% 8%;
+    --foreground: 40 20% 95%;
+    --card: 220 20% 12%;
+    --card-foreground: 40 20% 95%;
+    --popover: 220 20% 12%;
+    --popover-foreground: 40 20% 95%;
+    --primary: 168 55% 45%;
+    --primary-foreground: 220 30% 8%;
+    --secondary: 220 18% 16%;
+    --secondary-foreground: 40 20% 95%;
+    --muted: 220 18% 16%;
+    --muted-foreground: 220 10% 60%;
+    --accent: 12 75% 55%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 220 18% 20%;
+    --input: 220 18% 20%;
+    --ring: 168 55% 45%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased transition-colors duration-300;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-display;
+  }
+}
+
+@layer utilities {
+  .text-gradient-primary {
+    background: var(--gradient-hero);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .bg-gradient-hero {
+    background: var(--gradient-hero);
+  }
+
+  .bg-gradient-accent {
+    background: var(--gradient-accent);
+  }
+
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+
+  .shadow-card-hover {
+    box-shadow: var(--shadow-card-hover);
+  }
+
+  .shadow-hero {
+    box-shadow: var(--shadow-hero);
+  }
+
+  .bg-grid {
+    background-image: linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+}

@@ -4,7 +4,13 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables');
+  console.error('ERRO CRÍTICO: Variáveis de ambiente do Supabase não encontradas.');
+  console.info('Certifique-se de configurar VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no Vercel ou no arquivo .env local.');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Inicializa mesmo sem as chaves para evitar que o import quebre o app inteiro, 
+// embora as chamadas venham a falhar depois.
+export const supabase = createClient(
+  supabaseUrl || '', 
+  supabaseAnonKey || ''
+);

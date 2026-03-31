@@ -32,9 +32,13 @@ const isConfigured =
 const queryClient = new QueryClient();
 
 const App = () => {
+  console.log('📦 App - Checking Configuration...');
   if (!isConfigured) {
+    console.warn('📦 App - Supabase not configured, showing ConfigError');
     return <ConfigError />;
   }
+
+  console.log('📦 App - Base components ready, rendering tree...');
 
   return (
     <QueryClientProvider client={queryClient}>

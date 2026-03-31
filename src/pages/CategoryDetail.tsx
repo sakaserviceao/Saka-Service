@@ -5,6 +5,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ProfessionalCard from "@/components/ProfessionalCard";
 import { getCategories, getProfessionalsByCategory } from "@/data/api";
+import CategoryIcon from "@/components/CategoryIcon";
 
 const CategoryDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -44,12 +45,12 @@ const CategoryDetail = () => {
         </Link>
         {category && (
           <div className="mb-8 flex flex-col gap-6">
-            <div className="flex items-center gap-3">
-              <span className="text-4xl">{category.icon}</span>
+            <div className="flex items-center gap-4">
+              <CategoryIcon name={category.icon} color={category.color} size="xl" />
               <div>
-                <h1 className="text-3xl font-bold text-foreground">{category.name}</h1>
-                <p className="text-muted-foreground">
-                  {pros.length} {pros.length === 1 ? "profissional" : "profissionais"} {pros.length === 1 ? "disponível" : "disponíveis"}
+                <h1 className="text-4xl font-bold text-foreground tracking-tight">{category.name}</h1>
+                <p className="text-muted-foreground mt-1">
+                  {pros.length} {pros.length === 1 ? "profissional disponível" : "profissionais disponíveis"}
                 </p>
               </div>
             </div>

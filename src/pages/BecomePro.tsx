@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 
 const BecomePro = () => {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, isProfessional, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
@@ -36,7 +36,10 @@ const BecomePro = () => {
 
   useEffect(() => {
     if (!isLoading && !user) navigate("/login");
-  }, [user, isLoading, navigate]);
+    if (!isLoading && isProfessional) {
+      navigate("/perfil/editar");
+    }
+  }, [user, isLoading, isProfessional, navigate]);
 
   useEffect(() => {
     const fetchCats = async () => {
@@ -143,12 +146,13 @@ const BecomePro = () => {
         await addPortfolios(validPortfolios);
       }
       
-      const successMsg = hasExistingProfile 
-        ? "Perfil atualizado e ativado com sucesso!" 
-        : "Perfil criado! O seu perfil já está visível na plataforma. Pode agora submeter os seus documentos para obter o selo de verificado.";
+      // Refresh professional status globally
+      await refreshProfile();
+      
+      const successMsg = "Agora és um profissional no Saka Service. O teu perfil já pode ser gerido e publicado.";
 
       toast.success(successMsg);
-      navigate(`/verify`);
+      navigate("/perfil/editar");
     } catch (error: any) {
       const errorMsg = hasExistingProfile 
         ? "Erro ao atualizar perfil." 

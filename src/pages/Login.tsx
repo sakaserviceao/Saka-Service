@@ -18,11 +18,19 @@ const Login = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
 
     if (error) {
-      toast.error("Credenciais inválidas. Tente novamente.");
+      if (error.message.toLowerCase().includes("confirm")) {
+        toast.error("Por favor, confirme o seu e-mail antes de entrar.");
+        navigate("/verificar-email", { state: { email } });
+      } else {
+        toast.error("Credenciais inválidas. Tente novamente.");
+      }
+    } else if (data.user && !data.user.email_confirmed_at) {
+      toast.error("O seu e-mail ainda não foi confirmado.");
+      navigate("/verificar-email", { state: { email } });
     } else {
       toast.success("Bem-vindo de volta!");
       navigate("/");

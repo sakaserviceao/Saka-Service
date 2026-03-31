@@ -25,6 +25,7 @@ const Register = () => {
       options: {
         data: {
           full_name: name,
+          status: 'pending_email_confirmation',
         }
       }
     });
@@ -33,8 +34,10 @@ const Register = () => {
     if (error) {
       toast.error(error.message);
     } else {
-      toast.success("Conta criada! Pode agora fazer login.");
-      navigate("/login");
+      toast.success("Cadastro realizado com sucesso! 📩 Enviámos um link de confirmação para o seu e-mail. Por favor, aceda à sua caixa de entrada e confirme o seu e-mail para activar a sua conta.", {
+        duration: 10000,
+      });
+      navigate("/verificar-email", { state: { email } });
     }
   };
 

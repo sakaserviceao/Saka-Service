@@ -1,8 +1,9 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import CategoryIcon from "./CategoryIcon";
 
 interface Props {
-  category: { id: string; name: string; icon: string; count: number };
+  category: { id: string; name: string; icon: string; count: number; color?: string };
   index?: number;
   featured?: boolean;
 }
@@ -21,19 +22,24 @@ const CategoryCard = ({ category, index = 0, featured = false }: Props) => (
       }`}
     >
       {featured && (
-        <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-primary-foreground shadow-sm">
+        <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-primary-foreground shadow-sm z-10">
           Popular
         </span>
       )}
-      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-secondary/50 text-4xl transition-all duration-300 group-hover:scale-110 group-hover:bg-primary/10 group-hover:text-primary">
-        {category.icon}
-      </div>
-      <div>
-        <h3 className="text-base font-bold text-foreground transition-colors group-hover:text-primary">
+      
+      <CategoryIcon 
+        name={category.icon} 
+        color={category.color} 
+        size="lg" 
+        className="group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-hero/10"
+      />
+
+      <div className="mt-2">
+        <h3 className="text-base font-bold text-foreground transition-colors group-hover:text-primary leading-tight">
           {category.name}
         </h3>
-        <p className="mt-1 text-xs text-muted-foreground">
-          {category.count} profissionais disponíveis
+        <p className="mt-1 text-xs text-muted-foreground font-medium">
+          {category.count} profissionais
         </p>
       </div>
     </Link>

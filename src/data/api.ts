@@ -346,4 +346,18 @@ export const removeAdmin = async (email: string) => {
   return true;
 };
 
+export const resendVerificationEmail = async (email: string) => {
+  const { error } = await supabase.auth.resend({
+    type: 'signup',
+    email: email,
+    options: {
+      emailRedirectTo: `${window.location.origin}/login`
+    }
+  });
 
+  if (error) {
+    console.error('Error resending verification email:', error);
+    throw error;
+  }
+  return true;
+};

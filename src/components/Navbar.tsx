@@ -9,7 +9,7 @@ import { useSettings } from "@/hooks/useSettings";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const { user, signOut } = useAuth();
+  const { user, signOut, isProfessional } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0];
   const { getSetting } = useSettings();
@@ -54,10 +54,15 @@ const Navbar = () => {
                 </Link>
               )}
               <span className="text-sm font-medium text-primary">{displayName}</span>
-              <Button size="sm" className={`bg-gradient-hero ${theme === 'dark' ? 'text-slate-100' : 'text-primary-foreground'}`} asChild>
-
-                <Link to="/become-pro">Tornar-me Pro</Link>
-              </Button>
+              {isProfessional ? (
+                <Button size="sm" variant="outline" className="border-primary text-primary hover:bg-primary/5" asChild>
+                  <Link to="/perfil/editar">Editar meu perfil</Link>
+                </Button>
+              ) : (
+                <Button size="sm" className={`bg-gradient-hero ${theme === 'dark' ? 'text-slate-100' : 'text-primary-foreground'}`} asChild>
+                  <Link to="/tornar-se-pro">Tornar-me Pro</Link>
+                </Button>
+              )}
               <Button variant="outline" size="sm" onClick={signOut} className="gap-2">
                 <LogOut className="h-4 w-4" /> Sair
               </Button>
@@ -107,10 +112,15 @@ const Navbar = () => {
                       </Link>
                     )}
                     <span className="text-sm font-medium text-center text-primary mb-2">{displayName}</span>
-                    <Button size="sm" className={`w-full bg-gradient-hero ${theme === 'dark' ? 'text-slate-100' : 'text-primary-foreground'}`} asChild>
-
-                      <Link to="/become-pro" onClick={() => setIsOpen(false)}>Tornar-me Pro</Link>
-                    </Button>
+                    {isProfessional ? (
+                      <Button size="sm" variant="outline" className="w-full border-primary text-primary" asChild>
+                        <Link to="/perfil/editar" onClick={() => setIsOpen(false)}>Editar meu perfil</Link>
+                      </Button>
+                    ) : (
+                      <Button size="sm" className={`w-full bg-gradient-hero ${theme === 'dark' ? 'text-slate-100' : 'text-primary-foreground'}`} asChild>
+                        <Link to="/tornar-se-pro" onClick={() => setIsOpen(false)}>Tornar-me Pro</Link>
+                      </Button>
+                    )}
                     <Button variant="outline" size="sm" className="w-full gap-2" onClick={() => { signOut(); setIsOpen(false); }}>
                       <LogOut className="h-4 w-4" /> Sair
                     </Button>

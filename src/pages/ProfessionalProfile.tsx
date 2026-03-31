@@ -11,6 +11,7 @@ import Footer from "@/components/Footer";
 import { getCategories, getProfessionalById, addReview } from "@/data/api";
 import { useAuth } from "@/hooks/useAuth";
 import { VerificationBadge } from "@/components/VerificationBadge";
+import CategoryIcon from "@/components/CategoryIcon";
 
 const ProfessionalProfile = () => {
   const { id } = useParams<{ id: string }>();
@@ -140,8 +141,9 @@ const ProfessionalProfile = () => {
               <p className="text-lg text-muted-foreground">{pro.title}</p>
               <div className="mt-2 flex flex-wrap items-center gap-3">
                 {category && (
-                  <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-                    {category.icon} {category.name}
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary border border-primary/20 shadow-sm">
+                    <CategoryIcon name={category.icon} color={category.color} size="sm" className="h-4 w-4 p-0 shadow-none border-0 bg-transparent" />
+                    {category.name}
                   </span>
                 )}
                 <span className="flex items-center gap-1 text-sm text-muted-foreground">
@@ -159,32 +161,32 @@ const ProfessionalProfile = () => {
           <p className="mt-6 leading-relaxed text-muted-foreground">{pro.description}</p>
 
           {/* Contact buttons */}
-          <div className="mt-6 flex flex-wrap gap-3">
-            {pro.linkedin_url && (
-              <Button size="sm" className="bg-[#0077B5] hover:bg-[#0077B5]/90 gap-2 border-0" asChild>
-                <a href={pro.linkedin_url} target="_blank" rel="noopener noreferrer">
-                  <Linkedin className="h-4 w-4" /> LinkedIn
+          <div className="mt-6 flex flex-wrap gap-3 text-white">
+            {pro.phone && (
+              <Button size="sm" className="bg-[#FF9500] hover:bg-[#FF9500]/90 text-white gap-2 border-0 shadow-sm" asChild>
+                <a href={`tel:${pro.phone}`}>
+                  <Phone className="h-4 w-4" /> Telefone
                 </a>
               </Button>
             )}
             {pro.whatsapp && (
-              <Button size="sm" variant="outline" className="gap-2" asChild>
+              <Button size="sm" className="bg-[#25D366] hover:bg-[#25D366]/90 text-white gap-2 border-0 shadow-sm" asChild>
                 <a href={`https://wa.me/${pro.whatsapp}`} target="_blank" rel="noopener noreferrer">
                   <Phone className="h-4 w-4" /> WhatsApp
                 </a>
               </Button>
             )}
             {pro.email && (
-              <Button size="sm" variant="outline" className="gap-2" asChild>
+              <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2 border-0 shadow-sm" asChild>
                 <a href={`mailto:${pro.email}`}>
                   <Mail className="h-4 w-4" /> Email
                 </a>
               </Button>
             )}
-            {pro.phone && (
-              <Button size="sm" variant="outline" className="gap-2" asChild>
-                <a href={`tel:${pro.phone}`}>
-                  <Phone className="h-4 w-4" /> Telefone
+            {pro.linkedin_url && (
+              <Button size="sm" className="bg-[#0077B5] hover:bg-[#0077B5]/90 text-white gap-2 border-0 shadow-sm" asChild>
+                <a href={pro.linkedin_url} target="_blank" rel="noopener noreferrer">
+                  <Linkedin className="h-4 w-4" /> LinkedIn
                 </a>
               </Button>
             )}

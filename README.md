@@ -72,3 +72,15 @@ To connect a domain, navigate to Project > Settings > Domains and click Connect 
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
 # Saka-Service
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('ERRO CRÍTICO: Variáveis de ambiente do Supabase não encontradas.');
+}
+
+export const supabase = (supabaseUrl && supabaseAnonKey)
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : { auth: {}, storage: {}, from: () => {} } as any;

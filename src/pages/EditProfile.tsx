@@ -26,6 +26,7 @@ const EditProfile = () => {
     phone: "",
     email: "",
     whatsapp: "",
+    linkedin_url: "",
   });
 
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -61,6 +62,7 @@ const EditProfile = () => {
             phone: proData.phone || "",
             email: proData.email || "",
             whatsapp: proData.whatsapp || "",
+            linkedin_url: proData.linkedin_url || "",
           });
           setExistingAvatar(proData.avatar || "");
           
@@ -239,6 +241,10 @@ const EditProfile = () => {
                 <div className="space-y-2">
                   <Label htmlFor="whatsapp">WhatsApp (Só números)</Label>
                   <Input id="whatsapp" name="whatsapp" value={formData.whatsapp} onChange={handleChange} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="linkedin_url">LinkedIn (URL)</Label>
+                  <Input id="linkedin_url" name="linkedin_url" value={formData.linkedin_url} onChange={handleChange} placeholder="https://linkedin.com/in/perfil" />
                 </div>
               </div>
             </div>

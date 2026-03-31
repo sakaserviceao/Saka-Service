@@ -20,6 +20,7 @@ export interface Professional {
   featured?: boolean;
   portfolio?: any[];
   reviews?: any[];
+  linkedin_url?: string;
 }
 
 export interface Category {
@@ -83,7 +84,8 @@ export const professionals: Professional[] = [
     portfolio: [
       { id: "p1", image: portfolioImages[0], title: "E-commerce Platform", description: "A full e-commerce solution." },
       { id: "p2", image: portfolioImages[1], title: "Dashboard UI", description: "Modern admin dashboard." }
-    ]
+    ],
+    linkedin_url: "https://linkedin.com/in/joaosilvadev"
   },
   {
     id: "2",
@@ -98,7 +100,8 @@ export const professionals: Professional[] = [
     featured: true,
     portfolio: [
       { id: "p3", image: portfolioImages[2], title: "Logo Set", description: "Collection of logos." }
-    ]
+    ],
+    linkedin_url: "https://linkedin.com/in/marianacostadesign"
   },
   {
     id: "3",

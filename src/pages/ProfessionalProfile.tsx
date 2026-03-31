@@ -1,6 +1,6 @@
 import { useParams, Link } from "react-router-dom";
 import { useState } from "react";
-import { ArrowLeft, Star, MapPin, Phone, Mail, MessageCircle, Edit, Send } from "lucide-react";
+import { ArrowLeft, Star, MapPin, Phone, Mail, Linkedin, Edit, Send } from "lucide-react";
 import { motion } from "framer-motion";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -160,9 +160,13 @@ const ProfessionalProfile = () => {
 
           {/* Contact buttons */}
           <div className="mt-6 flex flex-wrap gap-3">
-            <Button size="sm" className="bg-gradient-hero gap-2">
-              <MessageCircle className="h-4 w-4" /> Mensagem
-            </Button>
+            {pro.linkedin_url && (
+              <Button size="sm" className="bg-[#0077B5] hover:bg-[#0077B5]/90 gap-2 border-0" asChild>
+                <a href={pro.linkedin_url} target="_blank" rel="noopener noreferrer">
+                  <Linkedin className="h-4 w-4" /> LinkedIn
+                </a>
+              </Button>
+            )}
             {pro.whatsapp && (
               <Button size="sm" variant="outline" className="gap-2" asChild>
                 <a href={`https://wa.me/${pro.whatsapp}`} target="_blank" rel="noopener noreferrer">

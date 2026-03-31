@@ -8,6 +8,4 @@ window.onerror = (message, source, lineno, colno, error) => {
   return false;
 };
 
-console.log('🚀 Saka Service - Starting Application...');
-
 createRoot(document.getElementById("root")!).render(<App />);

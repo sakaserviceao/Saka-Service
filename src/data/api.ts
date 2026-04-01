@@ -18,16 +18,22 @@ export const getProfessionalsByCategory = async (categoryId: string): Promise<Pr
 };
 
 export const getFeaturedProfessionals = async (): Promise<Professional[]> => {
-  const { data, error } = await supabase
-    .from('professionals')
-    .select('*, portfolios(*), reviews(*)')
-    .eq('featured', true)
-    .in('verification_status', ['ativo', 'verified']);
-  if (error) {
-    console.error('Error fetching featured professionals:', error);
+  try {
+    const { data, error } = await supabase
+      .from('professionals')
+      .select('*, portfolios(*), reviews(*)')
+      .eq('featured', true)
+      .in('verification_status', ['ativo', 'verified']);
+      
+    if (error) {
+      console.error('Erro Supabase (Featured):', error.message, error.details);
+      return [];
+    }
+    return (data || []) as unknown as Professional[];
+  } catch (err) {
+    console.error('Erro fatal ao buscar destaques:', err);
     return [];
   }
-  return data as unknown as Professional[];
 };
 
 export const searchProfessionals = async (query: string): Promise<Professional[]> => {
@@ -74,14 +80,21 @@ export const getSiteSettings = async (): Promise<Record<string, string>> => {
 };
 
 export const getCategories = async () => {
-  const { data, error } = await supabase
-    .from('categories')
-    .select('*');
-  if (error) {
-    console.error('Error fetching categories:', error);
+  try {
+    const { data, error } = await supabase
+      .from('categories')
+      .select('*')
+      .order('name');
+      
+    if (error) {
+      console.error('Erro Supabase (Categories):', error.message, error.details);
+      return [];
+    }
+    return data || [];
+  } catch (err) {
+    console.error('Erro fatal ao buscar categorias:', err);
     return [];
   }
-  return data;
 };
 
 export const getCategoryById = async (id: string) => {

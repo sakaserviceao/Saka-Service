@@ -6,9 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Trash2, Plus, UploadCloud, Save } from "lucide-react";
+import { Trash2, Plus, UploadCloud, Save, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
+import DashboardStats from "@/components/DashboardStats";
+import { Professional } from "@/data/mockData";
 
 const EditProfile = () => {
   const { user, isLoading } = useAuth();
@@ -27,6 +29,13 @@ const EditProfile = () => {
     email: "",
     whatsapp: "",
     linkedin_url: "",
+  });
+
+  const [stats, setStats] = useState({
+    daily_views: 0,
+    monthly_views: 0,
+    yearly_views: 0,
+    total_views: 0
   });
 
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -69,6 +78,14 @@ const EditProfile = () => {
           if ((proData as any).portfolios) {
             setExistingPortfolios((proData as any).portfolios);
           }
+
+          // Carregar estatísticas
+          setStats({
+            daily_views: (proData as any).daily_views || 0,
+            monthly_views: (proData as any).monthly_views || 0,
+            yearly_views: (proData as any).yearly_views || 0,
+            total_views: (proData as any).total_views || 0
+          });
         } else if (user) {
           // Utilizador navegou para edit mas não tem profile, redirecionar para become
           navigate("/become-pro");
@@ -171,9 +188,11 @@ const EditProfile = () => {
       <Navbar />
       <div className="container max-w-3xl mt-8">
         <div className="bg-card border border-border rounded-xl p-8 shadow-sm">
-          <div className="mb-8">
+          <div className="mb-4">
             <h1 className="text-3xl font-bold">Editar o Meu Perfil</h1>
-            <p className="text-muted-foreground">Atualize as suas informações ou acrescente trabalhos fotográficos recentes!</p>
+            <p className="text-muted-foreground mb-6">Atualize as suas informações ou acrescente trabalhos fotográficos recentes!</p>
+            
+            <DashboardStats stats={stats} />
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-8">

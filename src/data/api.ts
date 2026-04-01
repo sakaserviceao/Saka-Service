@@ -361,3 +361,17 @@ export const resendVerificationEmail = async (email: string) => {
   }
   return true;
 };
+
+export const recordProfileVisit = async (visitedId: string, visitorId?: string) => {
+  const { error } = await supabase.rpc('record_profile_visit', {
+    visited_user_id: visitedId,
+    visitor_user_id: visitorId || null
+  });
+
+  if (error) {
+    // We don't throw here to avoid breaking the UI for an analytics failure
+    console.error('Error recording profile visit:', error);
+    return false;
+  }
+  return true;
+};

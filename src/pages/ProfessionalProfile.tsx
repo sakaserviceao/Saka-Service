@@ -1,5 +1,5 @@
 import { useParams, Link } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArrowLeft, Star, MapPin, Phone, Mail, Linkedin, Edit, Send } from "lucide-react";
 import { motion } from "framer-motion";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { getCategories, getProfessionalById, addReview } from "@/data/api";
+import { getCategories, getProfessionalById, addReview, recordProfileVisit } from "@/data/api";
 import { useAuth } from "@/hooks/useAuth";
 import { VerificationBadge } from "@/components/VerificationBadge";
 import CategoryIcon from "@/components/CategoryIcon";
@@ -32,6 +32,13 @@ const ProfessionalProfile = () => {
     queryKey: ['categories'],
     queryFn: getCategories,
   });
+
+  // Analytics: Record profile visit
+  useEffect(() => {
+    if (pro && pro.id && user?.id !== pro.id) {
+      recordProfileVisit(pro.id, user?.id);
+    }
+  }, [pro?.id, user?.id]);
 
   if (isLoading) {
     return (

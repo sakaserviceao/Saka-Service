@@ -23,13 +23,19 @@ const Login = () => {
 
     if (error) {
       if (error.message.toLowerCase().includes("confirm")) {
-        toast.error("Por favor, confirme o seu e-mail antes de entrar.");
+        toast.warning("Conta ainda não ativada.", {
+          description: "Verifica o teu e-mail e confirma o endereço antes de fazer login. Se não encontrares a mensagem, consulta a pasta de spam ou solicita um novo envio."
+        });
         navigate("/verificar-email", { state: { email } });
       } else {
-        toast.error("Credenciais inválidas. Tente novamente.");
+        toast.error("Não foi possível iniciar sessão.", {
+          description: "Verifica os teus dados e tenta novamente."
+        });
       }
     } else if (data.user && !data.user.email_confirmed_at) {
-      toast.error("O seu e-mail ainda não foi confirmado.");
+      toast.warning("Conta ainda não ativada.", {
+        description: "Verifica o teu e-mail e confirma o endereço antes de fazer login. Se não encontrares a mensagem, consulta a pasta de spam ou solicita um novo envio."
+      });
       navigate("/verificar-email", { state: { email } });
     } else {
       toast.success("Bem-vindo de volta!");

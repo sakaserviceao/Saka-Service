@@ -34,7 +34,8 @@ const Register = () => {
     if (error) {
       toast.error(error.message);
     } else {
-      toast.success("Cadastro realizado com sucesso! 📩 Enviámos um link de confirmação para o seu e-mail. Por favor, aceda à sua caixa de entrada e confirme o seu e-mail para activar a sua conta.", {
+      toast.info("Tudo pronto para começares no Saka Service.", {
+        description: "Enviámos um link de confirmação para o teu e-mail. Confirma o teu endereço para ativar a conta.",
         duration: 10000,
       });
       navigate("/verificar-email", { state: { email } });

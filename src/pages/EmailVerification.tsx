@@ -21,9 +21,13 @@ const EmailVerification = () => {
     setLoading(true);
     try {
       await resendVerificationEmail(email);
-      toast.success("Link de confirmação reenviado com sucesso! Verifique o seu e-mail.");
+      toast.success("E-mail reenviado.", {
+        description: "Enviámos novamente o link de confirmação. Verifica a tua caixa de entrada."
+      });
     } catch (error: any) {
-      toast.error(error.message || "Erro ao reenviar e-mail de confirmação.");
+      toast.error("Falha ao reenviar e-mail.", {
+        description: error.message || "Tente novamente mais tarde."
+      });
     } finally {
       setLoading(false);
     }
@@ -41,88 +45,96 @@ const EmailVerification = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-8 text-center animate-in fade-in zoom-in duration-500">
-        {/* Branding Logo */}
-        <div className="flex flex-col items-center gap-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl overflow-hidden shadow-lg bg-card border border-border">
+      <div className="w-full max-w-md space-y-10 text-center animate-in fade-in zoom-in duration-500">
+        
+        {/* 3. Identidade Visual - Logotipo no topo */}
+        <div className="flex flex-col items-center gap-2">
+          <div className="h-20 w-20 p-2 rounded-2xl bg-white shadow-xl flex items-center justify-center border border-border/50">
             <img 
               src={getSetting('logo_url', '/logo.png')} 
-              alt={getSetting('brand_name', 'Sakaservice')} 
-              className="h-full w-full object-cover" 
+              alt="Saka Service Logo" 
+              className="max-h-full max-w-full object-contain" 
             />
           </div>
-          <h2 className="text-sm font-bold uppercase tracking-widest text-primary">
+          <h2 className="text-xl font-bold tracking-tight text-foreground mt-4">
             {getSetting('brand_name', 'Saka Service')}
           </h2>
         </div>
 
-        {/* Main Content Card */}
-        <div className="bg-card rounded-3xl border border-border p-8 shadow-card space-y-6 relative overflow-hidden">
-          {/* Background decoration */}
-          <div className="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-primary/5 blur-2xl" />
+        {/* 1. Mensagem Principal & Layout Centralizado */}
+        <div className="bg-card rounded-3xl border border-border p-8 md:p-10 shadow-card space-y-8 relative overflow-hidden">
+          {/* Background decoration for modern feel */}
+          <div className="absolute top-0 left-0 w-full h-2 bg-primary" />
           
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 text-primary mb-6 ring-8 ring-primary/5">
+          {/* Success Badge - Novo */}
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 text-xs font-bold border border-emerald-500/20 mb-2">
+            <CheckCircle2 className="h-3.5 w-3.5" /> Registo concluído com sucesso
+          </div>
+
+          {/* 3. Ícone: envelope/check */}
+          <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-primary/10 text-primary mb-2 ring-8 ring-primary/5">
             <div className="relative">
-              <Mail className="h-10 w-10" />
-              <CheckCircle2 className="absolute -bottom-1 -right-1 h-5 w-5 fill-background" />
+              <Mail className="h-12 w-12" />
+              <CheckCircle2 className="absolute -bottom-1 -right-1 h-6 w-6 text-primary fill-background" />
             </div>
           </div>
           
-          <div className="space-y-4">
-            <h1 className="text-2xl font-bold tracking-tight">
-              Tudo pronto para começares no Saka Service. 🚀
+          <div className="space-y-6">
+            <h1 className="text-xl font-bold leading-tight text-foreground">
+              Tudo pronto para começares no Saka Service.
             </h1>
-            <div className="space-y-3 text-muted-foreground leading-relaxed">
+            <div className="space-y-4 text-muted-foreground leading-relaxed text-sm">
               <p>
-                Enviámos um link de confirmação para o teu e-mail {email && <span className="font-semibold text-foreground">({email})</span>}.
+                Enviámos um link de confirmação para o teu e-mail 
+                {email && <span className="block font-semibold text-foreground mt-1">{email}</span>}.
               </p>
               <p>
                 Confirma o teu endereço para activares a tua conta e começares a oferecer os teus serviços na plataforma.
               </p>
-              <p className="font-medium text-primary py-2 italic border-y border-border/50">
+              <p className="font-bold text-primary text-base pt-4 border-t border-border/50">
                 Saka Service — liga talento a oportunidades.
               </p>
             </div>
           </div>
 
-          {/* Support Note */}
-          <div className="flex items-start gap-3 rounded-2xl bg-secondary/30 p-4 text-left border border-border/40">
-            <AlertCircle className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-            <p className="text-sm text-muted-foreground leading-snug">
-              <strong>Não recebeste o e-mail?</strong> Verifica a tua pasta de spam ou solicita um novo envio.
+          {/* 2. Exibir nota de apoio */}
+          <div className="rounded-2xl bg-secondary/50 p-4 text-center border border-border/40">
+            <p className="text-xs text-muted-foreground leading-snug">
+              <span className="font-bold block mb-1">Não recebeste o e-mail?</span> 
+              Verifica a tua pasta de spam ou solicita um novo envio abaixo.
             </p>
           </div>
 
-          {/* Actions */}
-          <div className="flex flex-col gap-3 pt-2">
+          {/* 6. Ações disponíveis */}
+          <div className="flex flex-col gap-4 pt-4">
             <Button 
               onClick={openMailProvider}
-              className="w-full bg-gradient-hero py-6 text-base font-semibold shadow-lg hover:shadow-primary/20 transition-all active:scale-[0.98]"
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground h-14 rounded-2xl text-base font-bold shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
               <ExternalLink className="mr-2 h-5 w-5" />
               Abrir meu e-mail
             </Button>
             
             <Button 
-              variant="ghost"
+              variant="outline"
               onClick={handleResend} 
               disabled={loading} 
-              className="w-full font-medium text-muted-foreground hover:text-primary transition-colors"
+              className="w-full h-12 rounded-xl text-sm font-semibold border-border bg-transparent hover:bg-secondary transition-colors"
             >
               {loading ? (
-                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Reenviando...</>
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> A enviar...</>
               ) : (
-                "Reenviar e-mail"
+                "Reenviar e-mail de confirmação"
               )}
             </Button>
           </div>
         </div>
 
         {/* Footer Link */}
-        <div className="pt-4">
+        <div className="pt-2">
           <Link 
             to="/login" 
-            className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+            className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors flex items-center justify-center gap-2"
           >
             ← Voltar para o login
           </Link>

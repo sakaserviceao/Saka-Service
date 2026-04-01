@@ -13,13 +13,6 @@ import { getCategories, getFeaturedProfessionals } from "@/data/api";
 import { useTheme } from "@/hooks/useTheme";
 import { useSettings } from "@/hooks/useSettings";
 
-const stats = [
-  { icon: Users, label: "Profissionais Ativos", value: "2,500+" },
-  { icon: Shield, label: "Avaliações Verificadas", value: "15,000+" },
-  { icon: Zap, label: "Projetos Concluídos", value: "8,200+" },
-];
-
-const Index = () => {
   const { data: featured = [] } = useQuery({
     queryKey: ['featuredProfessionals'],
     queryFn: getFeaturedProfessionals,
@@ -33,6 +26,12 @@ const Index = () => {
   const { theme } = useTheme();
   const { getSetting } = useSettings();
 
+  const dynamicStats = [
+    { icon: Users, label: "Profissionais Ativos", value: getSetting('stats_active_pros', '2,500+') },
+    { icon: Shield, label: "Avaliações Verificadas", value: getSetting('stats_verified_reviews', '15,000+') },
+    { icon: Zap, label: "Projetos Concluídos", value: getSetting('stats_completed_projects', '8,200+') },
+  ];
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Navbar />
@@ -41,7 +40,7 @@ const Index = () => {
       {/* Stats */}
       <section className="border-b border-border bg-card">
         <div className="container grid grid-cols-3 divide-x divide-border py-8">
-          {stats.map((s) => (
+          {dynamicStats.map((s) => (
             <div key={s.label} className="flex flex-col items-center gap-1 px-2 text-center">
               <s.icon className="h-5 w-5 text-primary" />
               <span className="text-lg font-bold text-foreground md:text-2xl">{s.value}</span>

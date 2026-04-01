@@ -416,3 +416,46 @@ export const getTopProfiles = async (limit: number = 10) => {
   }
   return data as unknown as Professional[];
 };
+
+export const updateSiteSetting = async (key: string, value: string) => {
+  const { data, error } = await supabase
+    .from('site_settings')
+    .upsert([{ key, value, updated_at: new Date().toISOString() }])
+    .select()
+    .single();
+    
+  if (error) {
+    console.error(`Error updating setting ${key}:`, error);
+    throw error;
+  }
+  return data;
+};
+
+export const createCategory = async (category: Partial<Category>) => {
+  const { data, error } = await supabase
+    .from('categories')
+    .insert([category])
+    .select()
+    .single();
+    
+  if (error) {
+    console.error('Error creating category:', error);
+    throw error;
+  }
+  return data;
+};
+
+export const updateCategory = async (id: string, categoryData: Partial<Category>) => {
+  const { data, error } = await supabase
+    .from('categories')
+    .update(categoryData)
+    .eq('id', id)
+    .select()
+    .single();
+    
+  if (error) {
+    console.error('Error updating category:', error);
+    throw error;
+  }
+  return data;
+};

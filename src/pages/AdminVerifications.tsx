@@ -9,10 +9,13 @@ import {
   addAdmin,
   removeAdmin,
   getSiteStats,
-  getTopProfiles
+  getTopProfiles,
+  getSiteSettings,
+  updateSiteSetting,
+  updateCategory
 } from "@/data/api";
 import { Button } from "@/components/ui/button";
-import { Check, X, ExternalLink, Shield, ArrowLeft, Search, AlertCircle, Star, Pause, RotateCcw, Settings, Plus, Trash2, Mail, BarChart3, TrendingUp, Calendar, Eye } from "lucide-react";
+import { Check, X, ExternalLink, Shield, ArrowLeft, Search, AlertCircle, Star, Pause, RotateCcw, Settings, Plus, Trash2, Mail, BarChart3, TrendingUp, Calendar, Eye, LayoutGrid, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -25,7 +28,7 @@ const AdminVerifications = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
-  const [viewMode, setViewMode] = useState<'pending' | 'all' | 'settings' | 'analytics'>('pending');
+  const [viewMode, setViewMode] = useState<'pending' | 'all' | 'settings' | 'analytics' | 'platform'>('pending');
   const [newAdminEmail, setNewAdminEmail] = useState("");
 
   // Restricted Access Check
@@ -198,6 +201,13 @@ const AdminVerifications = () => {
           >
             <BarChart3 className="h-4 w-4" /> Analítica
           </Button>
+          <Button 
+            variant={viewMode === 'platform' ? 'default' : 'outline'} 
+            onClick={() => setViewMode('platform')}
+            className="rounded-full flex items-center gap-2"
+          >
+            <LayoutGrid className="h-4 w-4" /> Gestão
+          </Button>
         </div>
 
         {/* Main Content Section */}
@@ -264,9 +274,162 @@ const AdminVerifications = () => {
               }
             }}
           />
-        ) : (
+        ) : viewMode === 'analytics' ? (
           <AnalyticsPanel />
+        ) : (
+          <PlatformManagementPanel />
         )}
+      </div>
+    </div>
+  );
+};
+
+// Platform Management Panel
+const PlatformManagementPanel = () => {
+  const queryClient = useQueryClient();
+  const [loading, setLoading] = useState(false);
+
+  // Stats Queries
+  const { data: settings = {} } = useQuery({
+    queryKey: ['siteSettings'],
+    queryFn: getSiteSettings,
+  });
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ['categories'],
+    queryFn: getCategories,
+  });
+
+  const handleUpdateSetting = async (key: string, value: string) => {
+    try {
+      setLoading(true);
+      await updateSiteSetting(key, value);
+      toast.success(`Definição "${key}" atualizada.`);
+      queryClient.invalidateQueries({ queryKey: ['siteSettings'] });
+    } catch (e) {
+      toast.error("Erro ao atualizar definição.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateCategoryBanner = async (id: string, bannerUrl: string) => {
+    try {
+      setLoading(true);
+      await updateCategory(id, { banner_url: bannerUrl });
+      toast.success("Banner da categoria atualizado.");
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
+    } catch (e) {
+      toast.error("Erro ao atualizar categoria.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      {/* Metrics Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="bg-card border rounded-2xl p-6 shadow-sm">
+          <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-primary" /> Métricas da Home
+          </h3>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase text-muted-foreground">Profissionais Ativos (Ex: 2,500+)</label>
+              <div className="flex gap-2">
+                <input 
+                  type="text" 
+                  defaultValue={settings.stats_active_pros || "2,500+"} 
+                  className="flex-1 h-11 px-4 rounded-xl border bg-background"
+                  onBlur={(e) => handleUpdateSetting('stats_active_pros', e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase text-muted-foreground">Avaliações Verificadas (Ex: 15,000+)</label>
+              <input 
+                type="text" 
+                defaultValue={settings.stats_verified_reviews || "15,000+"} 
+                className="w-full h-11 px-4 rounded-xl border bg-background"
+                onBlur={(e) => handleUpdateSetting('stats_verified_reviews', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase text-muted-foreground">Projetos Concluídos (Ex: 8,200+)</label>
+              <input 
+                type="text" 
+                defaultValue={settings.stats_completed_projects || "8,200+"} 
+                className="w-full h-11 px-4 rounded-xl border bg-background"
+                onBlur={(e) => handleUpdateSetting('stats_completed_projects', e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Global Banners Section */}
+        <div className="bg-card border rounded-2xl p-6 shadow-sm">
+          <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
+            <ImageIcon className="h-5 w-5 text-primary" /> Banners Globais
+          </h3>
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase text-muted-foreground">Banner Topo (URL Imagem)</label>
+              <input 
+                type="text" 
+                placeholder="https://exemplo.com/banner.png"
+                defaultValue={settings.banner_topo_url || ""} 
+                className="w-full h-11 px-4 rounded-xl border bg-background"
+                onBlur={(e) => handleUpdateSetting('banner_topo_url', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase text-muted-foreground">Banner Pré-CTA (URL Imagem)</label>
+              <input 
+                type="text" 
+                placeholder="https://exemplo.com/banner2.png"
+                defaultValue={settings.banner_pre_cta_url || ""} 
+                className="w-full h-11 px-4 rounded-xl border bg-background"
+                onBlur={(e) => handleUpdateSetting('banner_pre_cta_url', e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Categories Banners Section */}
+      <div className="bg-card border rounded-2xl shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b bg-muted/30">
+          <h3 className="font-bold flex items-center gap-2">
+            <LayoutGrid className="h-5 w-5 text-primary" /> Banners por Categoria
+          </h3>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 divide-x divide-y">
+          {categories.map((cat: any) => (
+            <div key={cat.id} className="p-6 space-y-4 hover:bg-muted/5 transition-colors">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">{cat.icon}</span>
+                <h4 className="font-bold">{cat.name}</h4>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase text-muted-foreground">URL do Banner</label>
+                <input 
+                  type="text" 
+                  placeholder="URL da imagem..."
+                  defaultValue={cat.banner_url || ""} 
+                  className="w-full h-9 px-3 text-xs rounded-lg border bg-background focus:ring-1 focus:ring-primary"
+                  onBlur={(e) => handleUpdateCategoryBanner(cat.id, e.target.value)}
+                />
+              </div>
+              {cat.banner_url && (
+                <div className="relative h-12 w-full rounded-md overflow-hidden bg-muted">
+                  <img src={cat.banner_url} alt={cat.name} className="h-full w-full object-cover opacity-50" />
+                  <div className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-muted-foreground">Preview Ativo</div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

@@ -375,3 +375,31 @@ export const recordProfileVisit = async (visitedId: string, visitorId?: string) 
   }
   return true;
 };
+
+export const getSiteStats = async () => {
+  const { data, error } = await supabase
+    .from('site_stats')
+    .select('*')
+    .eq('id', 'global')
+    .single();
+    
+  if (error) {
+    console.error('Error fetching site stats:', error);
+    return null;
+  }
+  return data;
+};
+
+export const getTopProfiles = async (limit: number = 10) => {
+  const { data, error } = await supabase
+    .from('professionals')
+    .select('*, portfolios(*), reviews(*)')
+    .order('total_views', { ascending: false })
+    .limit(limit);
+    
+  if (error) {
+    console.error('Error fetching top profiles:', error);
+    return [];
+  }
+  return data as unknown as Professional[];
+};

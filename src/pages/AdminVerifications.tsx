@@ -7,10 +7,12 @@ import {
   supabase,
   getAdmins,
   addAdmin,
-  removeAdmin
+  removeAdmin,
+  getSiteStats,
+  getTopProfiles
 } from "@/data/api";
 import { Button } from "@/components/ui/button";
-import { Check, X, ExternalLink, Shield, ArrowLeft, Search, AlertCircle, Star, Pause, RotateCcw, Settings, Plus, Trash2, Mail } from "lucide-react";
+import { Check, X, ExternalLink, Shield, ArrowLeft, Search, AlertCircle, Star, Pause, RotateCcw, Settings, Plus, Trash2, Mail, BarChart3, TrendingUp, Calendar, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -23,7 +25,7 @@ const AdminVerifications = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
-  const [viewMode, setViewMode] = useState<'pending' | 'all' | 'settings'>('pending');
+  const [viewMode, setViewMode] = useState<'pending' | 'all' | 'settings' | 'analytics'>('pending');
   const [newAdminEmail, setNewAdminEmail] = useState("");
 
   // Restricted Access Check
@@ -189,6 +191,13 @@ const AdminVerifications = () => {
           >
             <Settings className="h-4 w-4" /> Configurações
           </Button>
+          <Button 
+            variant={viewMode === 'analytics' ? 'default' : 'outline'} 
+            onClick={() => setViewMode('analytics')}
+            className="rounded-full flex items-center gap-2"
+          >
+            <BarChart3 className="h-4 w-4" /> Analítica
+          </Button>
         </div>
 
         {/* Main Content Section */}
@@ -228,7 +237,7 @@ const AdminVerifications = () => {
               </div>
             )}
           </>
-        ) : (
+        ) : viewMode === 'settings' ? (
           <SettingsPanel 
             adminList={adminList} 
             newEmail={newAdminEmail} 
@@ -255,7 +264,93 @@ const AdminVerifications = () => {
               }
             }}
           />
+        ) : (
+          <AnalyticsPanel />
         )}
+      </div>
+    </div>
+  );
+};
+
+// Analytics Panel Component
+const AnalyticsPanel = () => {
+  const { data: stats, isLoading: loadingStats } = useQuery({
+    queryKey: ['siteStats'],
+    queryFn: getSiteStats,
+  });
+
+  const { data: topProfiles = [], isLoading: loadingTop } = useQuery({
+    queryKey: ['topProfiles'],
+    queryFn: () => getTopProfiles(10),
+  });
+
+  if (loadingStats || loadingTop) return <div className="flex justify-center py-20">A carregar analítica...</div>;
+
+  const statCards = [
+    { label: "Visitas Hoje", value: stats?.daily_visits || 0, icon: Eye, color: "text-blue-500", bg: "bg-blue-50" },
+    { label: "Este Mês", value: stats?.monthly_visits || 0, icon: TrendingUp, color: "text-emerald-500", bg: "bg-emerald-50" },
+    { label: "Este Ano", value: stats?.yearly_visits || 0, icon: Calendar, color: "text-amber-500", bg: "bg-amber-50" },
+  ];
+
+  return (
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      {/* Global Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {statCards.map((card) => (
+          <div key={card.label} className="bg-card border rounded-2xl p-6 shadow-sm flex items-center gap-4">
+            <div className={`p-3 rounded-xl ${card.bg} ${card.color}`}>
+              <card.icon className="h-6 w-6" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground font-medium">{card.label}</p>
+              <h3 className="text-2xl font-bold">{card.value.toLocaleString()}</h3>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Top Profiles Ranking */}
+      <div className="bg-card border rounded-2xl shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b bg-muted/30 flex items-center justify-between">
+          <h3 className="font-bold flex items-center gap-2">
+            <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" /> 
+            Ranking: Top 10 Perfis Mais Visitados
+          </h3>
+          <span className="text-xs text-muted-foreground uppercase tracking-widest font-bold">Total de Visitas</span>
+        </div>
+        <div className="divide-y">
+          {topProfiles.length === 0 ? (
+            <div className="p-12 text-center text-muted-foreground">Não há dados de visualização disponíveis.</div>
+          ) : (
+            topProfiles.map((pro: any, index: number) => (
+              <div key={pro.id} className="flex items-center justify-between p-4 px-6 hover:bg-muted/5 transition-colors">
+                <div className="flex items-center gap-4">
+                  <div className={`h-8 w-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                    index === 0 ? 'bg-yellow-500 text-white' : 
+                    index === 1 ? 'bg-slate-300 text-slate-700' : 
+                    index === 2 ? 'bg-amber-600/20 text-amber-700' : 'bg-muted text-muted-foreground'
+                  }`}>
+                    {index + 1}
+                  </div>
+                  <img src={pro.avatar} className="h-10 w-10 rounded-full object-cover border" alt={pro.name} />
+                  <div>
+                    <h4 className="font-bold text-sm leading-none mb-1">{pro.name}</h4>
+                    <p className="text-xs text-muted-foreground">{pro.title}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-6">
+                  <div className="text-right hidden sm:block">
+                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">Categoria</p>
+                    <p className="text-xs font-medium">{pro.category}</p>
+                  </div>
+                  <div className="bg-primary/5 px-4 py-2 rounded-xl border border-primary/10 text-center min-w-[80px]">
+                    <span className="text-lg font-black text-primary leading-none">{(pro as any).total_views || 0}</span>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </div>
     </div>
   );

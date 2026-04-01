@@ -233,7 +233,7 @@ subject = "Confirma o teu perfil no Saka Service"
 content_path = "./supabase/templates/confirm_signup.html"
 
 [auth.email.template.reset_password]
-subject = "Redefine a tua password no Saka Service"
+subject = "Redefinição de palavra-passe — Saka Service"
 content_path = "./supabase/templates/reset_password.html"
 
 [auth.email.template.magic_link]

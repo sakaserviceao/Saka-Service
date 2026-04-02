@@ -24,13 +24,14 @@ const ProtectedRoute = ({ children, requireAdmin = false }: ProtectedRouteProps)
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Se estiver logado mas o e-mail não estiver confirmado, redireciona para a página de verificação de e-mail
+  // Comentado para permitir acesso sem verificação obrigatória de e-mail por agora
+  /*
   if (!user.email_confirmed_at) {
-    // Evita loop infinito se já estiver na página de verificação
     if (location.pathname !== "/verificar-email") {
       return <Navigate to="/verificar-email" state={{ email: user.email }} replace />;
     }
   }
+  */
 
   // Aqui você poderia adicionar uma verificação de admin se necessário
   // if (requireAdmin && !isAdminUser(user)) { ... }

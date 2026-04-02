@@ -23,20 +23,20 @@ const Login = () => {
 
     if (error) {
       if (error.message.toLowerCase().includes("confirm")) {
-        toast.warning("Conta ainda não ativada.", {
-          description: "Verifica o teu e-mail e confirma o endereço antes de fazer login. Se não encontrares a mensagem, consulta a pasta de spam ou solicita um novo envio."
+        toast.warning("Acesso restrito: Confirmação pendente.", {
+          description: "Verifica o teu e-mail para ativar todas as funcionalidades. Entretanto, podes continuar a navegar."
         });
-        navigate("/verificar-email", { state: { email } });
+        // Permitimos continuar se o erro for apenas de confirmação, 
+        // mas o Supabase geralmente não retorna um 'data.user' nesses casos.
+        // Se houver um erro, não podemos forçar o login se o backend bloquear.
+        toast.error("Não foi possível iniciar sessão.", {
+          description: "Por favor, confirma o teu e-mail antes de entrar."
+        });
       } else {
         toast.error("Não foi possível iniciar sessão.", {
           description: "Verifica os teus dados e tenta novamente."
         });
       }
-    } else if (data.user && !data.user.email_confirmed_at) {
-      toast.warning("Conta ainda não ativada.", {
-        description: "Verifica o teu e-mail e confirma o endereço antes de fazer login. Se não encontrares a mensagem, consulta a pasta de spam ou solicita um novo envio."
-      });
-      navigate("/verificar-email", { state: { email } });
     } else {
       toast.success("Bem-vindo de volta!");
       navigate("/");

@@ -5,12 +5,43 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { resendVerificationEmail } from "@/data/api";
 import { useSettings } from "@/hooks/useSettings";
+import { supabase } from "@/lib/supabase";
+import { useNavigate } from "react-router-dom";
 
 const EmailVerification = () => {
   const location = useLocation();
   const email = location.state?.email || "";
   const [loading, setLoading] = useState(false);
+  const [checking, setChecking] = useState(false);
   const { getSetting } = useSettings();
+  const navigate = useNavigate();
+
+  const checkStatus = async () => {
+    setChecking(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        toast.success("Conta confirmada! Bem-vindo.");
+        navigate("/");
+        return;
+      }
+
+      // Se não houver sessão, tentamos um refresh forçado
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.email_confirmed_at) {
+        toast.success("E-mail verificado. Por favor, faça login.");
+        navigate("/login");
+      } else {
+        toast.error("A conta ainda não está confirmada.", {
+          description: "Certifique-se de que clicou no link do e-mail ou usou o comando SQL no dashboard."
+        });
+      }
+    } catch (err) {
+      toast.error("Erro ao verificar estado.");
+    } finally {
+      setChecking(false);
+    }
+  };
 
   const handleResend = async () => {
     if (!email) {
@@ -21,8 +52,8 @@ const EmailVerification = () => {
     setLoading(true);
     try {
       await resendVerificationEmail(email);
-      toast.success("E-mail reenviado.", {
-        description: "Enviámos novamente o link de confirmação. Verifica a tua caixa de entrada."
+      toast.success("E-mail reenviado para " + email, {
+        description: "Enviámos um novo link. Se continuar a não receber, verifique a pasta de SPAM ou aguarde alguns minutos devido a limites do servidor."
       });
     } catch (error: any) {
       toast.error("Falha ao reenviar e-mail.", {
@@ -113,6 +144,19 @@ const EmailVerification = () => {
             >
               <ExternalLink className="mr-2 h-5 w-5" />
               Abrir meu e-mail
+            </Button>
+
+            <Button 
+              onClick={checkStatus}
+              disabled={checking}
+              variant="secondary"
+              className="w-full h-12 rounded-xl text-sm font-bold bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border border-emerald-500/20 transition-all"
+            >
+              {checking ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> A verificar...</>
+              ) : (
+                "Já confirmei / Verificar estado"
+              )}
             </Button>
             
             <Button 

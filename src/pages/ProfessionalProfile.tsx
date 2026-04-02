@@ -201,7 +201,7 @@ const ProfessionalProfile = () => {
         </motion.div>
 
         {/* Portfolio */}
-        {(pro as any).portfolios && (pro as any).portfolios.length > 0 && (
+        {pro.portfolios && pro.portfolios.length > 0 && (
           <motion.section
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -210,7 +210,7 @@ const ProfessionalProfile = () => {
           >
             <h2 className="mb-4 text-xl font-bold text-foreground">Portfólio de Trabalhos</h2>
             <div className="grid gap-4 sm:grid-cols-2">
-              {(pro as any).portfolios.map((item: any, i: number) => (
+              {pro.portfolios.map((item: any, i: number) => (
                 <div key={i} className="group overflow-hidden rounded-xl border border-border bg-card shadow-card">
                   <div className="aspect-video overflow-hidden">
                     <img

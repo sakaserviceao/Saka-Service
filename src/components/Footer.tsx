@@ -10,10 +10,12 @@ const Footer = () => {
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <div className="mb-4 flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-hero">
-                <span className="text-sm font-bold text-primary-foreground">
-                  {getSetting('brand_name', 'Sakaservice').charAt(0)}
-                </span>
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg overflow-hidden">
+                <img 
+                  src={getSetting('logo_url', 'https://zldaauprystajzxfypmc.supabase.co/storage/v1/object/public/uploads/Logo%20Oku%20Saka%20e%20Sakaservice.png')} 
+                  alt={getSetting('brand_name', 'Sakaservice')} 
+                  className="h-full w-full object-contain" 
+                />
               </div>
               <span className="text-lg font-bold">
                 {getSetting('brand_name', 'Sakaservice')}
@@ -34,9 +36,9 @@ const Footer = () => {
           <div>
             <h4 className="mb-3 text-sm font-semibold">Empresa</h4>
             <div className="flex flex-col gap-2">
-              <Link to="/about-us" className="text-sm text-muted-foreground hover:text-foreground">Sobre Nós</Link>
-              <Link to="/privacy-policy" className="text-sm text-muted-foreground hover:text-foreground">Política de Privacidade</Link>
-              <Link to="/terms-of-service" className="text-sm text-muted-foreground hover:text-foreground">Termos de Serviço</Link>
+              <Link to={getSetting('url_about_us', '/about-us')} className="text-sm text-muted-foreground hover:text-foreground">Sobre Nós</Link>
+              <Link to={getSetting('url_privacy_policy', '/privacy-policy')} className="text-sm text-muted-foreground hover:text-foreground">Política de Privacidade</Link>
+              <Link to={getSetting('url_terms_of_service', '/terms-of-service')} className="text-sm text-muted-foreground hover:text-foreground">Termos de Serviço</Link>
             </div>
           </div>
           <div>

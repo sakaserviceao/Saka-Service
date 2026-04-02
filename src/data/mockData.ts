@@ -19,9 +19,14 @@ export interface Professional {
   whatsapp?: string;
   featured?: boolean;
   portfolio?: any[];
+  portfolios?: any[];
   reviews?: any[];
   linkedin_url?: string;
   verification_submitted_at?: string;
+  daily_views?: number;
+  monthly_views?: number;
+  yearly_views?: number;
+  total_views?: number;
 }
 
 export interface Category {

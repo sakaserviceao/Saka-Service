@@ -72,7 +72,7 @@ const BecomePro = () => {
             email: existingPro.email || "",
             whatsapp: existingPro.whatsapp || "",
             linkedin_url: existingPro.linkedin_url || "",
-            id_number: (existingPro as any).id_number || "",
+            id_number: existingPro.id_number || "",
           });
         }
       } catch (err) {

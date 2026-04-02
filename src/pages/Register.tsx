@@ -19,23 +19,32 @@ const Register = () => {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signUp({ 
+    const { data, error } = await supabase.auth.signUp({ 
       email, 
       password,
       options: {
+        emailRedirectTo: "https://saka-service.vercel.app/confirm",
         data: {
           full_name: name,
           status: 'pending_email_confirmation',
         }
       }
     });
+
+    console.log("Supabase SignUp Response Data:", data);
+    if (error) console.error("Supabase SignUp Error:", error);
+
     setLoading(false);
 
     if (error) {
       toast.error(error.message);
+    } else if (data.session) {
+      // Se houver sessão imediata, a confirmação de e-mail está DESATIVADA no dashboard
+      toast.success("Conta criada e ativada automaticamente!");
+      navigate("/");
     } else {
-      toast.info("Tudo pronto para começares no Saka Service.", {
-        description: "Enviámos um link de confirmação para o teu e-mail. Confirma o teu endereço para ativar a conta.",
+      toast.info("Link de confirmação enviado.", {
+        description: "Verifique o seu e-mail para ativar a conta. Se não receber, verifique o SPAM ou as definições do servidor.",
         duration: 10000,
       });
       navigate("/verificar-email", { state: { email } });

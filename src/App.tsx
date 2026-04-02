@@ -25,6 +25,7 @@ import TermsOfService from "./pages/TermsOfService";
 import EmailVerification from "./pages/EmailVerification";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ConfigError from "./components/ConfigError";
+import ConfirmEmail from "./pages/ConfirmEmail";
 
 // Check for missing Supabase configuration
 const isConfigured = 
@@ -59,6 +60,7 @@ const App = () => {
                 <Route path="/tornar-se-pro" element={<ProtectedRoute><BecomePro /></ProtectedRoute>} />
                 <Route path="/verify" element={<ProtectedRoute><VerificationPage /></ProtectedRoute>} />
                 <Route path="/verificar-email" element={<EmailVerification />} />
+                <Route path="/confirm" element={<ConfirmEmail />} />
                 <Route path="/admin/verifications" element={<ProtectedRoute requireAdmin><AdminVerifications /></ProtectedRoute>} />
                 <Route path="/about-us" element={<AboutUs />} />
                 <Route path="/privacy-policy" element={<PrivacyPolicy />} />

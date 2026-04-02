@@ -30,7 +30,7 @@ const HeroSection = () => {
       opacity: 1,
       transition: { staggerChildren: 0.15, delayChildren: 0.3 },
     },
-  };
+  } as const;
 
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -39,7 +39,7 @@ const HeroSection = () => {
       y: 0,
       transition: { type: "spring", stiffness: 100, damping: 10 },
     },
-  };
+  } as const;
 
   return (
     <section className="relative overflow-hidden bg-gradient-hero px-4 py-24 transition-colors duration-500 md:py-32 lg:py-44">

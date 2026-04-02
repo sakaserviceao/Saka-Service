@@ -448,40 +448,41 @@ const PlatformManagementPanel = () => {
         </div>
       </div>
 
-      {/* Metrics Section */}
+      {/* Company Links Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="bg-card border rounded-2xl p-6 shadow-sm">
           <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-primary" /> Métricas da Home
+            <LayoutGrid className="h-5 w-5 text-primary" /> Empresa & Links Dinâmicos
           </h3>
           <div className="space-y-4">
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase text-muted-foreground">Profissionais Ativos (Ex: 2,500+)</label>
-              <div className="flex gap-2">
-                <input 
-                  type="text" 
-                  defaultValue={settings.stats_active_pros || "2,500+"} 
-                  className="flex-1 h-11 px-4 rounded-xl border bg-background"
-                  onBlur={(e) => handleUpdateSetting('stats_active_pros', e.target.value)}
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase text-muted-foreground">Avaliações Verificadas (Ex: 15,000+)</label>
+              <label className="text-xs font-bold uppercase text-muted-foreground">Sobre Nós (Link/URL)</label>
               <input 
                 type="text" 
-                defaultValue={settings.stats_verified_reviews || "15,000+"} 
+                placeholder="/about-us"
+                defaultValue={settings.url_about_us || "/about-us"} 
                 className="w-full h-11 px-4 rounded-xl border bg-background"
-                onBlur={(e) => handleUpdateSetting('stats_verified_reviews', e.target.value)}
+                onBlur={(e) => handleUpdateSetting('url_about_us', e.target.value)}
               />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase text-muted-foreground">Projetos Concluídos (Ex: 8,200+)</label>
+              <label className="text-xs font-bold uppercase text-muted-foreground">Política de Privacidade (Link/URL)</label>
               <input 
                 type="text" 
-                defaultValue={settings.stats_completed_projects || "8,200+"} 
+                placeholder="/privacy-policy"
+                defaultValue={settings.url_privacy_policy || "/privacy-policy"} 
                 className="w-full h-11 px-4 rounded-xl border bg-background"
-                onBlur={(e) => handleUpdateSetting('stats_completed_projects', e.target.value)}
+                onBlur={(e) => handleUpdateSetting('url_privacy_policy', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase text-muted-foreground">Termos de Serviço (Link/URL)</label>
+              <input 
+                type="text" 
+                placeholder="/terms-of-service"
+                defaultValue={settings.url_terms_of_service || "/terms-of-service"} 
+                className="w-full h-11 px-4 rounded-xl border bg-background"
+                onBlur={(e) => handleUpdateSetting('url_terms_of_service', e.target.value)}
               />
             </div>
           </div>
@@ -511,6 +512,97 @@ const PlatformManagementPanel = () => {
                 defaultValue={settings.banner_pre_cta_url || ""} 
                 className="w-full h-11 px-4 rounded-xl border bg-background"
                 onBlur={(e) => handleUpdateSetting('banner_pre_cta_url', e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Brand Identity / Navbar Section */}
+        <div className="bg-card border rounded-2xl p-6 shadow-sm">
+          <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
+            <Shield className="h-5 w-5 text-primary" /> Identidade & Navbar
+          </h3>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase text-muted-foreground">Nome da Marca (Display Name)</label>
+              <input 
+                type="text" 
+                defaultValue={settings.brand_name || "Sakaservice"} 
+                className="w-full h-11 px-4 rounded-xl border bg-background"
+                onBlur={(e) => handleUpdateSetting('brand_name', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase text-muted-foreground">URL do Logótipo (Navbar/Footer)</label>
+              <input 
+                type="text" 
+                placeholder="https://exemplo.com/logo.png"
+                defaultValue={settings.logo_url || ""} 
+                className="w-full h-11 px-4 rounded-xl border bg-background"
+                onBlur={(e) => handleUpdateSetting('logo_url', e.target.value)}
+              />
+              <p className="text-[10px] text-muted-foreground italic">Recomendado: Fundo transparente (PNG/SVG) e formato horizontal.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Rodapé & Redes Sociais Section */}
+      <div className="bg-card border rounded-2xl p-6 shadow-sm">
+        <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
+          <Mail className="h-5 w-5 text-primary" /> Rodapé & Conectividade
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase text-muted-foreground">Descrição Principal do Rodapé</label>
+              <textarea 
+                rows={3}
+                defaultValue={settings.footer_description || "O marketplace moderno que conecta profissionais e clientes."} 
+                className="w-full p-4 rounded-xl border bg-background resize-none"
+                onBlur={(e) => handleUpdateSetting('footer_description', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase text-muted-foreground">Email de Contacto Público</label>
+              <input 
+                type="email" 
+                defaultValue={settings.contact_email || "contato@sakaservice.com"} 
+                className="w-full h-11 px-4 rounded-xl border bg-background"
+                onBlur={(e) => handleUpdateSetting('contact_email', e.target.value)}
+              />
+            </div>
+          </div>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase text-muted-foreground">Link do Instagram</label>
+              <input 
+                type="text" 
+                placeholder="https://instagram.com/sakaservice"
+                defaultValue={settings.social_instagram || "#"} 
+                className="w-full h-11 px-4 rounded-xl border bg-background"
+                onBlur={(e) => handleUpdateSetting('social_instagram', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase text-muted-foreground">Link do LinkedIn</label>
+              <input 
+                type="text" 
+                placeholder="https://linkedin.com/company/sakaservice"
+                defaultValue={settings.social_linkedin || "#"} 
+                className="w-full h-11 px-4 rounded-xl border bg-background"
+                onBlur={(e) => handleUpdateSetting('social_linkedin', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase text-muted-foreground">Link do Twitter / X</label>
+              <input 
+                type="text" 
+                placeholder="https://twitter.com/sakaservice"
+                defaultValue={settings.social_twitter || "#"} 
+                className="w-full h-11 px-4 rounded-xl border bg-background"
+                onBlur={(e) => handleUpdateSetting('social_twitter', e.target.value)}
               />
             </div>
           </div>

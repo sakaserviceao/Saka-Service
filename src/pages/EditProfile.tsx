@@ -84,15 +84,15 @@ const EditProfile = () => {
             setMissingDocs(true);
           }
 
-          if ((proData as any).portfolios) {
-            setExistingPortfolios((proData as any).portfolios);
+          if (proData.portfolios) {
+            setExistingPortfolios(proData.portfolios);
           }
 
           setStats({
-            daily_views: (proData as any).daily_views || 0,
-            monthly_views: (proData as any).monthly_views || 0,
-            yearly_views: (proData as any).yearly_views || 0,
-            total_views: (proData as any).total_views || 0
+            daily_views: proData.daily_views || 0,
+            monthly_views: proData.monthly_views || 0,
+            yearly_views: proData.yearly_views || 0,
+            total_views: proData.total_views || 0
           });
         } else if (user) {
           navigate("/tornar-se-pro");

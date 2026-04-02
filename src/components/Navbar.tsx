@@ -20,9 +20,9 @@ const Navbar = () => {
         <Link to="/" className="flex items-center gap-2">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg overflow-hidden">
             <img 
-              src={getSetting('logo_url', '/logo.png')} 
+              src={getSetting('logo_url', 'https://zldaauprystajzxfypmc.supabase.co/storage/v1/object/public/uploads/Logo%20Oku%20Saka%20e%20Sakaservice.png')} 
               alt={getSetting('brand_name', 'Sakaservice')} 
-              className="h-full w-full object-cover" 
+              className="h-full w-full object-contain" 
             />
           </div>
           <span className="text-xl font-bold text-foreground">

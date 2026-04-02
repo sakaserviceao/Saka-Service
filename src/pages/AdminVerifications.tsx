@@ -61,9 +61,14 @@ const AdminVerifications = () => {
                   user?.email === 'francisco.mucamba@gmail.com' || 
                   user?.email === 'sakaservice.ao@gmail.com';
 
-  const { data: settings = {} } = useQuery({
+  const { data: settings = {}, isLoading: isLoadingSettings } = useQuery({
     queryKey: ['siteSettings'],
     queryFn: getSiteSettings,
+  });
+
+  const { data: categories = [], isLoading: isLoadingCategories } = useQuery({
+    queryKey: ['categories'],
+    queryFn: getCategories,
   });
 
   const managerList = (settings.manager_emails || "").split(',').filter(Boolean);
@@ -373,7 +378,7 @@ const AdminVerifications = () => {
         ) : viewMode === 'analytics' ? (
           <AnalyticsPanel />
         ) : (
-          <PlatformManagementPanel />
+          <PlatformManagementPanel settings={settings} categories={categories} />
         )}
       </div>
     </div>
@@ -381,51 +386,9 @@ const AdminVerifications = () => {
 };
 
 // Platform Management Panel
-const PlatformManagementPanel = () => {
+const PlatformManagementPanel = ({ settings, categories }: { settings: any, categories: any[] }) => {
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
-
-  // Stats Queries
-  const { data: settings = {}, isLoading: loadingSettings, error: errorSettings } = useQuery({
-    queryKey: ['siteSettings'],
-    queryFn: getSiteSettings,
-  });
-
-  const { data: categories = [], isLoading: loadingCats, error: errorCats } = useQuery({
-    queryKey: ['categories'],
-    queryFn: getCategories,
-  });
-
-  if (loadingSettings || loadingCats) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 text-muted-foreground animate-pulse">
-        <div className="h-8 w-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin mb-4" />
-        <p>Carregando configurações da plataforma...</p>
-      </div>
-    );
-  }
-
-  if (errorSettings || errorCats) {
-    return (
-      <div className="bg-destructive/10 p-10 rounded-2xl border border-destructive/20 text-center animate-in zoom-in-95 duration-300">
-        <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
-        <h3 className="text-xl font-bold text-destructive">Falha na Comunicação</h3>
-        <p className="text-muted-foreground mt-3 max-w-md mx-auto">
-          Não foi possível ler as configurações do site. Verifique se o script SQL foi executado no painel do Supabase.
-        </p>
-        <Button 
-          variant="outline" 
-          className="mt-6" 
-          onClick={() => {
-            queryClient.invalidateQueries({ queryKey: ['siteSettings'] });
-            queryClient.invalidateQueries({ queryKey: ['categories'] });
-          }}
-        >
-          Tentar Novamente
-        </Button>
-      </div>
-    );
-  }
 
   const handleUpdateSetting = async (key: string, value: string) => {
     try {
@@ -453,8 +416,17 @@ const PlatformManagementPanel = () => {
     }
   };
 
+  if (Object.keys(settings).length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-muted-foreground animate-pulse">
+        <div className="h-8 w-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin mb-4" />
+        <p>A carregar as suas configurações...</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div key={settings.brand_name || 'management-panel'} className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Header with Actions */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-primary/5 p-6 rounded-2xl border border-primary/10">
         <div>

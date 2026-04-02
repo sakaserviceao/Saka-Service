@@ -9,10 +9,12 @@ import HeroSection from "@/components/HeroSection";
 import ProfessionalCard from "@/components/ProfessionalCard";
 import CategoryCard from "@/components/CategoryCard";
 import HomeBanner from "@/components/HomeBanner";
-import { getCategories, getFeaturedProfessionals } from "@/data/api";
+import DynamicCTA from "@/components/DynamicCTA";
+import { getCategories, getFeaturedProfessionals, getPlatformStats } from "@/data/api";
 import { useTheme } from "@/hooks/useTheme";
 import { useSettings } from "@/hooks/useSettings";
 
+const Index = () => {
   const { data: featured = [] } = useQuery({
     queryKey: ['featuredProfessionals'],
     queryFn: getFeaturedProfessionals,
@@ -23,13 +25,23 @@ import { useSettings } from "@/hooks/useSettings";
     queryFn: getCategories,
   });
 
+  const { data: stats = { activePros: 0, verifiedReviews: 0, completedProjects: 0 } } = useQuery({
+    queryKey: ['platformStats'],
+    queryFn: getPlatformStats,
+  });
+
   const { theme } = useTheme();
   const { getSetting } = useSettings();
 
+  const formatNumber = (num: number) => {
+    if (num >= 1000) return `${(num / 1000).toFixed(1)}k+`;
+    return num.toString();
+  };
+
   const dynamicStats = [
-    { icon: Users, label: "Profissionais Ativos", value: getSetting('stats_active_pros', '2,500+') },
-    { icon: Shield, label: "Avaliações Verificadas", value: getSetting('stats_verified_reviews', '15,000+') },
-    { icon: Zap, label: "Projetos Concluídos", value: getSetting('stats_completed_projects', '8,200+') },
+    { icon: Users, label: "Profissionais Ativos", value: formatNumber(stats.activePros) },
+    { icon: Shield, label: "Avaliações Verificadas", value: formatNumber(stats.verifiedReviews) },
+    { icon: Zap, label: "Projetos Concluídos", value: formatNumber(stats.completedProjects) },
   ];
 
   return (
@@ -130,29 +142,12 @@ import { useSettings } from "@/hooks/useSettings";
         className="mt-10 mb-6"
       />
 
-      {/* CTA */}
+      {/* Dynamic CTA - Restored Previous Dimensions */}
       <section className="py-20">
         <div className="container">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="mx-auto max-w-2xl rounded-2xl bg-gradient-hero p-10 text-center shadow-hero md:p-14"
-          >
-            <h2 className={`text-2xl font-bold ${theme === 'dark' ? 'text-slate-100' : 'text-primary-foreground'} md:text-3xl`}>
-              Pronto para expandir seu negócio?
-            </h2>
-            <p className={`mx-auto mt-3 max-w-md text-sm ${theme === 'dark' ? 'text-slate-300' : 'text-primary-foreground/70'}`}>
-              Mostre seu talento e alcance novos clientes.
-            </p>
-            <Button
-              size="lg"
-              className="mt-6 rounded-full bg-card text-foreground hover:bg-card/90"
-              asChild
-            >
-              <Link to="/register">Comece agora</Link>
-            </Button>
-          </motion.div>
+          <div className="mx-auto max-w-2xl">
+            <DynamicCTA />
+          </div>
         </div>
       </section>
 

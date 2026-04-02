@@ -101,15 +101,18 @@
 }
 
 @layer utilities {
-  .text-gradient-primary {
-    background: var(--gradient-hero);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+  .bg-grid {
+    background-image: linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+    background-size: 40px 40px;
   }
 
   .bg-gradient-hero {
     background: var(--gradient-hero);
+  }
+
+  .text-gradient-hero {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-primary/80 to-primary/60;
   }
 
   .bg-gradient-accent {
@@ -126,11 +129,5 @@
 
   .shadow-hero {
     box-shadow: var(--shadow-hero);
-  }
-
-  .bg-grid {
-    background-image: linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-    background-size: 40px 40px;
   }
 }

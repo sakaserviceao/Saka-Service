@@ -10,8 +10,9 @@ DROP TABLE IF EXISTS public.reviews CASCADE;
 DROP TABLE IF EXISTS public.portfolios CASCADE;
 DROP TABLE IF EXISTS public.professionals CASCADE;
 DROP TABLE IF EXISTS public.categories CASCADE;
-DROP TABLE IF EXISTS public.site_settings CASCADE;
 DROP TABLE IF EXISTS public.admins CASCADE;
+DROP TABLE IF EXISTS public.site_stats CASCADE;
+DROP TABLE IF EXISTS public.profile_visits CASCADE;
 DROP TYPE IF EXISTS public.verification_status CASCADE;
 
 
@@ -64,7 +65,15 @@ CREATE TABLE public.professionals (
     id_card_back_url TEXT,
     certificate_url TEXT,
     id_number TEXT,
+    verification_submitted_at TIMESTAMP WITH TIME ZONE,
+    rejection_reason TEXT,
     verified_at TIMESTAMP WITH TIME ZONE,
+    
+    -- Analytics (Analytics Counters)
+    daily_views INTEGER DEFAULT 0,
+    monthly_views INTEGER DEFAULT 0,
+    yearly_views INTEGER DEFAULT 0,
+    total_views INTEGER DEFAULT 0,
     
     -- Metadados
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -103,6 +112,23 @@ CREATE TABLE public.admins (
     added_by TEXT
 );
 
+-- Estatísticas Globais do Site
+CREATE TABLE public.site_stats (
+  id TEXT PRIMARY KEY DEFAULT 'global',
+  daily_visits INTEGER DEFAULT 0,
+  monthly_visits INTEGER DEFAULT 0,
+  yearly_visits INTEGER DEFAULT 0,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Logs de Visitas de Perfis
+CREATE TABLE public.profile_visits (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  visited_id TEXT REFERENCES public.professionals(id) ON DELETE CASCADE,
+  visitor_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Função para verificar se o utilizador é admin
 CREATE OR REPLACE FUNCTION public.is_admin()
 RETURNS BOOLEAN AS $$
@@ -124,6 +150,8 @@ ALTER TABLE public.portfolios ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.site_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.admins ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.site_stats ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.profile_visits ENABLE ROW LEVEL SECURITY;
 
 -- Admins: Apenas admins podem ver e gerir a lista de admins
 CREATE POLICY "Admins gerem outros admins" ON public.admins FOR ALL TO authenticated 
@@ -133,6 +161,11 @@ USING (public.is_admin());
 CREATE POLICY "Leitura pública de configurações" ON public.site_settings FOR SELECT USING (true);
 CREATE POLICY "Admin gere configurações" ON public.site_settings FOR ALL TO authenticated 
 USING (public.is_admin());
+
+-- Políticas de Estatísticas e Visitas
+CREATE POLICY "Leitura pública de stats" ON public.site_stats FOR SELECT USING (true);
+CREATE POLICY "Admin gere stats" ON public.site_stats FOR ALL TO authenticated USING (public.is_admin());
+CREATE POLICY "Admin vê logs de visitas" ON public.profile_visits FOR SELECT TO authenticated USING (public.is_admin());
 
 -- Categorias: Público pode ler
 CREATE POLICY "Leitura pública de categorias" ON public.categories FOR SELECT USING (true);
@@ -210,6 +243,52 @@ INSERT INTO public.admins (email) VALUES
 ON CONFLICT (email) DO NOTHING;
 
 
+-- 7. FUNÇÕES E PROCEDIMENTOS (RPC)
+-- ------------------------------------------------------------
+
+-- Função record_profile_visit: Regista visitas e incrementa contadores
+CREATE OR REPLACE FUNCTION public.record_profile_visit(visited_user_id TEXT, visitor_user_id UUID DEFAULT NULL)
+RETURNS void AS $$
+DECLARE
+  has_recent_visit BOOLEAN;
+BEGIN
+  -- Cooldown de 5 minutos para evitar spam de visitas do mesmo utilizador
+  IF visitor_user_id IS NOT NULL THEN
+    SELECT EXISTS (
+      SELECT 1 FROM public.profile_visits 
+      WHERE visited_id = visited_user_id 
+        AND visitor_id = visitor_user_id
+        AND timestamp > (now() - interval '5 minutes')
+    ) INTO has_recent_visit;
+  ELSE
+    has_recent_visit := FALSE; 
+  END IF;
+
+  IF NOT has_recent_visit THEN
+    -- 1. Registar Log
+    INSERT INTO public.profile_visits (visited_id, visitor_id) 
+    VALUES (visited_user_id, visitor_user_id);
+
+    -- 2. Incrementar contadores do profissional
+    UPDATE public.professionals 
+    SET total_views = total_views + 1,
+        daily_views = daily_views + 1,
+        monthly_views = monthly_views + 1,
+        yearly_views = yearly_views + 1
+    WHERE id = visited_user_id;
+
+    -- 3. Incrementar estatísticas globais
+    UPDATE public.site_stats 
+    SET daily_visits = daily_visits + 1,
+        monthly_visits = monthly_visits + 1,
+        yearly_visits = yearly_visits + 1,
+        updated_at = now()
+    WHERE id = 'global';
+  END IF;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+
 -- Configurações Iniciais
 
 INSERT INTO public.site_settings (key, value) VALUES
@@ -223,6 +302,9 @@ INSERT INTO public.site_settings (key, value) VALUES
 ('social_linkedin', 'https://linkedin.com/company/sakaservice'),
 ('social_twitter', 'https://twitter.com/sakaservice')
 ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
+
+-- Iniciar estatística global se não existir
+INSERT INTO public.site_stats (id) VALUES ('global') ON CONFLICT DO NOTHING;
 
 -- FINALIZAÇÃO: Limpar a Cache do Schema
 NOTIFY pgrst, 'reload schema';

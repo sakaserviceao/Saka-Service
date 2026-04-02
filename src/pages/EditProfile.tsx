@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { getCategories, getProfessionalById, updateProfessionalProfile, addPortfolios, deletePortfolioItem, uploadImage } from "@/data/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Trash2, Plus, UploadCloud, Save, BarChart3 } from "lucide-react";
+import { Trash2, Plus, UploadCloud, Save, BarChart3, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 import DashboardStats from "@/components/DashboardStats";
@@ -47,6 +47,9 @@ const EditProfile = () => {
   // Novos portfólios guardados temporariamente para enviar
   const [newPortfolios, setNewPortfolios] = useState<{ title: string; description: string; imageFile: File | null }[]>([]);
 
+  const [verificationStatus, setVerificationStatus] = useState<string>("ativo");
+  const [missingDocs, setMissingDocs] = useState(false);
+
   useEffect(() => {
     if (!isLoading && !user) navigate("/login");
   }, [user, isLoading, navigate]);
@@ -74,12 +77,17 @@ const EditProfile = () => {
             linkedin_url: proData.linkedin_url || "",
           });
           setExistingAvatar(proData.avatar || "");
+          setVerificationStatus(proData.verification_status || "ativo");
           
+          // Verificar se faltam documentos
+          if (!proData.id_card_front_url || !proData.certificate_url) {
+            setMissingDocs(true);
+          }
+
           if ((proData as any).portfolios) {
             setExistingPortfolios((proData as any).portfolios);
           }
 
-          // Carregar estatísticas
           setStats({
             daily_views: (proData as any).daily_views || 0,
             monthly_views: (proData as any).monthly_views || 0,
@@ -87,8 +95,7 @@ const EditProfile = () => {
             total_views: (proData as any).total_views || 0
           });
         } else if (user) {
-          // Utilizador navegou para edit mas não tem profile, redirecionar para become
-          navigate("/become-pro");
+          navigate("/tornar-se-pro");
         }
       } catch (err) {
         toast.error("Erro a carregar as definições.");
@@ -139,7 +146,6 @@ const EditProfile = () => {
 
     setLoading(true);
     try {
-      // 1. Upload do novo avatar
       let finalAvatarUrl = existingAvatar;
       if (avatarFile) {
         toast.info("A carregar nova foto de perfil...");
@@ -147,13 +153,11 @@ const EditProfile = () => {
         if (url) finalAvatarUrl = url;
       }
 
-      // 2. Atualizar o Perfil
       await updateProfessionalProfile(user.id, {
         ...formData,
         avatar: finalAvatarUrl,
       });
 
-      // 3. Upload de novos portfólios
       const validNewPortfolios = [];
       for (const p of newPortfolios) {
         if (p.title && p.imageFile) {
@@ -187,6 +191,24 @@ const EditProfile = () => {
     <div className="min-h-screen bg-background pb-12">
       <Navbar />
       <div className="container max-w-3xl mt-8">
+        {/* Banner de Verificação Pendente ou Falta de Docs */}
+        {(missingDocs || verificationStatus === 'pending_review') && (
+          <div className="mb-6 rounded-2xl border border-primary/20 bg-primary/5 p-6 flex flex-col md:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                <ShieldCheck className="h-6 w-6" />
+              </div>
+              <div>
+                <h3 className="font-bold text-primary">Conta sem Verificação Completa</h3>
+                <p className="text-sm text-muted-foreground">O seu perfil não possui documentos de identificação ou o certificado carregado. Complete o envio para ser um Profissional Verificado.</p>
+              </div>
+            </div>
+            <Button className="bg-primary hover:bg-primary/90 text-white font-bold whitespace-nowrap" asChild>
+              <Link to="/verify">Completar Verificação</Link>
+            </Button>
+          </div>
+        )}
+
         <div className="bg-card border border-border rounded-xl p-8 shadow-sm">
           <div className="mb-4">
             <h1 className="text-3xl font-bold">Editar o Meu Perfil</h1>
@@ -292,7 +314,7 @@ const EditProfile = () => {
             {/* Portfolio Novo */}
             <div className="space-y-4">
               <div className="flex items-center justify-between border-b pb-2">
-                <h2 className="text-xl font-semibold text-primary">Carregar Novos Trabalhos</h2>
+                <h2 className="text-xl font-semibold text-primary">Atualizar Portifolio</h2>
                 <Button type="button" variant="outline" size="sm" onClick={addNewPortfolio} className="gap-2">
                   <Plus className="h-4 w-4" /> Mais Fotos
                 </Button>

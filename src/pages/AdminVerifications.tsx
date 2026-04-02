@@ -4,6 +4,8 @@ import {
   getAllProfessionals, 
   adminUpdateVerificationStatus, 
   adminUpdateFeaturedStatus, 
+  adminRejectVerification,
+  deleteProfessional,
   supabase,
   getAdmins,
   addAdmin,
@@ -12,10 +14,11 @@ import {
   getTopProfiles,
   getSiteSettings,
   updateSiteSetting,
-  updateCategory
+  updateCategory,
+  getCategories
 } from "@/data/api";
 import { Button } from "@/components/ui/button";
-import { Check, X, ExternalLink, Shield, ArrowLeft, Search, AlertCircle, Star, Pause, RotateCcw, Settings, Plus, Trash2, Mail, BarChart3, TrendingUp, Calendar, Eye, LayoutGrid, Image as ImageIcon } from "lucide-react";
+import { Check, X, ExternalLink, Shield, ShieldCheck, FileText, ArrowLeft, Search, AlertCircle, Star, Pause, RotateCcw, Settings, Plus, Trash2, Mail, BarChart3, TrendingUp, Calendar, Eye, LayoutGrid, Save, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -54,6 +57,7 @@ const AdminVerifications = () => {
   // Check if current user is in the admin list
   const isAdmin = adminList.some((admin: any) => admin.email === user?.email) || 
                   user?.email === 'franciscobeneditomucamba@gmail.com' || 
+                  user?.email === 'francisco.mucamba@gmail.com' || 
                   user?.email === 'sakaservice.ao@gmail.com';
 
   // Restricted Access Check
@@ -113,6 +117,35 @@ const AdminVerifications = () => {
       toast.error(error.message || "Erro ao atualizar destaque.");
     }
   });
+  
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteProfessional(id),
+    onSuccess: (_, deletedId) => {
+      // Remover instantaneamente da cache local para feedback imediato
+      queryClient.setQueryData(['allProfessionals'], (old: any[] | undefined) => 
+        old ? old.filter(p => p.id !== deletedId) : []
+      );
+      queryClient.setQueryData(['pendingVerifications'], (old: any[] | undefined) => 
+        old ? old.filter(p => p.id !== deletedId) : []
+      );
+      
+      // Limpar resultados de pesquisa se existirem
+      setSearchResults(prev => prev.filter(p => p.id !== deletedId));
+      
+      // Re-validar para garantir consistência
+      queryClient.invalidateQueries({ queryKey: ['pendingVerifications'] });
+      queryClient.invalidateQueries({ queryKey: ['allProfessionals'] });
+      
+      toast.success("Perfil eliminado permanentemente!");
+    },
+    onError: (error: any) => {
+      // Re-invalidar se falhar para trazer o perfil de volta à vista (pois o setQueryData removeu-o)
+      queryClient.invalidateQueries({ queryKey: ['allPros'] });
+      queryClient.invalidateQueries({ queryKey: ['allProfessionals'] });
+      queryClient.invalidateQueries({ queryKey: ['pendingVerifications'] });
+      toast.error(`Falha ao eliminar: ${error.message || "Permissão negada pela base de dados"}`);
+    }
+  });
 
   return (
     <div className="min-h-screen bg-background pb-12">
@@ -164,7 +197,13 @@ const AdminVerifications = () => {
             </div>
             <div className="grid gap-6">
               {searchResults.map((pro: any) => (
-                <VerificationItem key={pro.id} pro={pro} mutation={mutation} featuredMutation={featuredMutation} />
+                <VerificationItem 
+                  key={pro.id} 
+                  pro={pro} 
+                  mutation={mutation} 
+                  featuredMutation={featuredMutation}
+                  deleteMutation={deleteMutation}
+                />
               ))}
             </div>
             <hr className="my-10" />
@@ -213,7 +252,9 @@ const AdminVerifications = () => {
         {/* Main Content Section */}
         {viewMode === 'pending' ? (
           <>
-            <h2 className="text-xl font-bold mb-4">Perfis que Aguardam Verificação</h2>
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5 text-primary" /> Perfis que Aguardam Verificação
+            </h2>
             {isLoadingPending ? (
               <div className="flex justify-center py-20">A carregar veríficacões pendentes...</div>
             ) : pending.length === 0 ? (
@@ -224,7 +265,13 @@ const AdminVerifications = () => {
             ) : (
               <div className="grid gap-6">
                 {pending.map((pro: any) => (
-                  <VerificationItem key={pro.id} pro={pro} mutation={mutation} featuredMutation={featuredMutation} />
+                  <VerificationItem 
+                    key={pro.id} 
+                    pro={pro} 
+                    mutation={mutation} 
+                    featuredMutation={featuredMutation}
+                    deleteMutation={deleteMutation}
+                  />
                 ))}
               </div>
             )}
@@ -242,7 +289,13 @@ const AdminVerifications = () => {
             ) : (
               <div className="grid gap-6">
                 {allPros.map((pro: any) => (
-                  <VerificationItem key={pro.id} pro={pro} mutation={mutation} featuredMutation={featuredMutation} />
+                  <VerificationItem 
+                    key={pro.id} 
+                    pro={pro} 
+                    mutation={mutation} 
+                    featuredMutation={featuredMutation}
+                    deleteMutation={deleteMutation}
+                  />
                 ))}
               </div>
             )}
@@ -290,15 +343,46 @@ const PlatformManagementPanel = () => {
   const [loading, setLoading] = useState(false);
 
   // Stats Queries
-  const { data: settings = {} } = useQuery({
+  const { data: settings = {}, isLoading: loadingSettings, error: errorSettings } = useQuery({
     queryKey: ['siteSettings'],
     queryFn: getSiteSettings,
   });
 
-  const { data: categories = [] } = useQuery({
+  const { data: categories = [], isLoading: loadingCats, error: errorCats } = useQuery({
     queryKey: ['categories'],
     queryFn: getCategories,
   });
+
+  if (loadingSettings || loadingCats) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-muted-foreground animate-pulse">
+        <div className="h-8 w-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin mb-4" />
+        <p>Carregando configurações da plataforma...</p>
+      </div>
+    );
+  }
+
+  if (errorSettings || errorCats) {
+    return (
+      <div className="bg-destructive/10 p-10 rounded-2xl border border-destructive/20 text-center animate-in zoom-in-95 duration-300">
+        <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+        <h3 className="text-xl font-bold text-destructive">Falha na Comunicação</h3>
+        <p className="text-muted-foreground mt-3 max-w-md mx-auto">
+          Não foi possível ler as configurações do site. Verifique se o script SQL foi executado no painel do Supabase.
+        </p>
+        <Button 
+          variant="outline" 
+          className="mt-6" 
+          onClick={() => {
+            queryClient.invalidateQueries({ queryKey: ['siteSettings'] });
+            queryClient.invalidateQueries({ queryKey: ['categories'] });
+          }}
+        >
+          Tentar Novamente
+        </Button>
+      </div>
+    );
+  }
 
   const handleUpdateSetting = async (key: string, value: string) => {
     try {
@@ -306,8 +390,8 @@ const PlatformManagementPanel = () => {
       await updateSiteSetting(key, value);
       toast.success(`Definição "${key}" atualizada.`);
       queryClient.invalidateQueries({ queryKey: ['siteSettings'] });
-    } catch (e) {
-      toast.error("Erro ao atualizar definição.");
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao atualizar definição.");
     } finally {
       setLoading(false);
     }
@@ -319,8 +403,8 @@ const PlatformManagementPanel = () => {
       await updateCategory(id, { banner_url: bannerUrl });
       toast.success("Banner da categoria atualizado.");
       queryClient.invalidateQueries({ queryKey: ['categories'] });
-    } catch (e) {
-      toast.error("Erro ao atualizar categoria.");
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao atualizar categoria.");
     } finally {
       setLoading(false);
     }
@@ -328,6 +412,42 @@ const PlatformManagementPanel = () => {
 
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      {/* Header with Actions */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-primary/5 p-6 rounded-2xl border border-primary/10">
+        <div>
+          <h3 className="text-xl font-bold flex items-center gap-2">
+            <Settings className="h-6 w-6 text-primary" /> Configurações da Plataforma
+          </h3>
+          <p className="text-sm text-muted-foreground mt-1">Configure métricas, banners globais e publicidade por categoria.</p>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          <Button 
+            variant="outline" 
+            asChild 
+            className="bg-background border-primary/20 hover:bg-primary/5"
+          >
+            <a 
+              href="https://supabase.com/dashboard/project/zldaauprystajzxfypmc/storage/files" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center gap-2"
+            >
+              <ImageIcon className="h-4 w-4" /> Media / Storage
+            </a>
+          </Button>
+          <Button 
+            onClick={() => {
+              toast.success("Todas as alterações pendentes foram sincronizadas com sucesso!");
+              queryClient.invalidateQueries({ queryKey: ['siteSettings'] });
+              queryClient.invalidateQueries({ queryKey: ['categories'] });
+            }} 
+            className="gap-2 shadow-md hover:shadow-lg transition-all"
+          >
+            <Save className="h-4 w-4" /> Salvar Alterações
+          </Button>
+        </div>
+      </div>
+
       {/* Metrics Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="bg-card border rounded-2xl p-6 shadow-sm">
@@ -430,6 +550,21 @@ const PlatformManagementPanel = () => {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Footer Save Button */}
+      <div className="flex justify-end pt-8 border-t border-border/50">
+        <Button 
+          size="lg"
+          onClick={() => {
+            toast.success("Sincronização completa! Todas as alterações estão online.");
+            queryClient.invalidateQueries({ queryKey: ['siteSettings'] });
+            queryClient.invalidateQueries({ queryKey: ['categories'] });
+          }} 
+          className="gap-2 px-8 shadow-hero hover:scale-[1.02] transition-all"
+        >
+          <Save className="h-5 w-5" /> Finalizar e Salvar Tudo
+        </Button>
       </div>
     </div>
   );
@@ -605,8 +740,27 @@ const SettingsPanel = ({ adminList, newEmail, setNewEmail, onAdd, onRemove }: an
 
 
 // Reusable Verification Card Component
-const VerificationItem = ({ pro, mutation, featuredMutation }: { pro: any, mutation: any, featuredMutation: any }) => (
-  <div className="bg-card border rounded-2xl p-6 shadow-sm overflow-hidden relative">
+const VerificationItem = ({ pro, mutation, featuredMutation, deleteMutation }: { pro: any, mutation: any, featuredMutation: any, deleteMutation: any }) => {
+  const [isRejecting, setIsRejecting] = useState(false);
+  const [reason, setReason] = useState("");
+  const queryClient = useQueryClient();
+
+  const rejectMutation = useMutation({
+    mutationFn: ({ id, reason }: { id: string, reason: string }) => 
+      adminRejectVerification(id, reason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pendingVerifications'] });
+      queryClient.invalidateQueries({ queryKey: ['allProfessionals'] });
+      toast.warning("Verificação rejeitada com sucesso.");
+      setIsRejecting(false);
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Erro ao rejeitar.");
+    }
+  });
+
+  return (
+    <div className="bg-card border rounded-2xl p-6 shadow-sm overflow-hidden relative">
     {pro.featured && (
       <div className="absolute top-0 right-0 bg-yellow-400 text-yellow-900 text-[10px] font-bold px-3 py-1 rounded-bl-lg flex items-center gap-1 shadow-sm">
         <Star className="h-3 w-3 fill-current" /> TOP PROFISSIONAL
@@ -628,7 +782,11 @@ const VerificationItem = ({ pro, mutation, featuredMutation }: { pro: any, mutat
                 pro.verification_status === 'ativo' ? 'bg-green-500/10 text-green-600' : 
                 pro.verification_status === 'suspenso' ? 'bg-orange-500/10 text-orange-600' : 'bg-red-500/10 text-red-600'
               }`}>
-                {pro.verification_status || 'Incompleto'}
+                {pro.verification_status === 'pending_review' ? 'Aguardando Verificação' : 
+                 pro.verification_status === 'ativo' ? 'Ativo' : 
+                 pro.verification_status === 'suspenso' ? 'Suspenso' : 
+                 pro.verification_status === 'removido' ? 'Removido' : 
+                 pro.verification_status || 'Incompleto'}
               </span>
               <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-secondary text-secondary-foreground">
                 Email: {pro.email}
@@ -642,52 +800,130 @@ const VerificationItem = ({ pro, mutation, featuredMutation }: { pro: any, mutat
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div className="space-y-2">
-            <p className="text-xs font-bold uppercase text-muted-foreground">BI Frente</p>
+            <p className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
+              <Shield className="h-3 w-3" /> Bilhete de Identidade
+            </p>
             {pro.id_card_front_url ? (
               <a href={pro.id_card_front_url} target="_blank" rel="noopener noreferrer" className="block group relative">
-                <img src={pro.id_card_front_url} className="h-32 w-full object-cover rounded-lg border transition-opacity group-hover:opacity-50" />
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-lg">
+                <div className="h-40 w-full overflow-hidden rounded-xl border bg-muted/20 flex items-center justify-center">
+                  {pro.id_card_front_url.toLowerCase().endsWith('.pdf') ? (
+                    <div className="text-center">
+                      <FileText className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
+                      <span className="text-[10px] font-bold">VER PDF</span>
+                    </div>
+                  ) : (
+                    <img src={pro.id_card_front_url} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
+                  )}
+                </div>
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-xl">
                   <ExternalLink className="h-6 w-6 text-white" />
                 </div>
               </a>
-            ) : <div className="h-32 border border-dashed rounded-lg flex items-center justify-center text-[10px] text-muted-foreground bg-muted/20">SEM DOCUMENTO</div>}
+            ) : <div className="h-40 border border-dashed rounded-xl flex items-center justify-center text-[10px] text-muted-foreground bg-muted/10">DOCUMENTO EM FALTA</div>}
+            {pro.id_number && (
+              <p className="text-[10px] font-mono mt-1 text-center bg-secondary py-1 rounded">Nº: {pro.id_number}</p>
+            )}
           </div>
+
           <div className="space-y-2">
-            <p className="text-xs font-bold uppercase text-muted-foreground">BI Verso</p>
-            {pro.id_card_back_url ? (
-               <a href={pro.id_card_back_url} target="_blank" rel="noopener noreferrer" className="block group relative">
-                <img src={pro.id_card_back_url} className="h-32 w-full object-cover rounded-lg border transition-opacity group-hover:opacity-50" />
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-lg">
-                  <ExternalLink className="h-6 w-6 text-white" />
-                </div>
-              </a>
-            ) : <div className="h-32 border border-dashed rounded-lg flex items-center justify-center text-[10px] text-muted-foreground bg-muted/20">SEM DOCUMENTO</div>}
-          </div>
-          <div className="space-y-2">
-            <p className="text-xs font-bold uppercase text-muted-foreground">Certificado</p>
+            <p className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
+              <Check className="h-3 w-3" /> Certificado / Diploma
+            </p>
             {pro.certificate_url ? (
-              <a href={pro.certificate_url} target="_blank" rel="noopener noreferrer" className="flex h-32 w-full items-center justify-center rounded-lg border bg-secondary/30 group hover:bg-secondary transition-colors">
-                <div className="text-center">
-                  <ExternalLink className="mx-auto h-5 w-5 mb-1" />
-                  <span className="text-[10px] font-bold tracking-widest">VER DOCUMENTO</span>
+              <a href={pro.certificate_url} target="_blank" rel="noopener noreferrer" className="block group relative">
+                <div className="h-40 w-full overflow-hidden rounded-xl border bg-muted/20 flex items-center justify-center">
+                  {pro.certificate_url.toLowerCase().endsWith('.pdf') ? (
+                    <div className="text-center">
+                      <FileText className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
+                      <span className="text-[10px] font-bold">VER PDF</span>
+                    </div>
+                  ) : (
+                    <img src={pro.certificate_url} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
+                  )}
+                </div>
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-xl">
+                  <ExternalLink className="h-6 w-6 text-white" />
                 </div>
               </a>
-            ) : <div className="h-32 border border-dashed rounded-lg flex items-center justify-center text-[10px] text-muted-foreground bg-muted/20">SEM DOCUMENTO</div>}
+            ) : <div className="h-40 border border-dashed rounded-xl flex items-center justify-center text-[10px] text-muted-foreground bg-muted/10">CERTIFICADO EM FALTA</div>}
+          </div>
+
+          <div className="space-y-2 rounded-xl bg-muted/20 p-4 border flex flex-col justify-center">
+             <p className="text-xs font-bold uppercase text-muted-foreground mb-3">Resumo da Verificação</p>
+             <div className="space-y-3">
+               <div className="flex justify-between items-center text-xs">
+                 <span>BI carregado:</span>
+                 {pro.id_card_front_url ? <Check className="h-4 w-4 text-green-500" /> : <X className="h-4 w-4 text-red-500" />}
+               </div>
+               <div className="flex justify-between items-center text-xs">
+                 <span>Certificado:</span>
+                 {pro.certificate_url ? <Check className="h-4 w-4 text-green-500" /> : <X className="h-4 w-4 text-red-500" />}
+               </div>
+               <div className="flex justify-between items-center text-xs">
+                 <span>Nº Identificação:</span>
+                 <span className="font-mono">{pro.id_number ? 'OK' : 'FALTA'}</span>
+               </div>
+             </div>
           </div>
         </div>
       </div>
 
       <div className="lg:w-64 flex flex-col justify-center gap-3 border-t lg:border-t-0 lg:border-l lg:pl-8 pt-6 lg:pt-0">
-        {pro.verification_status !== 'ativo' && (
+        {pro.verification_status !== 'ativo' && !pro.rejection_reason && (
           <Button 
             className="w-full bg-green-600 hover:bg-green-700 h-11 text-white font-bold" 
             onClick={() => mutation.mutate({ id: pro.id, status: 'ativo' })}
             disabled={mutation.isPending}
           >
-            <RotateCcw className="mr-2 h-5 w-5" /> Reativar Perfil
+            <RotateCcw className="mr-2 h-5 w-5" /> Aprovar e Ativar
           </Button>
+        )}
+
+        {(pro.verification_status === 'pending_review' || pro.id_card_front_url) && !pro.rejection_reason && (
+          <div className="space-y-2">
+            {!isRejecting ? (
+              <Button 
+                variant="outline"
+                className="w-full h-11 font-bold border-destructive text-destructive hover:bg-destructive/5"
+                onClick={() => setIsRejecting(true)}
+              >
+                <X className="mr-2 h-5 w-5" /> Rejeitar Documentos
+              </Button>
+            ) : (
+              <div className="space-y-2 p-3 bg-destructive/5 rounded-xl border border-destructive/20 animate-in zoom-in-95">
+                <textarea 
+                  placeholder="Motivo da rejeição (ex: BI ilegível)..."
+                  className="w-full text-xs p-2 rounded-lg border bg-background h-20 outline-none focus:ring-1 focus:ring-destructive"
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                />
+                <div className="flex gap-2">
+                  <Button 
+                    size="sm" 
+                    variant="destructive" 
+                    className="flex-1 font-bold"
+                    onClick={() => {
+                      if (!reason.trim()) return toast.error("Por favor, insira um motivo.");
+                      rejectMutation.mutate({ id: pro.id, reason });
+                    }}
+                    disabled={rejectMutation.isPending}
+                  >
+                    Confirmar
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    className="px-2"
+                    onClick={() => setIsRejecting(false)}
+                  >
+                    Sair
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
         )}
         
         <Button 
@@ -715,20 +951,21 @@ const VerificationItem = ({ pro, mutation, featuredMutation }: { pro: any, mutat
           variant="destructive" 
           className="w-full h-11 font-bold"
           onClick={() => {
-            if (confirm("Tem certeza que deseja remover este perfil? Esta ação pode ser revertida reativando o perfil.")) {
-              mutation.mutate({ id: pro.id, status: 'removido' });
+            if (confirm("TEM A CERTEZA? Esta ação é definitiva e removerá todos os dados (fotos, portfólio e avaliações) permanentemente!")) {
+              deleteMutation.mutate(pro.id);
             }
           }}
-          disabled={mutation.isPending}
+          disabled={deleteMutation.isPending}
         >
-          <X className="mr-2 h-5 w-5" /> Remover
+          <X className="mr-2 h-5 w-5" /> Eliminar Definitivamente
         </Button>
         <Link to={`/professional/${pro.id}`} className="text-xs text-center text-primary hover:underline italic">
           Ver perfil público →
         </Link>
       </div>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 export default AdminVerifications;

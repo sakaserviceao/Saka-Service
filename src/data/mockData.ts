@@ -21,6 +21,7 @@ export interface Professional {
   portfolio?: any[];
   reviews?: any[];
   linkedin_url?: string;
+  verification_submitted_at?: string;
 }
 
 export interface Category {
@@ -30,6 +31,7 @@ export interface Category {
   count?: number;
   color?: string;
   banner_url?: string;
+  professions_preview?: string[];
 }
 
 export interface SiteSetting {
@@ -38,16 +40,16 @@ export interface SiteSetting {
 }
 
 export const categories = [
-  { id: "technology", name: "Tecnologia", icon: "Laptop", count: 124, color: "168 60% 38%", banner_url: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=1580&h=170&fit=crop" },
-  { id: "design", name: "Design", icon: "Palette", count: 89, color: "280 65% 55%", banner_url: "https://images.unsplash.com/photo-1558655146-d09347e92766?w=1580&h=170&fit=crop" },
-  { id: "marketing", name: "Marketing", icon: "TrendingUp", count: 76, color: "12 80% 60%", banner_url: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1580&h=170&fit=crop" },
-  { id: "construction", name: "Construção", icon: "Hammer", count: 52, color: "35 85% 50%", banner_url: "https://images.unsplash.com/photo-1504307651254-35680f3365d1?w=1580&h=170&fit=crop" },
-  { id: "education", name: "Educação", icon: "GraduationCap", count: 67, color: "210 70% 50%", banner_url: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=1580&h=170&fit=crop" },
-  { id: "health", name: "Saúde e Bem-estar", icon: "Activity", count: 93, color: "150 60% 45%" },
-  { id: "photography", name: "Fotografia", icon: "Camera", count: 41, color: "0 0% 35%" },
-  { id: "beauty", name: "Beleza", icon: "Sparkles", count: 58, color: "330 65% 55%" },
-  { id: "consulting", name: "Consultoria", icon: "Briefcase", count: 45, color: "220 50% 45%" },
-  { id: "other", name: "Outros Serviços", icon: "Zap", count: 34, color: "50 80% 50%" },
+  { id: "technology", name: "Tecnologia", icon: "Laptop", count: 124, color: "168 60% 38%", banner_url: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=1580&h=170&fit=crop", professions_preview: ["Software", "Redes", "Hardware", "Cibersegurança", "Cloud"] },
+  { id: "design", name: "Design", icon: "Palette", count: 89, color: "280 65% 55%", banner_url: "https://images.unsplash.com/photo-1558655146-d09347e92766?w=1580&h=170&fit=crop", professions_preview: ["Logo", "UI/UX", "Branding"] },
+  { id: "marketing", name: "Marketing", icon: "TrendingUp", count: 76, color: "12 80% 60%", banner_url: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1580&h=170&fit=crop", professions_preview: ["Social Media", "SEO", "Ads"] },
+  { id: "construction", name: "Construção", icon: "Hammer", count: 52, color: "35 85% 50%", banner_url: "https://images.unsplash.com/photo-1504307651254-35680f3365d1?w=1580&h=170&fit=crop", professions_preview: ["Pedreiro", "Pintor", "Eletricista", "Canalizador", "Carpinteiro"] },
+  { id: "education", name: "Educação", icon: "GraduationCap", count: 67, color: "210 70% 50%", banner_url: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=1580&h=170&fit=crop", professions_preview: ["Formador Profissional", "Explicador de Química", "Biologia"] },
+  { id: "health", name: "Saúde e Bem-estar", icon: "Activity", count: 93, color: "150 60% 45%", professions_preview: ["Fitness", "Nutrição", "Yoga"] },
+  { id: "photography", name: "Fotografia", icon: "Camera", count: 41, color: "0 0% 35%", professions_preview: ["Eventos", "Retratos", "Edição"] },
+  { id: "beauty", name: "Beleza", icon: "Sparkles", count: 58, color: "330 65% 55%", professions_preview: ["Maquilhagem", "Cabelo", "Unhas"] },
+  { id: "consulting", name: "Consultoria", icon: "Briefcase", count: 45, color: "220 50% 45%", professions_preview: ["Financeira", "Jurídica", "RH"] },
+  { id: "other", name: "Outros Serviços", icon: "Zap", count: 34, color: "50 80% 50%", professions_preview: ["Limpeza", "Pet Sitting", "Entregas"] },
 ];
 
 const avatars = [

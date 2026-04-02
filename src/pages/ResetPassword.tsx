@@ -37,7 +37,7 @@ const ResetPassword = () => {
       <div className="flex-1 flex items-center justify-center p-4">
         <div className="w-full max-w-sm space-y-6 rounded-2xl border border-border bg-card p-8 shadow-card">
           <div className="space-y-2 text-center">
-            <h1 className="text-2xl font-bold">Recuperar Password</h1>
+            <h1 className="text-2xl font-bold">Recuperar Palavra-passe</h1>
             <p className="text-sm text-muted-foreground">Insira o seu email para receber um link de recuperação</p>
           </div>
           

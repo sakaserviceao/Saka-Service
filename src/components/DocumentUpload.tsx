@@ -3,6 +3,7 @@ import { Upload, X, FileText, CheckCircle, Loader2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
+import { toast } from "sonner";
 
 interface Props {
   label: string;
@@ -19,6 +20,10 @@ export const DocumentUpload = ({ label, description, onFileSelect, accept = "ima
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0] || null;
     if (selectedFile) {
+      if (selectedFile.size > 5 * 1024 * 1024) {
+        toast.error("O ficheiro é demasiado grande. O limite máximo é 5MB.");
+        return;
+      }
       setFile(selectedFile);
       onFileSelect(selectedFile);
 

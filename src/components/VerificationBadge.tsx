@@ -8,7 +8,7 @@ interface Props {
 }
 
 export const VerificationBadge = ({ verified, size = "md", className = "" }: Props) => {
-  if (verified !== "verified" && verified !== true) return null;
+  if (verified !== "verified" && verified !== "ativo" && verified !== true) return null;
 
   const sizeClasses = {
     sm: "h-3 w-3",

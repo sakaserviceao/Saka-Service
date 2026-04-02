@@ -1,8 +1,15 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Shield, Users, Target, CheckCircle2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { getPlatformStats } from "@/data/api";
 
 const AboutUs = () => {
+  const { data: stats = { activePros: 0 } } = useQuery({
+    queryKey: ['platformStats'],
+    queryFn: getPlatformStats,
+  });
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
@@ -53,7 +60,9 @@ const AboutUs = () => {
                 />
               </div>
               <div className="absolute -bottom-6 -left-6 rounded-2xl bg-white p-6 shadow-xl dark:bg-slate-900">
-                <p className="text-4xl font-bold text-primary">500+</p>
+                <p className="text-4xl font-bold text-primary">
+                  {stats.activePros >= 1000 ? `${(stats.activePros / 1000).toFixed(1)}k+` : stats.activePros}
+                </p>
                 <p className="text-sm font-medium text-muted-foreground">Profissionais Ativos</p>
               </div>
             </div>

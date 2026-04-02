@@ -25,7 +25,7 @@ const UpdatePassword = () => {
     if (error) {
       toast.error(error.message);
     } else {
-      toast.success("A sua password foi atualizada com sucesso!");
+      toast.success("A sua palavra-passe foi atualizada com sucesso!");
       navigate("/");
     }
   };
@@ -36,13 +36,13 @@ const UpdatePassword = () => {
       <div className="flex-1 flex items-center justify-center p-4">
         <div className="w-full max-w-sm space-y-6 rounded-2xl border border-border bg-card p-8 shadow-card">
           <div className="space-y-2 text-center">
-            <h1 className="text-2xl font-bold">Definir Nova Password</h1>
+            <h1 className="text-2xl font-bold">Definir Nova Palavra-passe</h1>
             <p className="text-sm text-muted-foreground">Insira a sua nova palavra-passe segura.</p>
           </div>
           
           <form onSubmit={handleUpdate} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="password">Nova Password (Mín. 6 caracteres)</Label>
+              <Label htmlFor="password">Nova Palavra-passe (Mín. 6 caracteres)</Label>
               <div className="relative">
                 <Input 
                   id="password" 
@@ -63,7 +63,7 @@ const UpdatePassword = () => {
               </div>
             </div>
             <Button type="submit" className="w-full bg-gradient-hero" disabled={loading}>
-              {loading ? "A atualizar..." : "Atualizar Password e Entrar"}
+              {loading ? "A atualizar..." : "Atualizar Palavra-passe e Entrar"}
             </Button>
           </form>
         </div>

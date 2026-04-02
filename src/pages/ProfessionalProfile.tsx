@@ -159,7 +159,7 @@ const ProfessionalProfile = () => {
                 <span className="flex items-center gap-1 text-sm">
                   <Star className="h-4 w-4 fill-accent text-accent" />
                   <span className="font-semibold">{Number(pro.rating || 5.0).toFixed(1)}</span>
-                  <span className="text-muted-foreground">({(pro as any).review_count || pro.reviews?.length || 0} avaliações)</span>
+                  <span className="text-muted-foreground">({pro.reviewCount || pro.reviews?.length || 0} avaliações)</span>
                 </span>
               </div>
             </div>

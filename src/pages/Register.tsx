@@ -61,7 +61,7 @@ const Register = () => {
               <Input id="email" type="email" placeholder="m@exemplo.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password (Mín. 6 caracteres)</Label>
+              <Label htmlFor="password">Palavra-passe (Mín. 6 caracteres)</Label>
               <div className="relative">
                 <Input 
                   id="password" 

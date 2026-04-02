@@ -28,8 +28,8 @@ const CategoryDetail = () => {
       <div className="min-h-screen bg-background">
         <Navbar />
         <div className="container py-20 text-center">
-          <h1 className="text-2xl font-bold">Category not found</h1>
-          <Link to="/categories" className="mt-4 inline-block text-primary hover:underline">Back to categories</Link>
+          <h1 className="text-2xl font-bold">Categoria não encontrada</h1>
+          <Link to="/categories" className="mt-4 inline-block text-primary hover:underline">Voltar para categorias</Link>
         </div>
         <Footer />
       </div>
@@ -41,7 +41,7 @@ const CategoryDetail = () => {
       <Navbar />
       <div className="container py-12">
         <Link to="/categories" className="mb-6 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="h-4 w-4" /> All Categories
+          <ArrowLeft className="h-4 w-4" /> Todas as categorias
         </Link>
         {category && (
           <div className="mb-8 flex flex-col gap-6">

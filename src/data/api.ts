@@ -8,28 +8,70 @@ export const getProfessionalsByCategory = async (categoryId: string): Promise<Pr
   const { data, error } = await supabase
     .from('professionals')
     .select('*, portfolios(*), reviews(*)')
-    .eq('category', categoryId)
-    .in('verification_status', ['ativo', 'verified']);
+    .eq('category', categoryId);
   if (error) {
     console.error('Error fetching professionals:', error);
     return [];
   }
-  return data as unknown as Professional[];
+  return (data || []).map(mapProfessional);
+};
+
+// Helper to map DB record to Professional interface
+const mapProfessional = (pro: any): Professional => {
+  return {
+    ...pro,
+    reviewCount: pro.review_count || 0,
+    avatar: pro.avatar || "",
+    category: pro.category || "other",
+    // Mantemos os dois nomes para compatibilidade com o que já existe nos componentes
+    portfolio: pro.portfolios || [],
+    portfolios: pro.portfolios || [],
+    reviews: pro.reviews || []
+  };
 };
 
 export const getFeaturedProfessionals = async (): Promise<Professional[]> => {
   try {
-    const { data, error } = await supabase
+    console.log('Buscando profissionais em destaque...');
+    
+    // Tentativa 1: profissionais marcados manualmente como destaque
+    const { data: featuredData, error: featuredError } = await supabase
       .from('professionals')
       .select('*, portfolios(*), reviews(*)')
       .eq('featured', true)
-      .in('verification_status', ['ativo', 'verified']);
-      
-    if (error) {
-      console.error('Erro Supabase (Featured):', error.message, error.details);
+      .limit(6);
+
+    if (featuredData && featuredData.length > 0) {
+      console.log('Destaques manuais encontrados:', featuredData.length);
+      return featuredData.map(mapProfessional);
+    }
+
+    // Fallback 1: Melhores avaliados
+    const { data: ratedData } = await supabase
+      .from('professionals')
+      .select('*, portfolios(*), reviews(*)')
+      .order('rating', { ascending: false })
+      .limit(6);
+
+    if (ratedData && ratedData.length > 0) {
+      console.log('Fallback 1 (Avaliados) encontrado:', ratedData.length);
+      return ratedData.map(mapProfessional);
+    }
+
+    // Fallback Final: Super simples, sem joins, apenas profissionais para garantir que aparece ALGO
+    console.log('Usando fallback final (sem joins)...');
+    const { data: simpleData, error: simpleError } = await supabase
+      .from('professionals')
+      .select('*')
+      .limit(6);
+
+    if (simpleError) {
+      console.error('Erro crítico no fallback total:', simpleError);
       return [];
     }
-    return (data || []) as unknown as Professional[];
+
+    console.log('Fallback final obteve:', simpleData?.length || 0, 'perfis');
+    return (simpleData || []).map(mapProfessional);
   } catch (err) {
     console.error('Erro fatal ao buscar destaques:', err);
     return [];
@@ -40,13 +82,12 @@ export const searchProfessionals = async (query: string): Promise<Professional[]
   const { data, error } = await supabase
     .from('professionals')
     .select('*, portfolios(*), reviews(*)')
-    .in('verification_status', ['ativo', 'verified'])
     .or(`name.ilike.%${query}%,title.ilike.%${query}%,description.ilike.%${query}%,location.ilike.%${query}%`);
   if (error) {
     console.error('Error searching professionals:', error);
     return [];
   }
-  return data as unknown as Professional[];
+  return (data || []).map(mapProfessional);
 };
 
 export const getProfessionalById = async (id: string): Promise<Professional | null> => {
@@ -60,7 +101,7 @@ export const getProfessionalById = async (id: string): Promise<Professional | nu
     console.error('Error fetching professional:', error);
     return null;
   }
-  return data as unknown as Professional;
+  return data ? mapProfessional(data) : null;
 };
 
 export const getSiteSettings = async (): Promise<Record<string, string>> => {
@@ -79,18 +120,48 @@ export const getSiteSettings = async (): Promise<Record<string, string>> => {
   }, {} as Record<string, string>);
 };
 
+export const getPlatformStats = async () => {
+  try {
+    const [prosCount, reviewsCount, portfoliosCount] = await Promise.all([
+      supabase
+        .from('professionals')
+        .select('*', { count: 'exact', head: true }),
+      supabase
+        .from('reviews')
+        .select('*', { count: 'exact', head: true }),
+      supabase
+        .from('portfolios')
+        .select('*', { count: 'exact', head: true })
+    ]);
+
+    return {
+      activePros: prosCount.count || 0,
+      verifiedReviews: reviewsCount.count || 0,
+      completedProjects: portfoliosCount.count || 0
+    };
+  } catch (err) {
+    console.error('Erro ao buscar estatísticas da plataforma:', err);
+    return { activePros: 0, verifiedReviews: 0, completedProjects: 0 };
+  }
+};
+
 export const getCategories = async () => {
   try {
     const { data, error } = await supabase
       .from('categories')
-      .select('*')
+      .select('*, professionals(count)')
       .order('name');
       
     if (error) {
       console.error('Erro Supabase (Categories):', error.message, error.details);
       return [];
     }
-    return data || [];
+    
+    // Mapear a contagem para facilitar o uso no frontend
+    return (data || []).map(cat => ({
+      ...cat,
+      count: cat.professionals?.[0]?.count || 0
+    }));
   } catch (err) {
     console.error('Erro fatal ao buscar categorias:', err);
     return [];
@@ -116,7 +187,7 @@ export const createProfessionalProfile = async (profileData: any) => {
     .from('professionals')
     .upsert([{ 
       ...profileData, 
-      verification_status: 'ativo' // Forçamos a visibilidade na criação/atualização
+      verification_status: profileData.verification_status || 'ativo'
     }])
     .select()
     .single();
@@ -173,6 +244,8 @@ export const submitVerification = async (userId: string, data: any) => {
     .from('professionals')
     .update({
       ...data,
+      verification_submitted_at: new Date().toISOString(),
+      rejection_reason: null, // Limpa o erro anterior ao reenviar
       // We don't change 'verification_status' anymore to keep it public while pending review
     })
     .eq('id', userId);
@@ -235,27 +308,27 @@ export const updateProfessionalProfile = async (id: string, profileData: any) =>
 export const getPendingVerifications = async () => {
   const { data, error } = await supabase
     .from('professionals')
-    .select('*')
-    .in('verification_status', ['suspenso', 'removido']);
+    .select('*, portfolios(*), reviews(*)')
+    .in('verification_status', ['pending_review', 'suspenso', 'removido']);
     
   if (error) {
     console.error('Error fetching flagged verifications:', error);
     return [];
   }
-  return data;
+  return (data || []).map(mapProfessional);
 };
 
 export const getAllProfessionals = async () => {
   const { data, error } = await supabase
     .from('professionals')
-    .select('*')
+    .select('*, portfolios(*), reviews(*)')
     .order('created_at', { ascending: false });
     
   if (error) {
     console.error('Error fetching all professionals:', error);
     return [];
   }
-  return data;
+  return (data || []).map(mapProfessional);
 };
 
 
@@ -273,6 +346,54 @@ export const adminUpdateVerificationStatus = async (userId: string, status: 'ati
     throw error;
   }
   return true;
+};
+
+export const adminRejectVerification = async (userId: string, reason: string) => {
+  const { error } = await supabase
+    .from('professionals')
+    .update({ 
+      verification_status: 'suspenso',
+      rejection_reason: reason,
+      verification_submitted_at: null // Reset submission time so they have to re-submit
+    })
+    .eq('id', userId);
+
+  if (error) throw error;
+  return true;
+};
+
+export const deleteProfessional = async (id: string) => {
+  try {
+    // 1. Delete associated portfolios
+    await supabase
+      .from('portfolios')
+      .delete()
+      .eq('professional_id', id);
+
+    // 2. Delete associated reviews
+    await supabase
+      .from('reviews')
+      .delete()
+      .eq('professional_id', id);
+
+    // 3. Delete the professional profile with explicit count check
+    const { error, count } = await supabase
+      .from('professionals')
+      .delete({ count: 'exact' })
+      .eq('id', id);
+
+    if (error) throw error;
+    
+    // Se o contador for 0, significa que o RLS impediu a eliminação ou o ID não existe
+    if (count === 0) {
+      throw new Error("A base de dados recusou a eliminação. Verifique as permissões de RLS para administradores.");
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error deleting professional:', error);
+    throw error;
+  }
 };
 
 export const adminUpdateFeaturedStatus = async (userId: string, featured: boolean) => {
@@ -414,13 +535,13 @@ export const getTopProfiles = async (limit: number = 10) => {
     console.error('Error fetching top profiles:', error);
     return [];
   }
-  return data as unknown as Professional[];
+  return (data || []).map(mapProfessional);
 };
 
 export const updateSiteSetting = async (key: string, value: string) => {
-  const { data, error } = await supabase
+  const { data, error, count } = await supabase
     .from('site_settings')
-    .upsert([{ key, value, updated_at: new Date().toISOString() }])
+    .upsert([{ key, value }], { count: 'exact' })
     .select()
     .single();
     
@@ -428,6 +549,11 @@ export const updateSiteSetting = async (key: string, value: string) => {
     console.error(`Error updating setting ${key}:`, error);
     throw error;
   }
+
+  if (count === 0) {
+    throw new Error("A base de dados recusou a alteração da configuração. Verifique as permissões de RLS.");
+  }
+
   return data;
 };
 
@@ -446,9 +572,9 @@ export const createCategory = async (category: Partial<Category>) => {
 };
 
 export const updateCategory = async (id: string, categoryData: Partial<Category>) => {
-  const { data, error } = await supabase
+  const { data, error, count } = await supabase
     .from('categories')
-    .update(categoryData)
+    .update(categoryData, { count: 'exact' })
     .eq('id', id)
     .select()
     .single();
@@ -457,5 +583,10 @@ export const updateCategory = async (id: string, categoryData: Partial<Category>
     console.error('Error updating category:', error);
     throw error;
   }
+
+  if (count === 0) {
+    throw new Error("A base de dados recusou a alteração da categoria. Verifique as permissões de RLS.");
+  }
+
   return data;
 };

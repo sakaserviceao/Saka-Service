@@ -9,7 +9,7 @@ export const useSettings = () => {
   const { data: settings = {}, isLoading, error } = useQuery({
     queryKey: ['siteSettings'],
     queryFn: getSiteSettings,
-    staleTime: 1000 * 60 * 10, // 10 minutos de cache
+    staleTime: 1000 * 30, // 30 segundos de cache para maior reatividade
   });
 
   // Função auxiliar para pegar um valor com fallback

@@ -18,7 +18,7 @@ import {
   getCategories
 } from "@/data/api";
 import { Button } from "@/components/ui/button";
-import { Check, X, ExternalLink, Shield, ShieldCheck, FileText, ArrowLeft, Search, AlertCircle, Star, Pause, RotateCcw, Settings, Plus, Trash2, Mail, BarChart3, TrendingUp, Calendar, Eye, LayoutGrid, Save, Image as ImageIcon } from "lucide-react";
+import { Check, X, ExternalLink, Shield, ShieldCheck, Users, FileText, ArrowLeft, Search, AlertCircle, Star, Pause, RotateCcw, Settings, Plus, Trash2, Mail, BarChart3, TrendingUp, Calendar, Eye, LayoutGrid, Save, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -33,6 +33,7 @@ const AdminVerifications = () => {
   const [searching, setSearching] = useState(false);
   const [viewMode, setViewMode] = useState<'pending' | 'all' | 'settings' | 'analytics' | 'platform'>('pending');
   const [newAdminEmail, setNewAdminEmail] = useState("");
+  const [newManagerEmail, setNewManagerEmail] = useState("");
 
   // Restricted Access Check
   if (isLoading) return <div className="flex justify-center py-20">Verificando permissões...</div>;
@@ -60,13 +61,24 @@ const AdminVerifications = () => {
                   user?.email === 'francisco.mucamba@gmail.com' || 
                   user?.email === 'sakaservice.ao@gmail.com';
 
+  const { data: settings = {} } = useQuery({
+    queryKey: ['siteSettings'],
+    queryFn: getSiteSettings,
+  });
+
+  const managerList = (settings.manager_emails || "").split(',').filter(Boolean);
+  const isManager = managerList.includes(user?.email || "") || 
+                    user?.email === 'podosk2010@hotmail.com';
+
+  const isAuthorized = isAdmin || isManager;
+
   // Restricted Access Check
-  if (!isLoadingAdmins && !isAdmin) {
+  if (!isLoadingAdmins && !isAuthorized) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4 text-center">
         <Shield className="h-16 w-16 text-destructive/20 mb-4" />
         <h1 className="text-2xl font-bold mb-2">Acesso Restrito</h1>
-        <p className="text-muted-foreground mb-6">Apenas administradores autorizados podem aceder a esta página.</p>
+        <p className="text-muted-foreground mb-6">Apenas administradores ou gestores autorizados podem aceder a esta página.</p>
         <Button asChild><Link to="/">Voltar ao Início</Link></Button>
       </div>
     );
@@ -226,26 +238,30 @@ const AdminVerifications = () => {
           >
             Todos os Perfis ({allPros.length})
           </Button>
-          <Button 
-            variant={viewMode === 'settings' ? 'default' : 'outline'} 
-            onClick={() => setViewMode('settings')}
-            className="rounded-full flex items-center gap-2"
-          >
-            <Settings className="h-4 w-4" /> Configurações
-          </Button>
+          {isAdmin && (
+            <>
+              <Button 
+                variant={viewMode === 'settings' ? 'default' : 'outline'} 
+                onClick={() => setViewMode('settings')}
+                className="rounded-full flex items-center gap-2"
+              >
+                <Settings className="h-4 w-4" /> Configurações
+              </Button>
+              <Button 
+                variant={viewMode === 'platform' ? 'default' : 'outline'} 
+                onClick={() => setViewMode('platform')}
+                className="rounded-full flex items-center gap-2 font-bold bg-primary/5 border-primary/20 text-primary hover:bg-primary/10"
+              >
+                <LayoutGrid className="h-4 w-4" /> Gestão [Admin]
+              </Button>
+            </>
+          )}
           <Button 
             variant={viewMode === 'analytics' ? 'default' : 'outline'} 
             onClick={() => setViewMode('analytics')}
             className="rounded-full flex items-center gap-2"
           >
             <BarChart3 className="h-4 w-4" /> Analítica
-          </Button>
-          <Button 
-            variant={viewMode === 'platform' ? 'default' : 'outline'} 
-            onClick={() => setViewMode('platform')}
-            className="rounded-full flex items-center gap-2"
-          >
-            <LayoutGrid className="h-4 w-4" /> Gestão
           </Button>
         </div>
 
@@ -305,6 +321,9 @@ const AdminVerifications = () => {
             adminList={adminList} 
             newEmail={newAdminEmail} 
             setNewEmail={setNewAdminEmail}
+            managerList={managerList}
+            newManagerEmail={newManagerEmail}
+            setNewManagerEmail={setNewManagerEmail}
             onAdd={() => {
               if (!newAdminEmail.includes('@')) return toast.error("E-mail inválido");
               addAdmin(newAdminEmail)
@@ -324,6 +343,30 @@ const AdminVerifications = () => {
                     queryClient.invalidateQueries({ queryKey: ['adminList'] });
                   })
                   .catch(err => toast.error("Erro: " + err.message));
+              }
+            }}
+            onAddManager={() => {
+              if (!newManagerEmail.includes('@')) return toast.error("E-mail inválido");
+              if (managerList.includes(newManagerEmail)) return toast.error("Este e-mail já é um gestor operacional");
+              
+              const newList = [...managerList, newManagerEmail].join(',');
+              updateSiteSetting('manager_emails', newList)
+                .then(() => {
+                  toast.success("Gestor Operacional adicionado com sucesso!");
+                  setNewManagerEmail("");
+                  queryClient.invalidateQueries({ queryKey: ['siteSettings'] });
+                })
+                .catch(err => toast.error("Erro ao adicionar gestor: " + err.message));
+            }}
+            onRemoveManager={(email: string) => {
+              if (confirm(`Remover ${email} das funções de gestor?`)) {
+                const newList = managerList.filter((e: string) => e !== email).join(',');
+                updateSiteSetting('manager_emails', newList)
+                  .then(() => {
+                    toast.success("Gestor removido.");
+                    queryClient.invalidateQueries({ queryKey: ['siteSettings'] });
+                  })
+                  .catch(err => toast.error("Erro ao remover gestor: " + err.message));
               }
             }}
           />
@@ -747,18 +790,23 @@ const AnalyticsPanel = () => {
 };
 
 // Settings Panel Component
-const SettingsPanel = ({ adminList, newEmail, setNewEmail, onAdd, onRemove }: any) => (
-  <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      {/* Add Admin Form */}
-      <div className="lg:col-span-1 space-y-4">
+const SettingsPanel = ({ 
+  adminList, newEmail, setNewEmail, onAdd, onRemove,
+  managerList, newManagerEmail, setNewManagerEmail, onAddManager, onRemoveManager 
+}: any) => (
+  <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      {/* Administrators Management */}
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <ShieldCheck className="h-6 w-6 text-primary" />
+          <h2 className="text-xl font-bold">Administradores</h2>
+        </div>
+        
         <div className="bg-card border rounded-2xl p-6 shadow-sm">
           <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-            <Plus className="h-5 w-5 text-primary" /> Adicionar Admin
+            <Plus className="h-5 w-5 text-primary" /> Conceder Admin
           </h3>
-          <p className="text-sm text-muted-foreground mb-6">
-            Insira o e-mail de um utilizador registado para lhe conceder privilégios administrativos.
-          </p>
           <div className="space-y-4">
             <div className="relative">
               <Mail className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
@@ -771,52 +819,84 @@ const SettingsPanel = ({ adminList, newEmail, setNewEmail, onAdd, onRemove }: an
               />
             </div>
             <Button onClick={onAdd} className="w-full h-11 font-bold">
-              Conceder Acesso
+              Guardar Administrador
             </Button>
           </div>
         </div>
 
-        <div className="bg-primary/5 border border-primary/20 rounded-2xl p-6">
-          <h4 className="font-bold text-sm mb-2 flex items-center gap-2">
-            <AlertCircle className="h-4 w-4" /> Informação importante
-          </h4>
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            Administradores podem gerir veriticações, destacar profissionais e adicionar outros administradores. Tenha cuidado ao conceder acesso.
-          </p>
+        <div className="bg-card border rounded-2xl shadow-sm overflow-hidden">
+          <div className="divide-y">
+            {adminList.map((admin: any) => (
+              <div key={admin.email} className="flex items-center justify-between p-4 px-6 hover:bg-muted/10 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                    {admin.email[0].toUpperCase()}
+                  </div>
+                  <p className="font-medium">{admin.email}</p>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="text-destructive hover:bg-destructive/10"
+                  onClick={() => onRemove(admin.email)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Admin List */}
-      <div className="lg:col-span-2">
-        <div className="bg-card border rounded-2xl shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b bg-muted/30">
-            <h3 className="font-bold">Lista de Administradores ({adminList.length})</h3>
+      {/* Gestores Management */}
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <Users className="h-6 w-6 text-emerald-500" />
+          <h2 className="text-xl font-bold">Gestores Operacionais</h2>
+        </div>
+
+        <div className="bg-card border rounded-2xl p-6 shadow-sm border-l-4 border-l-emerald-500">
+          <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+            <Plus className="h-5 w-5 text-emerald-500" /> Adicionar Gestor
+          </h3>
+          <div className="space-y-4">
+            <div className="relative">
+              <Mail className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+              <input 
+                type="email" 
+                placeholder="email@exemplo.com" 
+                value={newManagerEmail}
+                onChange={(e) => setNewManagerEmail(e.target.value)}
+                className="w-full h-11 pl-10 pr-4 rounded-xl border bg-background outline-none focus:ring-2 focus:ring-emerald-500/20"
+              />
+            </div>
+            <Button onClick={onAddManager} className="w-full h-11 font-bold bg-emerald-500 hover:bg-emerald-600">
+              Guardar Gestor
+            </Button>
           </div>
+        </div>
+
+        <div className="bg-card border rounded-2xl shadow-sm overflow-hidden">
           <div className="divide-y">
-            {adminList.length === 0 ? (
+            {managerList.length === 0 ? (
               <div className="p-12 text-center text-muted-foreground">
-                <Shield className="h-12 w-12 mx-auto mb-4 opacity-10" />
-                <p>Nenhum administrador extra configurado.</p>
+                <Users className="h-12 w-12 mx-auto mb-2 opacity-10" />
+                <p className="text-xs">Nenhum gestor operacional registado.</p>
               </div>
             ) : (
-              adminList.map((admin: any) => (
-                <div key={admin.email} className="flex items-center justify-between p-4 px-6 hover:bg-muted/10 transition-colors">
+              managerList.map((email: string) => (
+                <div key={email} className="flex items-center justify-between p-4 px-6 hover:bg-muted/10 transition-colors">
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-                      {admin.email[0].toUpperCase()}
+                    <div className="h-10 w-10 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-600 font-bold">
+                      {email[0].toUpperCase()}
                     </div>
-                    <div>
-                      <p className="font-medium">{admin.email}</p>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                        Adicionado em: {new Date(admin.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
+                    <p className="font-medium">{email}</p>
                   </div>
                   <Button 
                     variant="ghost" 
                     size="icon" 
                     className="text-destructive hover:bg-destructive/10"
-                    onClick={() => onRemove(admin.email)}
+                    onClick={() => onRemoveManager(email)}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>

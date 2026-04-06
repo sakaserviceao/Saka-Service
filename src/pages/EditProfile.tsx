@@ -1,16 +1,15 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { getCategories, getProfessionalById, updateProfessionalProfile, addPortfolios, deletePortfolioItem, uploadImage } from "@/data/api";
+import { getCategories, getProfessionalById, updateProfessionalProfile, addPortfolios, deletePortfolioItem, uploadImage, getProfessionalSubscription } from "@/data/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Trash2, Plus, UploadCloud, Save, BarChart3, ShieldCheck } from "lucide-react";
+import { Trash2, Plus, UploadCloud, Save, BarChart3, ShieldCheck, Minus, CreditCard, AlertCircle, Clock } from "lucide-react";
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 import DashboardStats from "@/components/DashboardStats";
-import { Professional } from "@/data/mockData";
 
 const EditProfile = () => {
   const { user, isLoading } = useAuth();
@@ -49,6 +48,8 @@ const EditProfile = () => {
 
   const [verificationStatus, setVerificationStatus] = useState<string>("ativo");
   const [missingDocs, setMissingDocs] = useState(false);
+  const [subscription, setSubscription] = useState<any>(null);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<string>("pending");
 
   useEffect(() => {
     if (!isLoading && !user) navigate("/login");
@@ -57,12 +58,17 @@ const EditProfile = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [catsData, proData] = await Promise.all([
+        const [catsData, proData, subData] = await Promise.all([
           getCategories(),
-          user ? getProfessionalById(user.id) : null
+          user ? getProfessionalById(user.id) : null,
+          user ? getProfessionalSubscription(user.id) : null
         ]);
         
         setCategories(catsData || []);
+        if (subData) {
+          setSubscription(subData);
+          setSubscriptionStatus(subData.status);
+        }
         
         if (proData) {
           setFormData({
@@ -207,6 +213,52 @@ const EditProfile = () => {
               <Link to="/verify">Completar Verificação</Link>
             </Button>
           </div>
+        )}
+
+        {/* Banner de Subscrição */}
+        {subscriptionStatus !== 'active' && (
+          <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-6 flex flex-col md:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+                <CreditCard className="h-6 w-6" />
+              </div>
+              <div>
+                <h3 className="font-bold text-amber-900">
+                  Subscrição: {subscriptionStatus === 'pending' ? 'Pagamento Pendente' : subscriptionStatus === 'expired' ? 'Expirada' : 'Bloqueada'}
+                </h3>
+                <p className="text-sm text-amber-800/80">O seu perfil não está visível publicamente no site. Ative ou renove a sua subscrição para voltar a receber ofertas.</p>
+              </div>
+            </div>
+            <Button className="bg-amber-600 hover:bg-amber-700 text-white font-bold whitespace-nowrap" onClick={() => navigate('/planos')}>
+              Ativar / Renovar Agora
+            </Button>
+          </div>
+        )}
+
+        {/* Aviso de Expiração Próxima */}
+        {subscriptionStatus === 'active' && subscription?.end_date && (
+          (() => {
+            const daysLeft = Math.ceil((new Date(subscription.end_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+            if (daysLeft <= 5) {
+              return (
+                <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-6 flex flex-col md:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center text-red-600 shrink-0">
+                      <Clock className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-red-900">A sua subscrição termina em {daysLeft} dias!</h3>
+                      <p className="text-sm text-red-800/80">Renove hoje para garantir que o seu perfil continua visível no SakaService.</p>
+                    </div>
+                  </div>
+                  <Button className="bg-red-600 hover:bg-red-700 text-white font-bold whitespace-nowrap" onClick={() => navigate('/planos')}>
+                    Renovar Agora
+                  </Button>
+                </div>
+              );
+            }
+            return null;
+          })()
         )}
 
         <div className="bg-card border border-border rounded-xl p-8 shadow-sm">

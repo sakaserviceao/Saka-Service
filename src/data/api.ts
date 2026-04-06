@@ -653,3 +653,19 @@ export const createSubscriptionRequest = async (subscriptionData: any) => {
   return data;
 };
 
+export const getProfessionalSubscription = async (professionalId: string) => {
+  const { data, error } = await supabase
+    .from('subscriptions')
+    .select('*')
+    .eq('professional_id', professionalId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (error && error.code !== 'PGRST116') {
+    console.error('Error fetching subscription:', error);
+    return null;
+  }
+  return data;
+};
+

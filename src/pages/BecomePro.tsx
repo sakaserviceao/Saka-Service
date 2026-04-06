@@ -176,7 +176,7 @@ const BecomePro = () => {
       
       await refreshProfile();
       toast.success("Perfil e documentos enviados com sucesso! A nossa equipa irá analisar os seus dados em breve.");
-      navigate("/perfil/editar");
+      navigate("/planos");
     } catch (error: any) {
       toast.error(error.message || "Erro ao processar o registo.");
     } finally {

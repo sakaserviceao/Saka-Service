@@ -55,9 +55,14 @@ const Navbar = () => {
               )}
               <span className="text-sm font-medium text-primary">{displayName}</span>
               {isProfessional ? (
-                <Button size="sm" variant="outline" className="border-primary text-primary hover:bg-primary/5" asChild>
-                  <Link to="/perfil/editar">Editar meu perfil</Link>
-                </Button>
+                <>
+                  <Button size="sm" variant="ghost" className="text-primary hover:bg-primary/5" asChild>
+                    <Link to="/planos">Planos</Link>
+                  </Button>
+                  <Button size="sm" variant="outline" className="border-primary text-primary hover:bg-primary/5" asChild>
+                    <Link to="/perfil-editar">Editar Perfil</Link>
+                  </Button>
+                </>
               ) : (
                 <Button size="sm" className={`bg-gradient-hero ${theme === 'dark' ? 'text-slate-100' : 'text-primary-foreground'}`} asChild>
                   <Link to="/tornar-se-pro">Tornar-me Pro</Link>
@@ -113,9 +118,14 @@ const Navbar = () => {
                     )}
                     <span className="text-sm font-medium text-center text-primary mb-2">{displayName}</span>
                     {isProfessional ? (
-                      <Button size="sm" variant="outline" className="w-full border-primary text-primary" asChild>
-                        <Link to="/perfil/editar" onClick={() => setIsOpen(false)}>Editar meu perfil</Link>
-                      </Button>
+                      <>
+                        <Button size="sm" variant="outline" className="w-full border-primary text-primary mb-2" asChild>
+                          <Link to="/planos" onClick={() => setIsOpen(false)}>Planos de Subscrição</Link>
+                        </Button>
+                        <Button size="sm" variant="outline" className="w-full border-primary text-primary" asChild>
+                          <Link to="/perfil-editar" onClick={() => setIsOpen(false)}>Editar meu perfil</Link>
+                        </Button>
+                      </>
                     ) : (
                       <Button size="sm" className={`w-full bg-gradient-hero ${theme === 'dark' ? 'text-slate-100' : 'text-primary-foreground'}`} asChild>
                         <Link to="/tornar-se-pro" onClick={() => setIsOpen(false)}>Tornar-me Pro</Link>

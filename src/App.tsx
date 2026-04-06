@@ -26,6 +26,7 @@ import EmailVerification from "./pages/EmailVerification";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ConfigError from "./components/ConfigError";
 import ConfirmEmail from "./pages/ConfirmEmail";
+import SubscriptionPlans from "./pages/SubscriptionPlans";
 
 // Check for missing Supabase configuration
 const isConfigured = 
@@ -57,6 +58,7 @@ const App = () => {
                 <Route path="/register" element={<Register />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/update-password" element={<UpdatePassword />} />
+                <Route path="/planos" element={<ProtectedRoute><SubscriptionPlans /></ProtectedRoute>} />
                 <Route path="/tornar-se-pro" element={<ProtectedRoute><BecomePro /></ProtectedRoute>} />
                 <Route path="/verify" element={<ProtectedRoute><VerificationPage /></ProtectedRoute>} />
                 <Route path="/verificar-email" element={<EmailVerification />} />
@@ -65,7 +67,7 @@ const App = () => {
                 <Route path="/about-us" element={<AboutUs />} />
                 <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                 <Route path="/terms-of-service" element={<TermsOfService />} />
-                <Route path="/perfil/editar" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
+                <Route path="/perfil-editar" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>

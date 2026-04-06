@@ -15,10 +15,14 @@ import {
   getSiteSettings,
   updateSiteSetting,
   updateCategory,
-  getCategories
+  getCategories,
+  getPendingSubscriptions,
+  getAllSubscriptions,
+  approveSubscription,
+  rejectSubscription
 } from "@/data/api";
 import { Button } from "@/components/ui/button";
-import { Check, X, ExternalLink, Shield, ShieldCheck, Users, FileText, ArrowLeft, Search, AlertCircle, Star, Pause, RotateCcw, Settings, Plus, Trash2, Mail, BarChart3, TrendingUp, Calendar, Eye, LayoutGrid, Save, Image as ImageIcon } from "lucide-react";
+import { Check, X, ExternalLink, Shield, ShieldCheck, Users, FileText, ArrowLeft, Search, AlertCircle, Star, Pause, RotateCcw, Settings, Plus, Trash2, Mail, BarChart3, TrendingUp, Calendar, Eye, LayoutGrid, Save, Image as ImageIcon, CreditCard, Receipt } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -31,7 +35,7 @@ const AdminVerifications = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
-  const [viewMode, setViewMode] = useState<'pending' | 'all' | 'settings' | 'analytics' | 'platform'>('pending');
+  const [viewMode, setViewMode] = useState<'pending' | 'all' | 'settings' | 'analytics' | 'platform' | 'subscriptions'>('pending');
   const [newAdminEmail, setNewAdminEmail] = useState("");
   const [newManagerEmail, setNewManagerEmail] = useState("");
 
@@ -69,6 +73,16 @@ const AdminVerifications = () => {
   const { data: categories = [], isLoading: isLoadingCategories } = useQuery({
     queryKey: ['categories'],
     queryFn: getCategories,
+  });
+  
+  const { data: pendingSubs = [], isLoading: isLoadingPendingSubs } = useQuery({
+    queryKey: ['pendingSubscriptions'],
+    queryFn: getPendingSubscriptions,
+  });
+
+  const { data: allSubs = [], isLoading: isLoadingAllSubs } = useQuery({
+    queryKey: ['allSubscriptions'],
+    queryFn: getAllSubscriptions,
   });
 
   const managerList = (settings.manager_emails || "").split(',').filter(Boolean);
@@ -262,6 +276,14 @@ const AdminVerifications = () => {
             </>
           )}
           <Button 
+            variant={viewMode === 'subscriptions' ? 'default' : 'outline'} 
+            onClick={() => setViewMode('subscriptions')}
+            className={`rounded-full flex items-center gap-2 ${pendingSubs.length > 0 ? "border-amber-500 text-amber-600 bg-amber-50" : ""}`}
+          >
+            <CreditCard className="h-4 w-4" /> Pagamentos 
+            {pendingSubs.length > 0 && <span className="bg-amber-500 text-white text-[10px] px-1.5 py-0.5 rounded-full ml-1">{pendingSubs.length}</span>}
+          </Button>
+          <Button 
             variant={viewMode === 'analytics' ? 'default' : 'outline'} 
             onClick={() => setViewMode('analytics')}
             className="rounded-full flex items-center gap-2"
@@ -377,6 +399,12 @@ const AdminVerifications = () => {
           />
         ) : viewMode === 'analytics' ? (
           <AnalyticsPanel />
+        ) : viewMode === 'subscriptions' ? (
+          <SubscriptionManagementPanel 
+            pendingSubs={pendingSubs} 
+            allSubs={allSubs} 
+            loading={isLoadingPendingSubs || isLoadingAllSubs} 
+          />
         ) : (
           <PlatformManagementPanel settings={settings} categories={categories} />
         )}
@@ -460,6 +488,114 @@ const PlatformManagementPanel = ({ settings, categories }: { settings: any, cate
           >
             <Save className="h-4 w-4" /> Salvar Alterações
           </Button>
+        </div>
+      </div>
+
+      {/* Subscription Prices Section */}
+      <div className="bg-gradient-to-br from-primary/10 to-accent/5 border border-primary/20 rounded-2xl p-6 shadow-sm">
+        <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
+          <CreditCard className="h-5 w-5 text-primary" /> Preços de Assinatura (Akz)
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="space-y-2">
+            <label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
+              Plano Mensal (Valor Numérico)
+            </label>
+            <div className="relative">
+              <input 
+                type="number" 
+                placeholder="2500"
+                defaultValue={settings.price_monthly || "2500"} 
+                className="w-full h-11 px-4 rounded-xl border bg-background font-bold text-lg"
+                onBlur={(e) => handleUpdateSetting('price_monthly', e.target.value)}
+              />
+              <span className="absolute right-4 top-2.5 text-muted-foreground font-medium">Kz</span>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
+              Plano Trimestral (Valor Numérico)
+            </label>
+            <div className="relative">
+              <input 
+                type="number" 
+                placeholder="6500"
+                defaultValue={settings.price_quarterly || "6500"} 
+                className="w-full h-11 px-4 rounded-xl border bg-background font-bold text-lg"
+                onBlur={(e) => handleUpdateSetting('price_quarterly', e.target.value)}
+              />
+              <span className="absolute right-4 top-2.5 text-muted-foreground font-medium">Kz</span>
+            </div>
+          </div>
+        </div>
+        <p className="text-[10px] text-muted-foreground mt-4 italic mb-8">
+          * Estes valores serão exibidos automaticamente na página de seleção de planos para novos profissionais.
+        </p>
+
+        <h3 className="text-lg font-bold mb-6 flex items-center gap-2 pt-6 border-t border-primary/10">
+          <Receipt className="h-5 w-5 text-primary" /> Coordenadas Bancárias e Contactos
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="space-y-2">
+            <label className="text-xs font-bold uppercase text-muted-foreground">Nome do Banco</label>
+            <input 
+              type="text" 
+              placeholder="Ex: BAI"
+              defaultValue={settings.bank_name || "BAI"} 
+              className="w-full h-11 px-4 rounded-xl border bg-background"
+              onBlur={(e) => handleUpdateSetting('bank_name', e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs font-bold uppercase text-muted-foreground">IBAN</label>
+            <input 
+              type="text" 
+              placeholder="AO06..."
+              defaultValue={settings.bank_iban || "AO06 0040 0000 1234 5678 9012 3"} 
+              className="w-full h-11 px-4 rounded-xl border bg-background"
+              onBlur={(e) => handleUpdateSetting('bank_iban', e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs font-bold uppercase text-muted-foreground">Titular da Conta</label>
+            <input 
+              type="text" 
+              placeholder="Nome da Entidade"
+              defaultValue={settings.bank_holder || "Saka Service Lda."} 
+              className="w-full h-11 px-4 rounded-xl border bg-background"
+              onBlur={(e) => handleUpdateSetting('bank_holder', e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs font-bold uppercase text-muted-foreground">Número MCX Express</label>
+            <input 
+              type="text" 
+              placeholder="9XXXXXXXX"
+              defaultValue={settings.mcx_express_phone || "923 000 000"} 
+              className="w-full h-11 px-4 rounded-xl border bg-background font-mono"
+              onBlur={(e) => handleUpdateSetting('mcx_express_phone', e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs font-bold uppercase text-muted-foreground">WhatsApp para Comprovativos</label>
+            <input 
+              type="text" 
+              placeholder="+244..."
+              defaultValue={settings.payment_proof_whatsapp || "923 000 000"} 
+              className="w-full h-11 px-4 rounded-xl border bg-background font-mono"
+              onBlur={(e) => handleUpdateSetting('payment_proof_whatsapp', e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs font-bold uppercase text-muted-foreground">E-mail de Suporte</label>
+            <input 
+              type="email" 
+              placeholder="pagamentos@sakaser.com"
+              defaultValue={settings.payment_proof_email || "pagamentos@sakaserv.com"} 
+              className="w-full h-11 px-4 rounded-xl border bg-background"
+              onBlur={(e) => handleUpdateSetting('payment_proof_email', e.target.value)}
+            />
+          </div>
         </div>
       </div>
 
@@ -567,7 +703,7 @@ const PlatformManagementPanel = ({ settings, categories }: { settings: any, cate
         <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
           <Mail className="h-5 w-5 text-primary" /> Rodapé & Conectividade
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="space-y-4">
             <div className="space-y-2">
               <label className="text-xs font-bold uppercase text-muted-foreground">Descrição Principal do Rodapé</label>
@@ -618,6 +754,49 @@ const PlatformManagementPanel = ({ settings, categories }: { settings: any, cate
                 defaultValue={settings.social_twitter || "#"} 
                 className="w-full h-11 px-4 rounded-xl border bg-background"
                 onBlur={(e) => handleUpdateSetting('social_twitter', e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase text-muted-foreground">Link do Facebook</label>
+              <input 
+                type="text" 
+                placeholder="https://facebook.com/sakaservice"
+                defaultValue={settings.social_facebook || "#"} 
+                className="w-full h-11 px-4 rounded-xl border bg-background"
+                onBlur={(e) => handleUpdateSetting('social_facebook', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase text-muted-foreground">Link do TikTok</label>
+              <input 
+                type="text" 
+                placeholder="https://tiktok.com/@sakaservice"
+                defaultValue={settings.social_tiktok || "#"} 
+                className="w-full h-11 px-4 rounded-xl border bg-background"
+                onBlur={(e) => handleUpdateSetting('social_tiktok', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase text-muted-foreground">Terminal de WhatsApp</label>
+              <input 
+                type="text" 
+                placeholder="+244 900 000 000"
+                defaultValue={settings.contact_whatsapp || ""} 
+                className="w-full h-11 px-4 rounded-xl border bg-background"
+                onBlur={(e) => handleUpdateSetting('contact_whatsapp', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase text-muted-foreground">Telefone Central</label>
+              <input 
+                type="text" 
+                placeholder="+244 900 000 000"
+                defaultValue={settings.contact_phone || ""} 
+                className="w-full h-11 px-4 rounded-xl border bg-background"
+                onBlur={(e) => handleUpdateSetting('contact_phone', e.target.value)}
               />
             </div>
           </div>
@@ -1107,6 +1286,181 @@ const VerificationItem = ({ pro, mutation, featuredMutation, deleteMutation }: {
           Ver perfil público →
         </Link>
       </div>
+      </div>
+    </div>
+  );
+};
+
+// Subscription Management Panel Component
+const SubscriptionManagementPanel = ({ pendingSubs, allSubs, loading }: { pendingSubs: any[], allSubs: any[], loading: boolean }) => {
+  const [subView, setSubView] = useState<'pending' | 'all'>('pending');
+  
+  if (loading) return <div className="flex justify-center py-20 text-muted-foreground">A carregar dados de pagamentos...</div>;
+
+  const currentSubs = subView === 'pending' ? pendingSubs : allSubs;
+
+  return (
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-bold flex items-center gap-2">
+            <CreditCard className="h-6 w-6 text-primary" /> Gestão de Assinaturas & Receitas
+          </h2>
+          <p className="text-sm text-muted-foreground">Valide comprovativos de transferência e controle o acesso dos profissionais.</p>
+        </div>
+        <div className="flex bg-muted p-1 rounded-lg">
+          <button 
+            onClick={() => setSubView('pending')}
+            className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${subView === 'pending' ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+          >
+            Pendentes ({pendingSubs.length})
+          </button>
+          <button 
+            onClick={() => setSubView('all')}
+            className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${subView === 'all' ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+          >
+            Histórico (Total: {allSubs.length})
+          </button>
+        </div>
+      </div>
+
+      <div className="grid gap-6">
+        {currentSubs.length === 0 ? (
+          <div className="rounded-2xl border border-dashed p-20 text-center bg-card">
+            <Receipt className="mx-auto h-12 w-12 text-muted-foreground opacity-10 mb-4" />
+            <h3 className="text-lg font-medium text-muted-foreground">Nenhum registo encontrado nesta vista.</h3>
+          </div>
+        ) : (
+          currentSubs.map((sub: any) => (
+            <SubscriptionItem key={sub.id} sub={sub} />
+          ))
+        )}
+      </div>
+    </div>
+  );
+};
+
+const SubscriptionItem = ({ sub }: { sub: any }) => {
+  const queryClient = useQueryClient();
+  const pro = sub.professionals;
+
+  const handleApprove = async () => {
+    try {
+      toast.info("A ativar subscrição...");
+      await approveSubscription(sub.id);
+      toast.success(`Pagamento de ${pro?.name} aprovado! Perfil agora está Ativo.`);
+      queryClient.invalidateQueries({ queryKey: ['pendingSubscriptions'] });
+      queryClient.invalidateQueries({ queryKey: ['allSubscriptions'] });
+      queryClient.invalidateQueries({ queryKey: ['allProfessionals'] });
+    } catch (e: any) {
+      toast.error("Erro ao aprovar: " + e.message);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!confirm("Rejeitar este pagamento? O perfil do profissional continuará inativo.")) return;
+    try {
+      await rejectSubscription(sub.id, "Comprovativo inválido");
+      toast.warning("Subscrição rejeitada.");
+      queryClient.invalidateQueries({ queryKey: ['pendingSubscriptions'] });
+      queryClient.invalidateQueries({ queryKey: ['allSubscriptions'] });
+    } catch (e: any) {
+      toast.error("Erro ao rejeitar.");
+    }
+  };
+
+  return (
+    <div className={`bg-card border rounded-2xl p-6 shadow-sm overflow-hidden border-l-4 ${
+      sub.status === 'active' ? 'border-l-green-500' : 
+      sub.status === 'pending' ? 'border-l-amber-500' : 'border-l-destructive'
+    }`}>
+      <div className="flex flex-col lg:flex-row gap-8 items-center">
+        {/* Info Profissional */}
+        <div className="flex items-center gap-4 flex-1">
+          <div className="h-12 w-12 rounded-full overflow-hidden border bg-muted shrink-0">
+            <img src={pro?.avatar || ""} className="h-full w-full object-cover" alt={pro?.name} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h4 className="font-bold truncate">{pro?.name}</h4>
+            <p className="text-xs text-muted-foreground truncate">{pro?.email}</p>
+            <div className="flex gap-2 mt-1">
+              <span className={`text-[10px] uppercase font-black px-1.5 py-0.5 rounded ${
+                sub.plan === 'trimestral' ? 'bg-primary/10 text-primary' : 'bg-secondary text-secondary-foreground'
+              }`}>
+                Plano {sub.plan}
+              </span>
+              <span className="text-[10px] text-muted-foreground font-medium">Fatura {sub.id.split('-')[0].toUpperCase()}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Info Pagamento */}
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-6 flex-[2] w-full lg:w-auto bg-muted/30 p-4 rounded-xl border">
+          <div className="space-y-1">
+            <p className="text-[10px] font-bold text-muted-foreground uppercase">Valor</p>
+            <p className="font-bold text-lg">{sub.amount?.toLocaleString()} Kz</p>
+          </div>
+          <div className="space-y-1">
+            <p className="text-[10px] font-bold text-muted-foreground uppercase">Método</p>
+            <p className="text-sm flex items-center gap-1">
+              {sub.payment_method === 'express' ? <CreditCard className="h-3 w-3" /> : <Receipt className="h-3 w-3" />}
+              {sub.payment_method === 'express' ? 'MCX Express' : 'Transferência'}
+            </p>
+          </div>
+          <div className="space-y-1">
+            <p className="text-[10px] font-bold text-muted-foreground uppercase">Comprovativo</p>
+            {sub.payment_proof_url ? (
+              <a 
+                href={sub.payment_proof_url} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-primary text-xs font-bold flex items-center gap-1 hover:underline"
+              >
+                <ExternalLink className="h-3 w-3" /> Ver Documento
+              </a>
+            ) : (
+              <span className="text-xs text-muted-foreground italic">Automático (Express)</span>
+            )}
+          </div>
+          <div className="space-y-1">
+            <p className="text-[10px] font-bold text-muted-foreground uppercase">Data Pedido</p>
+            <p className="text-xs">{new Date(sub.created_at).toLocaleDateString()}</p>
+          </div>
+          <div className="space-y-1">
+            <p className="text-[10px] font-bold text-muted-foreground uppercase">Estado</p>
+            <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${
+              sub.status === 'active' ? 'bg-green-500 text-white' : 
+              sub.status === 'pending' ? 'bg-amber-500 text-white' : 'bg-red-500 text-white'
+            }`}>
+              {sub.status === 'active' ? 'Pago' : sub.status === 'pending' ? 'Pendente' : sub.status}
+            </span>
+          </div>
+          {sub.status === 'active' && (
+            <div className="space-y-1">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase">Expira em</p>
+              <p className="text-xs text-green-600 font-bold">{new Date(sub.end_date).toLocaleDateString()}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Ações */}
+        <div className="flex lg:flex-col gap-2 w-full lg:w-40 pt-4 lg:pt-0 border-t lg:border-t-0">
+          {sub.status === 'pending' && (
+            <>
+              <Button size="sm" className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold gap-2" onClick={handleApprove}>
+                <Check className="h-4 w-4" /> Aprovar
+              </Button>
+              <Button size="sm" variant="outline" className="flex-1 border-destructive text-destructive hover:bg-destructive/5 font-bold" onClick={handleReject}>
+                <X className="h-4 w-4" /> Rejeitar
+              </Button>
+            </>
+          )}
+          {sub.status === 'active' && (
+            <Button size="sm" variant="ghost" className="w-full text-muted-foreground italic text-[10px]" disabled>
+              Ativado em {new Date(sub.start_date).toLocaleDateString()}
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );

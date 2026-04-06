@@ -33,7 +33,7 @@ const mapProfessional = (pro: any): Professional => {
 export const getFeaturedProfessionals = async (): Promise<Professional[]> => {
   try {
     console.log('Buscando profissionais em destaque...');
-    
+
     // Tentativa 1: profissionais marcados manualmente como destaque
     const { data: featuredData, error: featuredError } = await supabase
       .from('professionals')
@@ -96,7 +96,7 @@ export const getProfessionalById = async (id: string): Promise<Professional | nu
     .select('*, portfolios(*), reviews(*)')
     .eq('id', id)
     .single();
-  
+
   if (error) {
     console.error('Error fetching professional:', error);
     return null;
@@ -108,12 +108,12 @@ export const getSiteSettings = async (): Promise<Record<string, string>> => {
   const { data, error } = await supabase
     .from('site_settings')
     .select('key, value');
-    
+
   if (error) {
     console.error('Error fetching site settings:', error);
     return {};
   }
-  
+
   return (data || []).reduce((acc, current) => {
     acc[current.key] = current.value;
     return acc;
@@ -151,12 +151,12 @@ export const getCategories = async () => {
       .from('categories')
       .select('*, professionals(count)')
       .order('name');
-      
+
     if (error) {
       console.error('Erro Supabase (Categories):', error.message, error.details);
       return [];
     }
-    
+
     // Mapear a contagem para facilitar o uso no frontend
     return (data || []).map(cat => ({
       ...cat,
@@ -185,13 +185,13 @@ export const createProfessionalProfile = async (profileData: any) => {
   // Usamos upsert para evitar erros de "duplicate key" e garantir visibilidade
   const { data, error } = await supabase
     .from('professionals')
-    .upsert([{ 
-      ...profileData, 
+    .upsert([{
+      ...profileData,
       verification_status: profileData.verification_status || 'ativo'
     }])
     .select()
     .single();
-    
+
   if (error) {
     console.error('Error creating/updating professional:', error);
     throw error;
@@ -204,7 +204,7 @@ export const addPortfolios = async (portfolios: any[]) => {
   const { data, error } = await supabase
     .from('portfolios')
     .insert(portfolios);
-    
+
   if (error) {
     console.error('Error adding portfolios:', error);
     throw error;
@@ -216,7 +216,7 @@ export const uploadVerificationDocument = async (file: File, userId: string, typ
   if (!file) return null;
   const fileExt = file.name.split('.').pop();
   const fileName = `${userId}/${type}_${Date.now()}.${fileExt}`;
-  
+
   const { error: uploadError } = await supabase.storage
     .from('professional-documents')
     .upload(fileName, file);
@@ -260,7 +260,7 @@ export const submitVerification = async (userId: string, data: any) => {
 export const performSimulatedOCR = async (file: File): Promise<{ name: string; idNumber: string }> => {
   // Simulate delay
   await new Promise(resolve => setTimeout(resolve, 1500));
-  
+
   // Return mock data for demonstration
   return {
     name: "UTILIZADOR VERIFICADO MOCK",
@@ -273,7 +273,7 @@ export const uploadImage = async (file: File): Promise<string | null> => {
   const fileExt = file.name.split('.').pop();
   const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
   const filePath = `${fileName}`;
-  
+
   const { error: uploadError } = await supabase.storage
     .from('uploads')
     .upload(filePath, file);
@@ -297,7 +297,7 @@ export const updateProfessionalProfile = async (id: string, profileData: any) =>
     .eq('id', id)
     .select()
     .single();
-    
+
   if (error) {
     console.error('Error updating professional:', error);
     throw error;
@@ -310,7 +310,7 @@ export const getPendingVerifications = async () => {
     .from('professionals')
     .select('*, portfolios(*), reviews(*)')
     .in('verification_status', ['pending_review', 'suspenso', 'removido']);
-    
+
   if (error) {
     console.error('Error fetching flagged verifications:', error);
     return [];
@@ -323,7 +323,7 @@ export const getAllProfessionals = async () => {
     .from('professionals')
     .select('*, portfolios(*), reviews(*)')
     .order('created_at', { ascending: false });
-    
+
   if (error) {
     console.error('Error fetching all professionals:', error);
     return [];
@@ -335,7 +335,7 @@ export const getAllProfessionals = async () => {
 export const adminUpdateVerificationStatus = async (userId: string, status: 'ativo' | 'suspenso' | 'removido') => {
   const { error } = await supabase
     .from('professionals')
-    .update({ 
+    .update({
       verification_status: status,
       verified_at: status === 'ativo' ? new Date().toISOString() : null
     })
@@ -351,7 +351,7 @@ export const adminUpdateVerificationStatus = async (userId: string, status: 'ati
 export const adminRejectVerification = async (userId: string, reason: string) => {
   const { error } = await supabase
     .from('professionals')
-    .update({ 
+    .update({
       verification_status: 'suspenso',
       rejection_reason: reason,
       verification_submitted_at: null // Reset submission time so they have to re-submit
@@ -383,7 +383,7 @@ export const deleteProfessional = async (id: string) => {
       .eq('id', id);
 
     if (error) throw error;
-    
+
     // Se o contador for 0, significa que o RLS impediu a eliminação ou o ID não existe
     if (count === 0) {
       throw new Error("A base de dados recusou a eliminação. Verifique as permissões de RLS para administradores.");
@@ -414,7 +414,7 @@ export const deletePortfolioItem = async (id: string) => {
     .from('portfolios')
     .delete()
     .eq('id', id);
-    
+
   if (error) {
     console.error('Error deleting portfolio:', error);
     throw error;
@@ -428,7 +428,7 @@ export const addReview = async (reviewData: { professional_id: string, author: s
     .insert([reviewData])
     .select()
     .single();
-    
+
   if (error) {
     console.error('Error adding review:', error);
     throw error;
@@ -441,7 +441,7 @@ export const getAdmins = async () => {
     .from('admins')
     .select('*')
     .order('created_at', { ascending: false });
-    
+
   if (error) {
     console.error('Error fetching admins:', error);
     throw error;
@@ -459,7 +459,7 @@ export const addAdmin = async (email: string) => {
     .insert([{ email, added_by: addedBy }])
     .select()
     .single();
-    
+
   if (error) {
     console.error('Error adding admin:', error);
     throw error;
@@ -472,7 +472,7 @@ export const removeAdmin = async (email: string) => {
     .from('admins')
     .delete()
     .eq('email', email);
-    
+
   if (error) {
     console.error('Error removing admin:', error);
     throw error;
@@ -516,7 +516,7 @@ export const getSiteStats = async () => {
     .select('*')
     .eq('id', 'global')
     .single();
-    
+
   if (error) {
     console.error('Error fetching site stats:', error);
     return null;
@@ -530,7 +530,7 @@ export const getTopProfiles = async (limit: number = 10) => {
     .select('*, portfolios(*), reviews(*)')
     .order('total_views', { ascending: false })
     .limit(limit);
-    
+
   if (error) {
     console.error('Error fetching top profiles:', error);
     return [];
@@ -544,7 +544,7 @@ export const updateSiteSetting = async (key: string, value: string) => {
     .upsert([{ key, value }], { count: 'exact' })
     .select()
     .single();
-    
+
   if (error) {
     console.error(`Error updating setting ${key}:`, error);
     throw error;
@@ -563,7 +563,7 @@ export const createCategory = async (category: Partial<Category>) => {
     .insert([category])
     .select()
     .single();
-    
+
   if (error) {
     console.error('Error creating category:', error);
     throw error;
@@ -578,7 +578,7 @@ export const updateCategory = async (id: string, categoryData: Partial<Category>
     .eq('id', id)
     .select()
     .single();
-    
+
   if (error) {
     console.error('Error updating category:', error);
     throw error;
@@ -588,5 +588,68 @@ export const updateCategory = async (id: string, categoryData: Partial<Category>
     throw new Error("A base de dados recusou a alteração da categoria. Verifique as permissões de RLS.");
   }
 
+
   return data;
 };
+
+export const getPendingSubscriptions = async () => {
+  const { data, error } = await supabase
+    .from('subscriptions')
+    .select('*, professionals(*)')
+    .eq('status', 'pending');
+  if (error) {
+    console.error('Error fetching pending subscriptions:', error);
+    return [];
+  }
+  return data || [];
+};
+
+export const getAllSubscriptions = async () => {
+  const { data, error } = await supabase
+    .from('subscriptions')
+    .select('*, professionals(*)');
+  if (error) {
+    console.error('Error fetching all subscriptions:', error);
+    return [];
+  }
+  return data || [];
+};
+
+export const approveSubscription = async (id: string) => {
+  const { error } = await supabase
+    .from('subscriptions')
+    .update({ status: 'active' })
+    .eq('id', id);
+  if (error) {
+    console.error('Error approving subscription:', error);
+    throw error;
+  }
+  return true;
+};
+
+export const rejectSubscription = async (id: string, reason: string) => {
+  const { error } = await supabase
+    .from('subscriptions')
+    .update({ status: 'blocked' })
+    .eq('id', id);
+  if (error) {
+    console.error('Error rejecting subscription:', error);
+    throw error;
+  }
+  return true;
+};
+
+export const createSubscriptionRequest = async (subscriptionData: any) => {
+  const { data, error } = await supabase
+    .from('subscriptions')
+    .insert([subscriptionData])
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error creating subscription request:', error);
+    throw error;
+  }
+  return data;
+};
+

@@ -45,11 +45,23 @@ const Footer = () => {
             <h4 className="mb-3 text-sm font-semibold">Redes Sociais</h4>
             <div className="flex flex-col gap-2">
               <a href={getSetting('social_instagram', '#')} target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-foreground">Instagram</a>
+              <a href={getSetting('social_facebook', '#')} target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-foreground">Facebook</a>
+              <a href={getSetting('social_tiktok', '#')} target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-foreground">TikTok</a>
               <a href={getSetting('social_linkedin', '#')} target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-foreground">LinkedIn</a>
-              <a href={getSetting('social_twitter', '#')} target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-foreground">Twitter</a>
+              <a href={getSetting('social_twitter', '#')} target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-foreground">Twitter / X</a>
               <a href={`mailto:${getSetting('contact_email', 'contato@sakaservice.com')}`} className="text-sm text-muted-foreground hover:text-foreground">
                 {getSetting('contact_email', 'contato@sakaservice.com')}
               </a>
+              {getSetting('contact_whatsapp') && (
+                <a href={`https://wa.me/${getSetting('contact_whatsapp').replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-foreground">
+                  WhatsApp: {getSetting('contact_whatsapp')}
+                </a>
+              )}
+              {getSetting('contact_phone') && (
+                <a href={`tel:${getSetting('contact_phone').replace(/\D/g, '')}`} className="text-sm text-muted-foreground hover:text-foreground">
+                  Ligar: {getSetting('contact_phone')}
+                </a>
+              )}
             </div>
           </div>
         </div>

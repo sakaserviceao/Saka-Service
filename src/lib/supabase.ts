@@ -3,14 +3,19 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('ERRO CRÍTICO: Variáveis de ambiente do Supabase não encontradas.');
-  console.info('Configure VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no .env ou no Vercel.');
+console.log("Saka Service: Initializing Supabase client...");
+
+const isUrlValid = supabaseUrl && supabaseUrl.startsWith('http');
+
+if (!isUrlValid || !supabaseAnonKey) {
+  console.error('ERRO CRÍTICO: Variáveis de ambiente do Supabase ausentes ou inválidas.');
+  console.info('Configuradas:', { url: supabaseUrl, hasKey: !!supabaseAnonKey });
+  console.info('Dica: O VITE_SUPABASE_URL deve começar com https://');
 }
 
 // Cliente PRINCIPAL — usado para autenticação (login, registo, perfil).
 // Mantém sessão no localStorage.
-export const supabase = (supabaseUrl && supabaseAnonKey)
+export const supabase = (isUrlValid && supabaseAnonKey)
   ? createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
         persistSession: true,
@@ -18,11 +23,11 @@ export const supabase = (supabaseUrl && supabaseAnonKey)
         autoRefreshToken: true,
       },
     })
-  : { auth: {}, storage: {}, from: () => ({}) } as any;
+  : { auth: { getSession: async () => ({ data: { session: null } }), onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }) }, storage: {}, from: () => ({}) } as any;
 
 // Cliente PÚBLICO — usado APENAS para leituras públicas (categorias, profissionais, stats).
 // Sem gestão de sessão, sem locks de auth → nunca bloqueia.
-export const supabasePublic = (supabaseUrl && supabaseAnonKey)
+export const supabasePublic = (isUrlValid && supabaseAnonKey)
   ? createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
         persistSession: false,

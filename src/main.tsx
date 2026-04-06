@@ -1,11 +1,15 @@
 import { createRoot } from "react-dom/client";
-import App from "./App.tsx";
+import App from "./App";
 import "./index.css";
 
-// Global error catcher for better production debugging
+console.log("Saka Service: Bootstrapping application...");
+
 window.onerror = (message, source, lineno, colno, error) => {
   console.error('CRITICAL STARTUP ERROR:', { message, source, lineno, colno, error });
   return false;
 };
 
-createRoot(document.getElementById("root")!).render(<App />);
+const rootElement = document.getElementById("root");
+if (!rootElement) throw new Error("Failed to find root element");
+
+createRoot(rootElement).render(<App />);

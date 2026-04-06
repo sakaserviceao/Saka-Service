@@ -29,14 +29,19 @@ import ConfirmEmail from "./pages/ConfirmEmail";
 import SubscriptionPlans from "./pages/SubscriptionPlans";
 
 // Check for missing Supabase configuration
-const isConfigured = 
+const isConfigured = Boolean(
   import.meta.env.VITE_SUPABASE_URL && 
-  import.meta.env.VITE_SUPABASE_ANON_KEY;
+  import.meta.env.VITE_SUPABASE_URL.startsWith('http') &&
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+);
 
 const queryClient = new QueryClient();
 
 const App = () => {
+  console.log("Saka Service: App Component rendering...", { isConfigured });
+
   if (!isConfigured) {
+    console.warn("Saka Service: Supabase not configured. Showing ConfigError screen.");
     return <ConfigError />;
   }
 

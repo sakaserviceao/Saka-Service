@@ -52,13 +52,24 @@ const ProfessionalProfile = () => {
     );
   }
 
-  if (!pro) {
+  const isOwner = user?.id === pro?.id;
+  const isPubliclyVisible = pro?.subscription_status === 'active' && pro?.verification_status === 'ativo';
+
+  if (!pro || (!isPubliclyVisible && !isOwner)) {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
         <div className="container py-20 text-center">
-          <h1 className="text-2xl font-bold">Profissional não encontrado</h1>
-          <Link to="/" className="mt-4 inline-block text-primary hover:underline">Voltar ao início</Link>
+          <h1 className="text-2xl font-bold">{!pro ? "Profissional não encontrado" : "Perfil Indisponível"}</h1>
+          <p className="text-muted-foreground mt-2">
+            {!pro ? "Não foi possível encontrar o profissional solicitado." : "Este perfil ainda não está visível publicamente. Documentos e pagamento em validação."}
+          </p>
+          <div className="mt-4 flex justify-center gap-2">
+            <Link to="/" className="text-primary hover:underline">Voltar ao início</Link>
+            {isOwner && (
+              <Link to="/perfil-editar" className="text-primary hover:underline px-4 border-l">Editar o Meu Perfil</Link>
+            )}
+          </div>
         </div>
         <Footer />
       </div>
@@ -66,7 +77,6 @@ const ProfessionalProfile = () => {
   }
 
   const category = categories.find((c: any) => c.id === pro.category);
-  const isOwner = user?.id === pro.id;
   const canReview = user && !isOwner; // Visitantes não logados também não podem comentar por agora
   const proIdBadge = pro.id ? `PRO-${pro.id.split('-')[0].toUpperCase()}` : 'PRO-000';
 

@@ -27,6 +27,7 @@ export interface Professional {
   monthly_views?: number;
   yearly_views?: number;
   total_views?: number;
+  subscription_status?: 'pending' | 'active' | 'expired' | 'blocked' | string;
 }
 
 export interface Category {

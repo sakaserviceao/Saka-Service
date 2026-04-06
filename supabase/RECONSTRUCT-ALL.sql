@@ -11,6 +11,7 @@ DROP TABLE IF EXISTS public.portfolios CASCADE;
 DROP TABLE IF EXISTS public.professionals CASCADE;
 DROP TABLE IF EXISTS public.categories CASCADE;
 DROP TABLE IF EXISTS public.admins CASCADE;
+DROP TABLE IF EXISTS public.site_settings CASCADE;
 DROP TABLE IF EXISTS public.site_stats CASCADE;
 DROP TABLE IF EXISTS public.profile_visits CASCADE;
 DROP TYPE IF EXISTS public.verification_status CASCADE;

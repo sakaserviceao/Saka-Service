@@ -19,11 +19,14 @@ const Register = () => {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    const redirectTo = `${window.location.origin}/confirm`;
+    console.log("Redirecting to:", redirectTo);
+
     const { data, error } = await supabase.auth.signUp({ 
       email, 
       password,
       options: {
-        emailRedirectTo: "https://saka-service.vercel.app/confirm",
+        emailRedirectTo: redirectTo,
         data: {
           full_name: name,
           status: 'pending_email_confirmation',

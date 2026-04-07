@@ -32,16 +32,18 @@ const ProfessionalCard = ({ professional, index = 0 }: Props) => {
         to={`/professional/${professional.id}`}
         className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-md transition-all duration-300 hover:-translate-y-2 hover:shadow-xl"
       >
-        {/* Optional Badge */}
+        {/* Featured Badge - Repositioned to avoid overlap */}
         {professional.featured && (
-          <div className="absolute right-4 top-4 z-10 rounded-full bg-primary/90 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-primary-foreground shadow-sm">
-            Profissional de Destaque
+          <div className="mb-4 flex">
+            <div className="rounded-full bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-emerald-600 shadow-sm animate-pulse-subtle">
+              ✨ Profissional de Destaque
+            </div>
           </div>
         )}
 
         <div className="flex flex-col gap-5">
           <div className="flex items-center gap-4">
-            <div className="relative">
+            <div className="relative shrink-0">
               <img
                 src={professional.avatar}
                 alt={professional.name}
@@ -51,12 +53,12 @@ const ProfessionalCard = ({ professional, index = 0 }: Props) => {
                 <Star className="h-3 w-3 fill-accent text-accent" />
               </div>
             </div>
-            <div className="min-w-0">
-              <h3 className="text-lg font-bold text-foreground transition-colors group-hover:text-primary flex items-center gap-1">
+            <div className="min-w-0 flex-1">
+              <h3 className="text-lg font-bold text-foreground transition-colors group-hover:text-primary flex flex-wrap items-center gap-1 leading-tight">
                 {professional.name}
                 <VerificationBadge verified={professional.verification_status} size="sm" />
               </h3>
-              <p className="text-sm font-medium text-muted-foreground">{professional.title}</p>
+              <p className="text-sm font-medium text-muted-foreground mt-1">{professional.title}</p>
             </div>
           </div>
 

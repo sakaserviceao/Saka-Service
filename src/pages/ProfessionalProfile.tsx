@@ -53,9 +53,10 @@ const ProfessionalProfile = () => {
   }
 
   const isOwner = user?.id === pro?.id;
+  const isAdmin = ['franciscobeneditomucamba@gmail.com', 'sakaservice.ao@gmail.com', 'podosk2010@hotmail.com', 'francisco.mucamba@gmail.com'].includes(user?.email || '');
   const isPubliclyVisible = pro?.subscription_status === 'active' && pro?.verification_status === 'ativo';
 
-  if (!pro || (!isPubliclyVisible && !isOwner)) {
+  if (!pro || (!isPubliclyVisible && !isOwner && !isAdmin)) {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
@@ -77,8 +78,19 @@ const ProfessionalProfile = () => {
   }
 
   const category = categories.find((c: any) => c.id === pro.category);
-  const canReview = user && !isOwner; // Visitantes não logados também não podem comentar por agora
+  const canReview = user && !isOwner; 
   const proIdBadge = pro.id ? `PRO-${pro.id.split('-')[0].toUpperCase()}` : 'PRO-000';
+
+  const toggleFeatured = async () => {
+    try {
+      const { adminUpdateFeaturedStatus } = await import("@/data/api");
+      await adminUpdateFeaturedStatus(pro.id, !pro.featured);
+      toast.success(pro.featured ? "Removido dos destaques!" : "Definido como TOP PROFISSIONAL!");
+      queryClient.invalidateQueries({ queryKey: ['professional', id] });
+    } catch (err) {
+      toast.error("Erro ao atualizar destaque.");
+    }
+  };
 
   const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -118,13 +130,24 @@ const ProfessionalProfile = () => {
           <ArrowLeft className="h-4 w-4" /> Voltar
         </Link>
 
-        {isOwner && (
-          <div className="mb-6 flex justify-end">
+        <div className="mb-6 flex flex-wrap justify-end gap-3">
+          {isOwner && (
             <Button variant="outline" className="gap-2 bg-secondary" asChild>
               <Link to="/edit-profile"><Edit className="h-4 w-4" /> Editar o Meu Perfil</Link>
             </Button>
-          </div>
-        )}
+          )}
+          
+          {isAdmin && (
+            <Button 
+              variant={pro.featured ? "outline" : "default"} 
+              className={`gap-2 ${pro.featured ? "border-yellow-500 text-yellow-600 hover:bg-yellow-50" : "bg-yellow-500 hover:bg-yellow-600 text-white"}`}
+              onClick={toggleFeatured}
+            >
+              <Star className={`h-4 w-4 ${pro.featured ? "fill-yellow-500" : ""}`} />
+              {pro.featured ? "Remover Top Profissional" : "Tornar Top Profissional"}
+            </Button>
+          )}
+        </div>
 
         {/* Header */}
         <motion.div

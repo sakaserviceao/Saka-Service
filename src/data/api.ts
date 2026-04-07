@@ -8,12 +8,27 @@ export const getProfessionalsByCategory = async (categoryId: string): Promise<Pr
   const { data, error } = await supabasePublic
     .from('professionals')
     .select('*, portfolios(*), reviews(*)')
-    .eq('category', categoryId)
-    .headers({ 'Cache-Control': 'no-cache' });
+    .eq('category', categoryId);
+
   if (error) {
-    console.error('Error fetching professionals:', error);
     return [];
   }
+
+  // Se não houver nada, tentamos procurar pelo nome da categoria (caso o ID na DB esteja como nome)
+  if (!data || data.length === 0) {
+    const { data: categories } = await supabasePublic.from('categories').select('name').eq('id', categoryId).single();
+    if (categories?.name) {
+      const { data: retryData } = await supabasePublic
+        .from('professionals')
+        .select('*, portfolios(*), reviews(*)')
+        .eq('category', categories.name);
+
+      if (retryData && retryData.length > 0) {
+        return retryData.map(mapProfessional);
+      }
+    }
+  }
+
   return (data || []).map(mapProfessional);
 };
 
@@ -33,51 +48,18 @@ const mapProfessional = (pro: any): Professional => {
 
 export const getFeaturedProfessionals = async (): Promise<Professional[]> => {
   try {
-    console.log('Buscando profissionais em destaque...');
-
-    // Tentativa 1: profissionais marcados manualmente como destaque
-    const { data: featuredData, error: featuredError } = await supabasePublic
+    const { data, error } = await supabasePublic
       .from('professionals')
       .select('*, portfolios(*), reviews(*)')
       .eq('featured', true)
-      .limit(6)
-      .headers({ 'Cache-Control': 'no-cache' });
+      .limit(10);
 
-    if (featuredData && featuredData.length > 0) {
-      console.log('Destaques manuais encontrados:', featuredData.length);
-      return featuredData.map(mapProfessional);
-    }
-
-    // Fallback 1: Melhores avaliados
-    const { data: ratedData } = await supabasePublic
-      .from('professionals')
-      .select('*, portfolios(*), reviews(*)')
-      .order('rating', { ascending: false })
-      .limit(6)
-      .headers({ 'Cache-Control': 'no-cache' });
-
-    if (ratedData && ratedData.length > 0) {
-      console.log('Fallback 1 (Avaliados) encontrado:', ratedData.length);
-      return ratedData.map(mapProfessional);
-    }
-
-    // Fallback Final: Super simples, sem joins, apenas profissionais para garantir que aparece ALGO
-    console.log('Usando fallback final (sem joins)...');
-    const { data: simpleData, error: simpleError } = await supabasePublic
-      .from('professionals')
-      .select('*')
-      .limit(6)
-      .headers({ 'Cache-Control': 'no-cache' });
-
-    if (simpleError) {
-      console.error('Erro crítico no fallback total:', simpleError);
+    if (error) {
       return [];
     }
 
-    console.log('Fallback final obteve:', simpleData?.length || 0, 'perfis');
-    return (simpleData || []).map(mapProfessional);
+    return (data || []).map(mapProfessional);
   } catch (err) {
-    console.error('Erro fatal ao buscar destaques:', err);
     return [];
   }
 };
@@ -86,10 +68,9 @@ export const searchProfessionals = async (query: string): Promise<Professional[]
   const { data, error } = await supabasePublic
     .from('professionals')
     .select('*, portfolios(*), reviews(*)')
-    .or(`name.ilike.%${query}%,title.ilike.%${query}%,description.ilike.%${query}%,location.ilike.%${query}%`)
-    .headers({ 'Cache-Control': 'no-cache' });
+    .or(`name.ilike.%${query}%,title.ilike.%${query}%,description.ilike.%${query}%,location.ilike.%${query}%`);
+  
   if (error) {
-    console.error('Error searching professionals:', error);
     return [];
   }
   return (data || []).map(mapProfessional);

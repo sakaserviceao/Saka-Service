@@ -48,9 +48,9 @@ const Navbar = () => {
 
           {user ? (
             <div className="flex items-center gap-4">
-              {['franciscobeneditomucamba@gmail.com', 'sakaservice.ao@gmail.com'].includes(user.email || '') && (
-                <Link to="/admin/verifications" className="text-sm font-semibold text-primary hover:underline">
-                  Verificações
+              {['franciscobeneditomucamba@gmail.com', 'sakaservice.ao@gmail.com', 'podosk2010@hotmail.com', 'francisco.mucamba@gmail.com'].includes(user.email || '') && (
+                <Link to="/admin/verifications" className="text-sm font-semibold text-primary hover:underline border border-primary/20 px-3 py-1 rounded-full bg-primary/5">
+                  Painel Admin
                 </Link>
               )}
               <span className="text-sm font-medium text-primary">{displayName}</span>
@@ -111,9 +111,9 @@ const Navbar = () => {
               <div className="flex flex-col gap-2 pt-2">
                 {user ? (
                   <>
-                    {['franciscobeneditomucamba@gmail.com', 'sakaservice.ao@gmail.com'].includes(user.email || '') && (
-                      <Link to="/admin/verifications" className="text-sm font-bold text-center text-primary mb-2" onClick={() => setIsOpen(false)}>
-                        Painel de Verificação
+                    {['franciscobeneditomucamba@gmail.com', 'sakaservice.ao@gmail.com', 'podosk2010@hotmail.com', 'francisco.mucamba@gmail.com'].includes(user.email || '') && (
+                      <Link to="/admin/verifications" className="text-sm font-bold text-center text-primary mb-2 bg-primary/5 p-2 rounded-lg" onClick={() => setIsOpen(false)}>
+                        Painel de Administração
                       </Link>
                     )}
                     <span className="text-sm font-medium text-center text-primary mb-2">{displayName}</span>

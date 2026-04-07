@@ -15,7 +15,7 @@ const Navbar = () => {
   const { getSetting } = useSettings();
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-lg">
+    <nav className="sticky top-0 z-50 border-b border-border bg-background/70 backdrop-blur-md">
       <div className="container flex h-16 items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg overflow-hidden">

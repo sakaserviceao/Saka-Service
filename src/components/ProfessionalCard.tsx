@@ -15,6 +15,8 @@ const ProfessionalCard = ({ professional, index = 0 }: Props) => {
   const { data: categories = [] } = useQuery({
     queryKey: ['categories'],
     queryFn: getCategories,
+    staleTime: 1000 * 60 * 30, // 30 minutes (categories rarely change)
+    gcTime: 1000 * 60 * 60, // 60 minutes
   });
   
   const category = categories.find((c: any) => c.id === professional.category);

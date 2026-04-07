@@ -35,7 +35,16 @@ const isConfigured = Boolean(
   import.meta.env.VITE_SUPABASE_ANON_KEY
 );
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 5, // 5 seconds
+      gcTime: 1000 * 60 * 10, // 10 minutes
+      refetchOnWindowFocus: true,
+      retry: 1,
+    },
+  },
+});
 
 const App = () => {
   console.log("Saka Service: App Component rendering...", { isConfigured });

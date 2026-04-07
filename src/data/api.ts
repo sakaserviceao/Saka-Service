@@ -1,14 +1,15 @@
-import { supabase } from '../lib/supabase';
-export { supabase };
+import { supabase, supabasePublic } from '../lib/supabase';
+export { supabase, supabasePublic };
 
 // Helper typings para reusar as que já existiam
 import type { Professional, Category, SiteSetting } from './mockData';
 
 export const getProfessionalsByCategory = async (categoryId: string): Promise<Professional[]> => {
-  const { data, error } = await supabase
+  const { data, error } = await supabasePublic
     .from('professionals')
     .select('*, portfolios(*), reviews(*)')
-    .eq('category', categoryId);
+    .eq('category', categoryId)
+    .headers({ 'Cache-Control': 'no-cache' });
   if (error) {
     console.error('Error fetching professionals:', error);
     return [];
@@ -35,11 +36,12 @@ export const getFeaturedProfessionals = async (): Promise<Professional[]> => {
     console.log('Buscando profissionais em destaque...');
 
     // Tentativa 1: profissionais marcados manualmente como destaque
-    const { data: featuredData, error: featuredError } = await supabase
+    const { data: featuredData, error: featuredError } = await supabasePublic
       .from('professionals')
       .select('*, portfolios(*), reviews(*)')
       .eq('featured', true)
-      .limit(6);
+      .limit(6)
+      .headers({ 'Cache-Control': 'no-cache' });
 
     if (featuredData && featuredData.length > 0) {
       console.log('Destaques manuais encontrados:', featuredData.length);
@@ -47,11 +49,12 @@ export const getFeaturedProfessionals = async (): Promise<Professional[]> => {
     }
 
     // Fallback 1: Melhores avaliados
-    const { data: ratedData } = await supabase
+    const { data: ratedData } = await supabasePublic
       .from('professionals')
       .select('*, portfolios(*), reviews(*)')
       .order('rating', { ascending: false })
-      .limit(6);
+      .limit(6)
+      .headers({ 'Cache-Control': 'no-cache' });
 
     if (ratedData && ratedData.length > 0) {
       console.log('Fallback 1 (Avaliados) encontrado:', ratedData.length);
@@ -60,10 +63,11 @@ export const getFeaturedProfessionals = async (): Promise<Professional[]> => {
 
     // Fallback Final: Super simples, sem joins, apenas profissionais para garantir que aparece ALGO
     console.log('Usando fallback final (sem joins)...');
-    const { data: simpleData, error: simpleError } = await supabase
+    const { data: simpleData, error: simpleError } = await supabasePublic
       .from('professionals')
       .select('*')
-      .limit(6);
+      .limit(6)
+      .headers({ 'Cache-Control': 'no-cache' });
 
     if (simpleError) {
       console.error('Erro crítico no fallback total:', simpleError);
@@ -79,10 +83,11 @@ export const getFeaturedProfessionals = async (): Promise<Professional[]> => {
 };
 
 export const searchProfessionals = async (query: string): Promise<Professional[]> => {
-  const { data, error } = await supabase
+  const { data, error } = await supabasePublic
     .from('professionals')
     .select('*, portfolios(*), reviews(*)')
-    .or(`name.ilike.%${query}%,title.ilike.%${query}%,description.ilike.%${query}%,location.ilike.%${query}%`);
+    .or(`name.ilike.%${query}%,title.ilike.%${query}%,description.ilike.%${query}%,location.ilike.%${query}%`)
+    .headers({ 'Cache-Control': 'no-cache' });
   if (error) {
     console.error('Error searching professionals:', error);
     return [];
@@ -91,7 +96,7 @@ export const searchProfessionals = async (query: string): Promise<Professional[]
 };
 
 export const getProfessionalById = async (id: string): Promise<Professional | null> => {
-  const { data, error } = await supabase
+  const { data, error } = await supabasePublic
     .from('professionals')
     .select('*, portfolios(*), reviews(*)')
     .eq('id', id)
@@ -105,7 +110,7 @@ export const getProfessionalById = async (id: string): Promise<Professional | nu
 };
 
 export const getSiteSettings = async (): Promise<Record<string, string>> => {
-  const { data, error } = await supabase
+  const { data, error } = await supabasePublic
     .from('site_settings')
     .select('key, value');
 
@@ -123,13 +128,13 @@ export const getSiteSettings = async (): Promise<Record<string, string>> => {
 export const getPlatformStats = async () => {
   try {
     const [prosCount, reviewsCount, portfoliosCount] = await Promise.all([
-      supabase
+      supabasePublic
         .from('professionals')
         .select('*', { count: 'exact', head: true }),
-      supabase
+      supabasePublic
         .from('reviews')
         .select('*', { count: 'exact', head: true }),
-      supabase
+      supabasePublic
         .from('portfolios')
         .select('*', { count: 'exact', head: true })
     ]);
@@ -147,7 +152,7 @@ export const getPlatformStats = async () => {
 
 export const getCategories = async () => {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabasePublic
       .from('categories')
       .select('*, professionals(count)')
       .order('name');
@@ -169,7 +174,7 @@ export const getCategories = async () => {
 };
 
 export const getCategoryById = async (id: string) => {
-  const { data, error } = await supabase
+  const { data, error } = await supabasePublic
     .from('categories')
     .select('*')
     .eq('id', id)

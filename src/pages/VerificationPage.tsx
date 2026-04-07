@@ -92,7 +92,7 @@ const VerificationPage = () => {
       });
 
       toast.success("Documentos enviados com sucesso! O seu perfil será analisado em breve.");
-      navigate(`/perfil/editar`);
+      navigate(`/perfil-editar`);
     } catch (error: any) {
       toast.error(error.message || "Erro ao submeter verificação.");
     } finally {

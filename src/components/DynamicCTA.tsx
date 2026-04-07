@@ -62,7 +62,7 @@ const DynamicCTA = () => {
         title: "Complete o seu perfil e receba clientes",
         subtitle: "Perfis com fotos e descrição detalhada recebem 10x mais contactos.",
         buttonText: "Completar perfil",
-        link: "/perfil/editar",
+        link: "/perfil-editar",
         icon: ShieldCheck,
         variant: "warning"
       };
@@ -71,7 +71,7 @@ const DynamicCTA = () => {
         title: "Está tudo pronto. Agora é hora de aparecer.",
         subtitle: "Adicione as suas melhores fotos de trabalhos ao seu portfólio.",
         buttonText: "Atualizar Portfólio",
-        link: "/perfil/editar",
+        link: "/perfil-editar",
         icon: Layout,
         variant: "success"
       };
@@ -80,7 +80,7 @@ const DynamicCTA = () => {
         title: "Quer mais clientes?",
         subtitle: "Destaque o seu perfil no topo das pesquisas e seja um Top Professional.",
         buttonText: "Promover perfil",
-        link: "/perfil/editar",
+        link: "/perfil-editar",
         icon: Star,
         variant: "premium"
       };
@@ -89,7 +89,7 @@ const DynamicCTA = () => {
         title: "Ver estatísticas do seu desempenho",
         subtitle: "Analise as visualizações e cliques do seu perfil nos últimos 30 dias.",
         buttonText: "Ver estatísticas",
-        link: "/perfil/editar",
+        link: "/perfil-editar",
         icon: BarChart3,
         variant: "stats"
       };

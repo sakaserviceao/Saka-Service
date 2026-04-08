@@ -1,8 +1,17 @@
 import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { useSettings } from "@/hooks/useSettings";
 
 const Footer = () => {
   const { getSetting } = useSettings();
+  const [currentDate, setCurrentDate] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentDate(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
   
   return (
     <footer className="border-t border-border bg-secondary/50">
@@ -65,8 +74,11 @@ const Footer = () => {
             </div>
           </div>
         </div>
-        <div className="mt-8 border-t border-border pt-6 text-center text-sm text-muted-foreground">
-          © {new Date().getFullYear()} {getSetting('brand_name', 'Sakaservice')}. Todos os direitos reservados.
+        <div className="mt-8 border-t border-border pt-6 text-center text-sm text-muted-foreground flex flex-col items-center gap-1">
+          <div className="font-medium">
+            {currentDate.toLocaleDateString('pt-AO', { weekday: 'long' })}, {currentDate.toLocaleDateString('pt-AO', { day: '2-digit', month: '2-digit', year: 'numeric' })} | {currentDate.toLocaleTimeString('pt-AO', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+          </div>
+          <div>© {new Date().getFullYear()} {getSetting('brand_name', 'Sakaservice')}. Todos os direitos reservados.</div>
         </div>
       </div>
     </footer>

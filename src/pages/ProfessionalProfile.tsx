@@ -1,6 +1,6 @@
 import { useParams, Link } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { ArrowLeft, Star, MapPin, Phone, Mail, Linkedin, Edit, Send } from "lucide-react";
+import { ArrowLeft, Star, MapPin, Phone, Mail, Linkedin, Edit, Send, Clock } from "lucide-react";
 import { motion } from "framer-motion";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -15,14 +15,14 @@ import CategoryIcon from "@/components/CategoryIcon";
 
 const ProfessionalProfile = () => {
   const { id } = useParams<{ id: string }>();
-  const { user } = useAuth();
+  const { user, isLoading: isAuthLoading } = useAuth();
   const queryClient = useQueryClient();
 
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
 
-  const { data: pro, isLoading } = useQuery({
+  const { data: pro, isLoading: isProLoading } = useQuery({
     queryKey: ['professional', id],
     queryFn: () => getProfessionalById(id || ""),
     enabled: !!id,
@@ -40,7 +40,7 @@ const ProfessionalProfile = () => {
     }
   }, [pro?.id, user?.id]);
 
-  if (isLoading) {
+  if (isProLoading) {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
@@ -57,6 +57,15 @@ const ProfessionalProfile = () => {
   const isPubliclyVisible = pro?.subscription_status === 'active' && pro?.verification_status === 'ativo';
 
   if (!pro || (!isPubliclyVisible && !isOwner && !isAdmin)) {
+    // Se a autenticação ainda estiver a carregar, não mostramos erro precipitadamente.
+    if (isAuthLoading && !isPubliclyVisible) {
+      return (
+        <div className="min-h-screen bg-background flex flex-col items-center justify-center">
+          <p className="text-muted-foreground">Verificando permissões...</p>
+        </div>
+      );
+    }
+    
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
@@ -174,15 +183,32 @@ const ProfessionalProfile = () => {
                   ID: {proIdBadge}
                 </span>
               </div>
-              <h1 className="text-3xl font-bold text-foreground md:text-4xl flex items-center gap-2">
+              <h1 className="text-3xl font-bold text-foreground md:text-4xl flex flex-wrap items-center gap-2">
                 {pro.name}
                 <VerificationBadge verified={pro.verification_status} size="lg" />
+                {(isOwner || isAdmin) && (
+                  <span className={`text-[10px] uppercase font-black px-2 py-1 rounded flex items-center gap-1 shadow-sm ${
+                    pro.subscription_status === 'active' 
+                    ? (pro.subscription_end_date && Math.ceil((new Date(pro.subscription_end_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) <= 5 
+                       ? 'bg-red-500 text-white animate-pulse' 
+                       : 'bg-emerald-500 text-white')
+                    : 'bg-amber-100 text-amber-700'
+                  }`}>
+                    <Clock className="h-3 w-3" />
+                    {(() => {
+                      const finalDate = pro.subscription_end_date || pro.end_date || '2026-05-07';
+                      const diff = new Date(finalDate).getTime() - new Date().getTime();
+                      const daysRemaining = Math.ceil(diff / (1000 * 60 * 60 * 24));
+                      return daysRemaining > 0 ? `${daysRemaining} DIAS RESTANTES` : 'EXPIRA HOJE';
+                    })()}
+                  </span>
+                )}
               </h1>
               <p className="text-lg text-muted-foreground">{pro.title}</p>
               <div className="mt-2 flex flex-wrap items-center gap-3">
                 {category && (
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary border border-primary/20 shadow-sm">
-                    <CategoryIcon name={category.icon} color={category.color} size="sm" className="h-4 w-4 p-0 shadow-none border-0 bg-transparent" />
+                    <CategoryIcon name={category.icon || category.name || category.id} color={category.color} size="sm" className="h-4 w-4 p-0 shadow-none border-0 bg-transparent" />
                     {category.name}
                   </span>
                 )}

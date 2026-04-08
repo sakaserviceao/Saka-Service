@@ -87,7 +87,7 @@ const CategoryCard = ({ category, index = 0, featured = false }: Props) => {
             
             <div className="relative">
               <CategoryIcon 
-                name={category.icon} 
+                name={category.icon || category.name || category.id} 
                 color={category.color} 
                 size="lg" 
                 className="group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-hero/10"

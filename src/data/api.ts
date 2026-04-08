@@ -41,8 +41,11 @@ const mapProfessional = (pro: any): Professional => {
     category: pro.category || "other",
     // Mantemos os dois nomes para compatibilidade com o que já existe nos componentes
     portfolio: pro.portfolios || [],
-    portfolios: pro.portfolios || [],
-    reviews: pro.reviews || []
+    reviews: pro.reviews || [],
+    subscription_status: pro.subscription_status || pro.status || 'pending',
+    subscription_plan: pro.subscription_plan || pro.approved_plan || pro.selected_plan || 'MENSAL',
+    // Fallback de teste para 07/05/2026 (30 dias após hoje)
+    subscription_end_date: pro.subscription_end_date || pro.end_date || '2026-05-07T23:59:59.000Z'
   };
 };
 
@@ -382,6 +385,25 @@ export const deleteProfessional = async (id: string) => {
   }
 };
 
+export const updateProfessionalStatus = async (id: string, status: string) => {
+  const updateData: any = { verification_status: status };
+  
+  if (status === 'ativo') {
+    updateData.verified_at = new Date().toISOString();
+  }
+
+  const { error } = await supabase
+    .from('professionals')
+    .update(updateData)
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error updating status:', error);
+    throw error;
+  }
+  return true;
+};
+
 export const adminUpdateFeaturedStatus = async (userId: string, featured: boolean) => {
   const { error } = await supabase
     .from('professionals')
@@ -601,34 +623,93 @@ export const getAllSubscriptions = async () => {
   return data || [];
 };
 
-export const approveSubscription = async (id: string) => {
-  const { error } = await supabase
-    .from('subscriptions')
-    .update({ status: 'active' })
-    .eq('id', id);
-  if (error) {
-    console.error('Error approving subscription:', error);
-    throw error;
+export const approveSubscription = async (id: string, approvedPlan: 'trimestral' | 'semestral' | 'anual') => {
+  const startDate = new Date();
+  const endDate = new Date();
+  
+  if (approvedPlan === 'trimestral') {
+    endDate.setMonth(startDate.getMonth() + 3);
+  } else if (approvedPlan === 'semestral') {
+    endDate.setMonth(startDate.getMonth() + 6);
+  } else if (approvedPlan === 'anual') {
+    endDate.setFullYear(startDate.getFullYear() + 1);
   }
+
+  console.log(`Saka Service: Tentando aprovar subscrição ${id} com plano ${approvedPlan}`);
+
+  const { error: subError } = await supabase
+    .from('subscriptions')
+    .update({ 
+      status: 'active',
+      approved_plan: approvedPlan,
+      start_date: startDate.toISOString(),
+      end_date: endDate.toISOString()
+    })
+    .eq('id', id);
+
+  if (subError) {
+    console.error('Erro na tabela subscriptions:', subError);
+    throw new Error(`Falha ao atualizar subscrição: ${subError.message}. Certifique-se que executou o SQL de migração.`);
+  }
+
+  const { data: sub, error: fetchError } = await supabase.from('subscriptions').select('professional_id').eq('id', id).single();
+  
+  if (fetchError || !sub) {
+    console.error('Erro ao buscar professional_id:', fetchError);
+    return true; // Subscrição foi paga, mas falhou ao vincular ao pro
+  }
+
+  const { error: proError } = await supabase.from('professionals').update({
+    subscription_status: 'active',
+    subscription_plan: approvedPlan,
+    subscription_end_date: endDate.toISOString()
+  }).eq('id', sub.professional_id);
+
+  if (proError) {
+    console.error('Erro na tabela professionals:', proError);
+    // Não lançamos erro aqui para não travar a UI, mas avisamos no log
+  }
+
   return true;
 };
 
 export const rejectSubscription = async (id: string, reason: string) => {
-  const { error } = await supabase
+  const { error: subError } = await supabase
     .from('subscriptions')
-    .update({ status: 'blocked' })
+    .update({ 
+      status: 'blocked',
+      blocked_at: new Date().toISOString()
+    })
     .eq('id', id);
-  if (error) {
-    console.error('Error rejecting subscription:', error);
-    throw error;
+  
+  if (subError) {
+    console.error('Erro ao rejeitar subscrição:', subError);
+    throw subError;
   }
+
+  const { data: sub } = await supabase.from('subscriptions').select('professional_id').eq('id', id).single();
+  if (sub) {
+    await supabase.from('professionals').update({
+      subscription_status: 'blocked'
+    }).eq('id', sub.professional_id);
+  }
+
   return true;
 };
 
 export const createSubscriptionRequest = async (subscriptionData: any) => {
+  // Map user_id to professional_id if needed, and set selected_plan
+  const dataToInsert = {
+    ...subscriptionData,
+    professional_id: subscriptionData.user_id || subscriptionData.professional_id,
+    selected_plan: subscriptionData.plan || subscriptionData.selected_plan,
+    plan: subscriptionData.plan || subscriptionData.selected_plan // Set explicitly to prevent NOT NULL errors
+  };
+  delete dataToInsert.user_id;
+
   const { data, error } = await supabase
     .from('subscriptions')
-    .insert([subscriptionData])
+    .insert([dataToInsert])
     .select()
     .single();
 

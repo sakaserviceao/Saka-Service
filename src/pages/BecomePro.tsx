@@ -52,7 +52,7 @@ const BecomePro = () => {
       }
     };
     fetchCats();
-  }, [formData.category]);
+  }, []); // Only run once on mount
 
   useEffect(() => {
     const checkExistingProfile = async () => {
@@ -178,7 +178,8 @@ const BecomePro = () => {
       toast.success("Perfil e documentos enviados com sucesso! A nossa equipa irá analisar os seus dados em breve.");
       navigate("/planos");
     } catch (error: any) {
-      toast.error(error.message || "Erro ao processar o registo.");
+      console.error("Erro fatal ao submeter o perfil BecomePro:", error);
+      toast.error(error?.message || "Ocorreu um erro ao processar o registo. Verifique a consola ou tente novamente.");
     } finally {
       setLoading(false);
     }

@@ -22,7 +22,7 @@ import {
   rejectSubscription
 } from "@/data/api";
 import { Button } from "@/components/ui/button";
-import { Check, X, ExternalLink, Shield, ShieldCheck, Users, FileText, ArrowLeft, Search, AlertCircle, Star, Pause, RotateCcw, Settings, Plus, Trash2, Mail, BarChart3, TrendingUp, Calendar, Eye, LayoutGrid, Save, Image as ImageIcon, CreditCard, Receipt } from "lucide-react";
+import { Check, X, ExternalLink, Shield, ShieldCheck, Users, FileText, ArrowLeft, Search, AlertCircle, Star, Pause, RotateCcw, Settings, Plus, Trash2, Mail, BarChart3, TrendingUp, Calendar, Eye, LayoutGrid, Save, Image as ImageIcon, CreditCard, Receipt, Clock, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -496,22 +496,7 @@ const PlatformManagementPanel = ({ settings, categories }: { settings: any, cate
         <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
           <CreditCard className="h-5 w-5 text-primary" /> Preços de Assinatura (Akz)
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="space-y-2">
-            <label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
-              Plano Mensal (Valor Numérico)
-            </label>
-            <div className="relative">
-              <input 
-                type="number" 
-                placeholder="2500"
-                defaultValue={settings.price_monthly || "2500"} 
-                className="w-full h-11 px-4 rounded-xl border bg-background font-bold text-lg"
-                onBlur={(e) => handleUpdateSetting('price_monthly', e.target.value)}
-              />
-              <span className="absolute right-4 top-2.5 text-muted-foreground font-medium">Kz</span>
-            </div>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="space-y-2">
             <label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
               Plano Trimestral (Valor Numérico)
@@ -520,9 +505,39 @@ const PlatformManagementPanel = ({ settings, categories }: { settings: any, cate
               <input 
                 type="number" 
                 placeholder="6500"
-                defaultValue={settings.price_quarterly || "6500"} 
+                defaultValue={settings.price_trimestral || "6500"} 
                 className="w-full h-11 px-4 rounded-xl border bg-background font-bold text-lg"
-                onBlur={(e) => handleUpdateSetting('price_quarterly', e.target.value)}
+                onBlur={(e) => handleUpdateSetting('price_trimestral', e.target.value)}
+              />
+              <span className="absolute right-4 top-2.5 text-muted-foreground font-medium">Kz</span>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
+              Plano Semestral (Valor Numérico)
+            </label>
+            <div className="relative">
+              <input 
+                type="number" 
+                placeholder="12000"
+                defaultValue={settings.price_semestral || "12000"} 
+                className="w-full h-11 px-4 rounded-xl border bg-background font-bold text-lg"
+                onBlur={(e) => handleUpdateSetting('price_semestral', e.target.value)}
+              />
+              <span className="absolute right-4 top-2.5 text-muted-foreground font-medium">Kz</span>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
+              Plano Anual (Valor Numérico)
+            </label>
+            <div className="relative">
+              <input 
+                type="number" 
+                placeholder="22000"
+                defaultValue={settings.price_anual || "22000"} 
+                className="w-full h-11 px-4 rounded-xl border bg-background font-bold text-lg"
+                onBlur={(e) => handleUpdateSetting('price_anual', e.target.value)}
               />
               <span className="absolute right-4 top-2.5 text-muted-foreground font-medium">Kz</span>
             </div>
@@ -594,6 +609,17 @@ const PlatformManagementPanel = ({ settings, categories }: { settings: any, cate
               defaultValue={settings.payment_proof_email || "pagamentos@sakaserv.com"} 
               className="w-full h-11 px-4 rounded-xl border bg-background"
               onBlur={(e) => handleUpdateSetting('payment_proof_email', e.target.value)}
+            />
+          </div>
+          <div className="space-y-2 md:col-span-2 lg:col-span-3">
+            <label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-2">
+              Mensagem de Sucesso (Comprovativo)
+            </label>
+            <textarea 
+              placeholder="O seu perfil será ativado assim que validarmos a transferência..."
+              defaultValue={settings.payment_success_message || "Recebemos o seu comprovativo. O seu perfil será ativado assim que validarmos a transferência. Se tiver pressa, envie o comprovativo para o WhatsApp."} 
+              className="w-full min-h-[100px] p-4 rounded-xl border bg-background resize-y"
+              onBlur={(e) => handleUpdateSetting('payment_success_message', e.target.value)}
             />
           </div>
         </div>
@@ -1114,6 +1140,33 @@ const VerificationItem = ({ pro, mutation, featuredMutation, deleteMutation }: {
               <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-secondary text-secondary-foreground">
                 Email: {pro.email}
               </span>
+              <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${pro.verified_at ? 'bg-blue-500/10 text-blue-600' : 'bg-muted text-muted-foreground'}`}>
+                {pro.verified_at ? `ATIVADO EM: ${new Date(pro.verified_at).toLocaleDateString()}` : 'DATA ATIVAÇÃO: N/A'}
+              </span>
+              <span className={`text-[10px] uppercase font-black px-1.5 py-0.5 rounded flex items-center gap-1 ${
+                pro.subscription_status === 'active' 
+                ? (pro.subscription_end_date && Math.ceil((new Date(pro.subscription_end_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) <= 5 
+                   ? 'bg-red-500 text-white animate-pulse' 
+                   : 'bg-emerald-500 text-white')
+                : 'bg-amber-100 text-amber-700'
+              }`}>
+                <Clock className="h-3 w-3" />
+                {(() => {
+                  const finalDate = pro.subscription_end_date || pro.end_date;
+                  if (pro.subscription_status === 'active' || finalDate) {
+                    if (!finalDate) return 'ATIVO';
+                    const diff = new Date(finalDate).getTime() - new Date().getTime();
+                    const daysRemaining = Math.ceil(diff / (1000 * 60 * 60 * 24));
+                    return daysRemaining > 0 ? `${daysRemaining} DIAS` : 'EXPIRA HOJE';
+                  }
+                  return pro.subscription_status === 'pending' ? 'PAGAMENTO PENDENTE' : 'SEM SUBSCRICAO';
+                })()}
+              </span>
+              {pro.subscription_plan && (
+                <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-primary text-primary-foreground">
+                  PLANO: {pro.subscription_plan}
+                </span>
+              )}
               {pro.featured && (
                 <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-yellow-500/10 text-yellow-700">
                   Featured Pro
@@ -1342,13 +1395,14 @@ const SubscriptionManagementPanel = ({ pendingSubs, allSubs, loading }: { pendin
 
 const SubscriptionItem = ({ sub }: { sub: any }) => {
   const queryClient = useQueryClient();
+  const [approvedPlan, setApprovedPlan] = useState<'trimestral' | 'semestral' | 'anual'>(sub.selected_plan || 'trimestral');
   const pro = sub.professionals;
 
   const handleApprove = async () => {
     try {
       toast.info("A ativar subscrição...");
-      await approveSubscription(sub.id);
-      toast.success(`Pagamento de ${pro?.name} aprovado! Perfil agora está Ativo.`);
+      await approveSubscription(sub.id, approvedPlan);
+      toast.success(`Pagamento de ${pro?.name} aprovado! Perfil agora está Ativo com plano ${approvedPlan}.`);
       queryClient.invalidateQueries({ queryKey: ['pendingSubscriptions'] });
       queryClient.invalidateQueries({ queryKey: ['allSubscriptions'] });
       queryClient.invalidateQueries({ queryKey: ['allProfessionals'] });
@@ -1358,10 +1412,10 @@ const SubscriptionItem = ({ sub }: { sub: any }) => {
   };
 
   const handleReject = async () => {
-    if (!confirm("Rejeitar este pagamento? O perfil do profissional continuará inativo.")) return;
+    if (!confirm("Bloquear este utilizador e rejeitar o pagamento?")) return;
     try {
       await rejectSubscription(sub.id, "Comprovativo inválido");
-      toast.warning("Subscrição rejeitada.");
+      toast.warning("Subscrição bloqueada.");
       queryClient.invalidateQueries({ queryKey: ['pendingSubscriptions'] });
       queryClient.invalidateQueries({ queryKey: ['allSubscriptions'] });
     } catch (e: any) {
@@ -1378,31 +1432,51 @@ const SubscriptionItem = ({ sub }: { sub: any }) => {
         {/* Info Profissional */}
         <div className="flex items-center gap-4 flex-1">
           <div className="h-12 w-12 rounded-full overflow-hidden border bg-muted shrink-0">
-            <img src={pro?.avatar || ""} className="h-full w-full object-cover" alt={pro?.name} />
+            <img src={pro?.avatar || ""} className="h-full w-full object-cover" alt={pro?.name || "Profissional"} />
           </div>
           <div className="flex-1 min-w-0">
-            <h4 className="font-bold truncate">{pro?.name}</h4>
-            <p className="text-xs text-muted-foreground truncate">{pro?.email}</p>
+            <h4 className="font-bold truncate">{pro?.name || "Nome não disponível"}</h4>
+            <p className="text-xs text-muted-foreground truncate">{pro?.email || "Sem email"}</p>
             <div className="flex gap-2 mt-1">
               <span className={`text-[10px] uppercase font-black px-1.5 py-0.5 rounded ${
-                sub.plan === 'trimestral' ? 'bg-primary/10 text-primary' : 'bg-secondary text-secondary-foreground'
+                (sub.approved_plan || sub.selected_plan || sub.plan) === 'trimestral' ? 'bg-primary/10 text-primary' : 'bg-secondary text-secondary-foreground'
               }`}>
-                Plano {sub.plan}
+                Plano: {sub.approved_plan || sub.selected_plan || sub.plan || 'N/A'}
               </span>
-              <span className="text-[10px] text-muted-foreground font-medium">Fatura {sub.id.split('-')[0].toUpperCase()}</span>
+              <span className="text-[10px] text-muted-foreground font-medium">Fatura {sub.id?.split('-')[0].toUpperCase()}</span>
             </div>
           </div>
         </div>
 
         {/* Info Pagamento */}
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-6 flex-[2] w-full lg:w-auto bg-muted/30 p-4 rounded-xl border">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 flex-[3] w-full lg:w-auto bg-muted/30 p-4 rounded-xl border">
+          <div className="space-y-1">
+            <p className="text-[10px] font-bold text-muted-foreground uppercase">Plano Selecionado</p>
+            <p className="font-bold text-sm uppercase text-primary">{sub.selected_plan || sub.plan || 'TRIMESTRAL'}</p>
+          </div>
+          <div className="space-y-1">
+            <p className="text-[10px] font-bold text-muted-foreground uppercase">Definir Plano Final</p>
+            {sub.status === 'pending' ? (
+              <select 
+                className="text-xs font-bold p-1 rounded border bg-background"
+                value={approvedPlan}
+                onChange={(e) => setApprovedPlan(e.target.value as any)}
+              >
+                <option value="trimestral">TRIMESTRAL</option>
+                <option value="semestral">SEMESTRAL</option>
+                <option value="anual">ANUAL</option>
+              </select>
+            ) : (
+              <p className="font-bold text-sm uppercase">{sub.approved_plan || sub.plan || 'CONCLUÍDO'}</p>
+            )}
+          </div>
           <div className="space-y-1">
             <p className="text-[10px] font-bold text-muted-foreground uppercase">Valor</p>
-            <p className="font-bold text-lg">{sub.amount?.toLocaleString()} Kz</p>
+            <p className="font-bold text-sm">{(Number(sub.amount) || 0).toLocaleString()} Kz</p>
           </div>
           <div className="space-y-1">
             <p className="text-[10px] font-bold text-muted-foreground uppercase">Método</p>
-            <p className="text-sm flex items-center gap-1">
+            <p className="text-xs flex items-center gap-1">
               {sub.payment_method === 'express' ? <CreditCard className="h-3 w-3" /> : <Receipt className="h-3 w-3" />}
               {sub.payment_method === 'express' ? 'MCX Express' : 'Transferência'}
             </p>
@@ -1416,29 +1490,35 @@ const SubscriptionItem = ({ sub }: { sub: any }) => {
                 rel="noopener noreferrer"
                 className="text-primary text-xs font-bold flex items-center gap-1 hover:underline"
               >
-                <ExternalLink className="h-3 w-3" /> Ver Documento
+                <ExternalLink className="h-3 w-3" /> Ver PDF
               </a>
             ) : (
-              <span className="text-xs text-muted-foreground italic">Automático (Express)</span>
+              <span className="text-xs text-muted-foreground italic">Express</span>
             )}
           </div>
           <div className="space-y-1">
-            <p className="text-[10px] font-bold text-muted-foreground uppercase">Data Pedido</p>
-            <p className="text-xs">{new Date(sub.created_at).toLocaleDateString()}</p>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase">Recebido em</p>
+            <p className="text-[10px]">{new Date(sub.created_at).toLocaleDateString()}</p>
           </div>
           <div className="space-y-1">
-            <p className="text-[10px] font-bold text-muted-foreground uppercase">Estado</p>
-            <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${
+            <p className="text-[10px] font-bold text-muted-foreground uppercase">Status</p>
+            <span className={`text-[9px] uppercase font-bold px-1 py-0.5 rounded ${
               sub.status === 'active' ? 'bg-green-500 text-white' : 
               sub.status === 'pending' ? 'bg-amber-500 text-white' : 'bg-red-500 text-white'
             }`}>
-              {sub.status === 'active' ? 'Pago' : sub.status === 'pending' ? 'Pendente' : sub.status}
+              {sub.status === 'active' ? 'Ativo' : sub.status === 'pending' ? 'Pendente' : 'Bloqueado'}
             </span>
           </div>
           {sub.status === 'active' && (
             <div className="space-y-1">
               <p className="text-[10px] font-bold text-muted-foreground uppercase">Expira em</p>
-              <p className="text-xs text-green-600 font-bold">{new Date(sub.end_date).toLocaleDateString()}</p>
+              <p className="text-[10px] text-green-600 font-bold">{new Date(sub.end_date).toLocaleDateString()}</p>
+            </div>
+          )}
+          {sub.status === 'blocked' && (
+            <div className="space-y-1">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase">Bloqueado em</p>
+              <p className="text-[10px] text-destructive font-bold">{sub.blocked_at ? new Date(sub.blocked_at).toLocaleDateString() : 'N/A'}</p>
             </div>
           )}
         </div>

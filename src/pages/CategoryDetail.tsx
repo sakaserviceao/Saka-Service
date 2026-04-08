@@ -46,7 +46,7 @@ const CategoryDetail = () => {
         {category && (
           <div className="mb-8 flex flex-col gap-6">
             <div className="flex items-center gap-4">
-              <CategoryIcon name={category.icon} color={category.color} size="xl" />
+              <CategoryIcon name={category.icon || category.name || category.id} color={category.color} size="xl" />
               <div>
                 <h1 className="text-4xl font-bold text-foreground tracking-tight">{category.name}</h1>
                 <p className="text-muted-foreground mt-1">

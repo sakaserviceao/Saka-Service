@@ -9,8 +9,7 @@ interface CategoryIconProps {
 }
 
 const CategoryIcon = ({ name, className = "", color, size = "md" }: CategoryIconProps) => {
-  // Mapper to handle emojis from existing database data
-  const emojiMap: Record<string, string> = {
+  const fallbackMap: Record<string, string> = {
     "💻": "Laptop",
     "🎨": "Palette",
     "📈": "TrendingUp",
@@ -21,10 +20,41 @@ const CategoryIcon = ({ name, className = "", color, size = "md" }: CategoryIcon
     "📷": "Camera",
     "💅": "Sparkles",
     "💼": "Briefcase",
-    "⚡": "Zap"
+    "⚡": "Zap",
+    // In case the name is passed in lowercase
+    "laptop": "Laptop",
+    "palette": "Palette",
+    "trendingup": "TrendingUp",
+    "hammer": "Hammer",
+    "graduationcap": "GraduationCap",
+    "activity": "Activity",
+    "camera": "Camera",
+    "sparkles": "Sparkles",
+    "briefcase": "Briefcase",
+    "zap": "Zap",
+    // Fallbacks if category name is passed instead of icon
+    "tecnologia": "Laptop",
+    "technology": "Laptop",
+    "design": "Palette",
+    "marketing": "TrendingUp",
+    "construção": "Hammer",
+    "construction": "Hammer",
+    "educação": "GraduationCap",
+    "education": "GraduationCap",
+    "saúde e bem-estar": "Activity",
+    "health": "Activity",
+    "fotografia": "Camera",
+    "photography": "Camera",
+    "beleza": "Sparkles",
+    "beauty": "Sparkles",
+    "consultoria": "Briefcase",
+    "consulting": "Briefcase",
+    "outros serviços": "Zap",
+    "other": "Zap"
   };
 
-  const iconName = emojiMap[name] || name;
+  const normalizedName = name ? name.toLowerCase() : "";
+  const iconName = fallbackMap[name] || fallbackMap[normalizedName] || name;
   const IconComponent = (Icons as any)[iconName] as LucideIcon || Icons.HelpCircle;
 
   const sizeClasses = {

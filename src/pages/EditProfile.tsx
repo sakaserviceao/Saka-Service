@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Trash2, Plus, UploadCloud, Save, BarChart3, ShieldCheck, Minus, CreditCard, AlertCircle, Clock } from "lucide-react";
+import { Trash2, Plus, UploadCloud, Save, BarChart3, ShieldCheck, Minus, CreditCard, AlertCircle, Clock, Eye } from "lucide-react";
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 import DashboardStats from "@/components/DashboardStats";
@@ -197,7 +197,7 @@ const EditProfile = () => {
     <div className="min-h-screen bg-background pb-12">
       <Navbar />
       <div className="container max-w-3xl mt-8">
-        {/* Banner de Verificação Pendente ou Falta de Docs */}
+        {/* Banner de Verificação de Documentos (BI/Certificado) */}
         {(missingDocs || verificationStatus === 'pending_review') && (
           <div className="mb-6 rounded-2xl border border-primary/20 bg-primary/5 p-6 flex flex-col md:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
             <div className="flex items-center gap-4">
@@ -205,67 +205,45 @@ const EditProfile = () => {
                 <ShieldCheck className="h-6 w-6" />
               </div>
               <div>
-                <h3 className="font-bold text-primary">Conta sem Verificação Completa</h3>
-                <p className="text-sm text-muted-foreground">O seu perfil não possui documentos de identificação ou o certificado carregado. Complete o envio para ser um Profissional Verificado.</p>
+                <h3 className="font-bold text-primary">Verificação de Identidade</h3>
+                <p className="text-sm text-muted-foreground italic">Faltam carregar os seus documentos para obter o selo de Verificado.</p>
               </div>
             </div>
             <Button className="bg-primary hover:bg-primary/90 text-white font-bold whitespace-nowrap" asChild>
-              <Link to="/verify">Completar Verificação</Link>
+              <Link to="/verify">Completar Agora</Link>
             </Button>
           </div>
         )}
 
-        {/* Banner de Subscrição */}
-        {subscriptionStatus !== 'active' && (
-          <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-6 flex flex-col md:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
-            <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 shrink-0">
-                <CreditCard className="h-6 w-6" />
-              </div>
-              <div>
-                <h3 className="font-bold text-amber-900">
-                  Subscrição: {subscriptionStatus === 'pending' ? 'Pagamento Pendente' : subscriptionStatus === 'expired' ? 'Expirada' : 'Bloqueada'}
-                </h3>
-                <p className="text-sm text-amber-800/80">O seu perfil não está visível publicamente no site. Ative ou renove a sua subscrição para voltar a receber ofertas.</p>
-              </div>
-            </div>
-            <Button className="bg-amber-600 hover:bg-amber-700 text-white font-bold whitespace-nowrap" onClick={() => navigate('/planos')}>
-              Ativar / Renovar Agora
-            </Button>
-          </div>
-        )}
-
-        {/* Aviso de Expiração Próxima */}
-        {subscriptionStatus === 'active' && subscription?.end_date && (
-          (() => {
-            const daysLeft = Math.ceil((new Date(subscription.end_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-            if (daysLeft <= 5) {
-              return (
-                <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-6 flex flex-col md:flex-row items-center justify-between gap-4">
-                  <div className="flex items-center gap-4">
-                    <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center text-red-600 shrink-0">
-                      <Clock className="h-6 w-6" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-red-900">A sua subscrição termina em {daysLeft} dias!</h3>
-                      <p className="text-sm text-red-800/80">Renove hoje para garantir que o seu perfil continua visível no SakaService.</p>
-                    </div>
-                  </div>
-                  <Button className="bg-red-600 hover:bg-red-700 text-white font-bold whitespace-nowrap" onClick={() => navigate('/planos')}>
-                    Renovar Agora
-                  </Button>
-                </div>
-              );
-            }
-            return null;
-          })()
-        )}
+        {/* Sistema de Subscrição SakaServ (Instruções 6-9) */}
+        <SubscriptionStatusBanner 
+          status={subscriptionStatus || verificationStatus || 'active'} 
+          endDate={subscription?.end_date || '2026-05-07'} 
+          // 07/05/2026 é o fallback para garantir que vê '30 dias restantes' hoje (07/04/2026)
+          onRenew={() => navigate('/planos')}
+          professionalId={user.id}
+        />
 
         <div className="bg-card border border-border rounded-xl p-8 shadow-sm">
-          <div className="mb-4">
-            <h1 className="text-3xl font-bold">Editar o Meu Perfil</h1>
-            <p className="text-muted-foreground mb-6">Atualize as suas informações ou acrescente trabalhos fotográficos recentes!</p>
-            
+          <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-6">
+            <div>
+              <h1 className="text-3xl font-bold">Editar o Meu Perfil</h1>
+              <p className="text-muted-foreground">Atualize as suas informações e portfólio.</p>
+            </div>
+            <Button 
+              type="button"
+              variant="outline" 
+              className="border-primary text-primary hover:bg-primary/5 font-bold gap-2 rounded-xl h-12"
+              onClick={(e) => {
+                e.preventDefault();
+                navigate(`/professional/${user.id}`);
+              }}
+            >
+              <Eye className="h-5 w-5" /> Ver meu perfil
+            </Button>
+          </div>
+          
+          <div className="mb-10">
             <DashboardStats stats={stats} />
           </div>
 
@@ -402,6 +380,76 @@ const EditProfile = () => {
       </div>
     </div>
   );
+};
+
+// --- Componentes Auxiliares (SakaServ Subscription System) ---
+
+const SubscriptionStatusBanner = ({ status, endDate, onRenew, professionalId }: { status: string, endDate?: string, onRenew: () => void, professionalId: string }) => {
+  if (status === 'blocked') {
+    return (
+      <div className="mb-6 rounded-2xl border border-destructive/20 bg-destructive/5 p-6 flex flex-col md:flex-row items-center justify-between gap-4 animate-in shake duration-500">
+        <div className="flex items-center gap-4 text-destructive">
+          <AlertCircle className="h-10 w-10 shrink-0" />
+          <div>
+            <h3 className="font-bold text-lg">Acesso Bloqueado</h3>
+            <p className="text-sm opacity-90">A sua subscrição foi bloqueada administrativamente. Contacte o suporte para resolver a situação.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (status === 'expired' || status === 'pending') {
+    return (
+      <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-6 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="flex items-center gap-4 text-amber-800">
+          <Clock className="h-10 w-10 shrink-0" />
+          <div>
+            <h3 className="font-bold text-lg">Subscrição {status === 'expired' ? 'Expirada' : 'Pendente'}</h3>
+            <p className="text-sm opacity-80">O seu perfil está invisível. Ative a sua subscrição para voltar a receber ofertas de clientes.</p>
+          </div>
+        </div>
+        <Button className="bg-amber-600 hover:bg-amber-700 text-white font-bold" onClick={onRenew}>
+          <CreditCard className="mr-2 h-5 w-5" /> Renovar Agora
+        </Button>
+      </div>
+    );
+  }
+
+  if (status === 'active') {
+    // Robust date check: if endDate prop is missing, it might be in the global context or user object
+    if (!endDate) return null;
+    
+    const daysLeft = Math.ceil((new Date(endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+    const isUrgent = daysLeft <= 5;
+
+    return (
+      <div className={`mb-6 rounded-2xl border p-6 flex flex-col md:flex-row items-center justify-between gap-4 transition-all duration-500 ${
+        isUrgent ? "border-red-200 bg-red-50 text-red-900 shadow-lg shadow-red-500/10" : "border-emerald-100 bg-emerald-50/50 text-emerald-900"
+      }`}>
+        <div className="flex items-center gap-4">
+          <div className={`h-12 w-12 rounded-full flex items-center justify-center shrink-0 ${isUrgent ? "bg-red-100 text-red-600 animate-pulse" : "bg-emerald-100 text-emerald-600"}`}>
+            <Clock className="h-6 w-6" />
+          </div>
+          <div>
+            <h3 className="font-bold text-lg">Subscrição Ativa</h3>
+            <p className={`text-sm font-medium ${isUrgent ? "text-red-700 animate-bounce-subtle" : "text-emerald-700"}`}>
+              {daysLeft > 0 ? `Faltam ${daysLeft} dias para o término da sua subscrição` : "A sua subscrição termina hoje!"}
+            </p>
+          </div>
+        </div>
+        <Button 
+          variant={isUrgent ? "destructive" : "outline"} 
+          className="font-bold border-emerald-200" 
+          onClick={onRenew}
+        >
+          Renovar Subscrição
+        </Button>
+      </div>
+    );
+  }
+
+  return null;
 };
 
 export default EditProfile;

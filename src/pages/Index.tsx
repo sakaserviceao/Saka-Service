@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, Users, Shield, Zap, Search } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ArrowRight, Users, Shield, Zap, Search, Clock } from "lucide-react";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,15 @@ const Index = () => {
 
   const { theme } = useTheme();
   const { getSetting } = useSettings();
+
+  const [currentDate, setCurrentDate] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentDate(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const formatNumber = (num: number) => {
     if (num >= 1000) return `${(num / 1000).toFixed(1)}k+`;

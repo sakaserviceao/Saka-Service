@@ -28,6 +28,25 @@ export interface Professional {
   yearly_views?: number;
   total_views?: number;
   subscription_status?: 'pending' | 'active' | 'expired' | 'blocked' | string;
+  subscription_end_date?: string;
+}
+
+export interface Subscription {
+  id: string;
+  professional_id: string;
+  user_id?: string; // Aliasing professional_id as requested
+  status: 'pending' | 'active' | 'expired' | 'blocked';
+  selected_plan: 'trimestral' | 'semestral' | 'anual' | string;
+  approved_plan?: 'trimestral' | 'semestral' | 'anual' | string;
+  amount: number;
+  start_date?: string;
+  end_date?: string;
+  payment_method: string;
+  payment_proof_url?: string;
+  blocked_at?: string;
+  created_at: string;
+  updated_at: string;
+  professionals?: Professional;
 }
 
 export interface Category {

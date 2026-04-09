@@ -56,7 +56,7 @@ const ProfessionalCard = ({ professional, index = 0 }: Props) => {
             <div className="min-w-0 flex-1">
               <h3 className="text-lg font-bold text-foreground transition-colors group-hover:text-primary flex flex-wrap items-center gap-1 leading-tight">
                 {professional.name}
-                <VerificationBadge verified={professional.verification_status} size="sm" />
+                <VerificationBadge verified={professional.verification_status === 'ativo' || professional.subscription_status === 'active'} size="sm" />
               </h3>
               <p className="text-sm font-medium text-muted-foreground mt-1">{professional.title}</p>
             </div>

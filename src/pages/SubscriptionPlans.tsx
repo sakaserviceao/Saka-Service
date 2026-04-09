@@ -269,9 +269,9 @@ const SubscriptionPlans = () => {
                         <p className="font-bold text-primary flex items-center gap-2">
                           <Landmark className="h-4 w-4" /> Dados Bancários 2 (Alternativo):
                         </p>
-                        <p><span className="text-muted-foreground font-medium">Banco:</span> BFA</p>
-                        <p><span className="text-muted-foreground font-medium">IBAN:</span> AO06 0006 0000 1234 5678 9012 3</p>
-                        <p><span className="text-muted-foreground font-medium">Titular:</span> Saka Service Lda.</p>
+                        <p><span className="text-muted-foreground font-medium">Banco:</span> {settings.bank2_name || "BFA"}</p>
+                        <p><span className="text-muted-foreground font-medium">IBAN:</span> {settings.bank2_iban || "AO06 0006 0000 1234 5678 9012 3"}</p>
+                        <p><span className="text-muted-foreground font-medium">Titular:</span> {settings.bank2_holder || "Saka Service Lda."}</p>
                       </div>
                     </div>
 

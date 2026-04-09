@@ -22,7 +22,7 @@ import {
   rejectSubscription
 } from "@/data/api";
 import { Button } from "@/components/ui/button";
-import { Check, X, ExternalLink, Shield, ShieldCheck, Users, FileText, ArrowLeft, Search, AlertCircle, Star, Pause, RotateCcw, Settings, Plus, Trash2, Mail, BarChart3, TrendingUp, Calendar, Eye, LayoutGrid, Save, Image as ImageIcon, CreditCard, Receipt, Clock, CheckCircle } from "lucide-react";
+import { Check, X, ExternalLink, Shield, ShieldCheck, Users, FileText, ArrowLeft, Search, AlertCircle, Star, Pause, RotateCcw, Settings, Plus, Trash2, Mail, BarChart3, TrendingUp, Calendar, Eye, LayoutGrid, Save, Image as ImageIcon, CreditCard, Receipt, Clock, CheckCircle, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -581,6 +581,36 @@ const PlatformManagementPanel = ({ settings, categories }: { settings: any, cate
               onBlur={(e) => handleUpdateSetting('bank_holder', e.target.value)}
             />
           </div>
+          <div className="space-y-2 lg:col-start-1">
+            <label className="text-xs font-bold uppercase text-muted-foreground">Nome do Banco 2 (Alternativo)</label>
+            <input 
+              type="text" 
+              placeholder="Ex: BFA"
+              defaultValue={settings.bank2_name || ""} 
+              className="w-full h-11 px-4 rounded-xl border bg-background"
+              onBlur={(e) => handleUpdateSetting('bank2_name', e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs font-bold uppercase text-muted-foreground">IBAN 2</label>
+            <input 
+              type="text" 
+              placeholder="AO06..."
+              defaultValue={settings.bank2_iban || ""} 
+              className="w-full h-11 px-4 rounded-xl border bg-background"
+              onBlur={(e) => handleUpdateSetting('bank2_iban', e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs font-bold uppercase text-muted-foreground">Titular da Conta 2</label>
+            <input 
+              type="text" 
+              placeholder="Nome da Entidade 2"
+              defaultValue={settings.bank2_holder || ""} 
+              className="w-full h-11 px-4 rounded-xl border bg-background"
+              onBlur={(e) => handleUpdateSetting('bank2_holder', e.target.value)}
+            />
+          </div>
           <div className="space-y-2">
             <label className="text-xs font-bold uppercase text-muted-foreground">Número MCX Express</label>
             <input 
@@ -689,6 +719,53 @@ const PlatformManagementPanel = ({ settings, categories }: { settings: any, cate
                 defaultValue={settings.banner_pre_cta_url || ""} 
                 className="w-full h-11 px-4 rounded-xl border bg-background"
                 onBlur={(e) => handleUpdateSetting('banner_pre_cta_url', e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Hero Texts Section */}
+        <div className="bg-card border rounded-2xl p-6 shadow-sm">
+          <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary" /> Textos de Destaque (Hero)
+          </h3>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase text-muted-foreground">Badge Superior (Pequeno)</label>
+              <input 
+                type="text" 
+                defaultValue={settings.hero_badge_text || "Qualidade e Confiança em Angola"} 
+                className="w-full h-11 px-4 rounded-xl border bg-background"
+                onBlur={(e) => handleUpdateSetting('hero_badge_text', e.target.value)}
+              />
+            </div>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase text-muted-foreground">Título Principal (Texto Branco)</label>
+                <input 
+                  type="text" 
+                  defaultValue={settings.hero_title_text || "Encontre soluções rápidas com"} 
+                  className="w-full h-11 px-4 rounded-xl border bg-background"
+                  onBlur={(e) => handleUpdateSetting('hero_title_text', e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase text-muted-foreground">Texto em Destaque (Com Gradiente)</label>
+                <input 
+                  type="text" 
+                  defaultValue={settings.hero_title_highlight || "profissionais qualificados"} 
+                  className="w-full h-11 px-4 rounded-xl border bg-background font-bold text-amber-600"
+                  onBlur={(e) => handleUpdateSetting('hero_title_highlight', e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase text-muted-foreground">Subtítulo / Descrição</label>
+              <textarea 
+                rows={3}
+                defaultValue={settings.hero_subtitle_text || "Conecte-se com especialistas em tecnologia, design, marketing e muito mais."} 
+                className="w-full p-4 rounded-xl border bg-background resize-none"
+                onBlur={(e) => handleUpdateSetting('hero_subtitle_text', e.target.value)}
               />
             </div>
           </div>

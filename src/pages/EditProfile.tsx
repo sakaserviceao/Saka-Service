@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Trash2, Plus, UploadCloud, Save, BarChart3, ShieldCheck, Minus, CreditCard, AlertCircle, Clock, Eye } from "lucide-react";
+import { Trash2, Plus, UploadCloud, Save, BarChart3, ShieldCheck, Minus, CreditCard, AlertCircle, Clock, Eye, Star } from "lucide-react";
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 import DashboardStats from "@/components/DashboardStats";
@@ -23,6 +23,8 @@ const EditProfile = () => {
     title: "",
     description: "",
     category: "",
+    secondary_category_1: "",
+    secondary_category_2: "",
     location: "",
     phone: "",
     email: "",
@@ -76,6 +78,8 @@ const EditProfile = () => {
             title: proData.title || "",
             description: proData.description || "",
             category: proData.category || (catsData && catsData[0]?.id) || "",
+            secondary_category_1: proData.secondary_category_1 || "",
+            secondary_category_2: proData.secondary_category_2 || "",
             location: proData.location || "",
             phone: proData.phone || "",
             email: proData.email || "",
@@ -273,7 +277,7 @@ const EditProfile = () => {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="category">Categoria</Label>
+                <Label htmlFor="category">Categoria Principal <span className="text-red-500">*</span></Label>
                 <select 
                   id="category" 
                   name="category" 
@@ -288,6 +292,47 @@ const EditProfile = () => {
                   ))}
                 </select>
               </div>
+
+              {((subscriptionStatus === 'active' && ['semestral', 'anual'].includes((subscription?.plan || subscription?.selected_plan || "").toLowerCase())) || formData.secondary_category_1 || formData.secondary_category_2) && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2 p-4 bg-primary/5 rounded-xl border border-primary/20">
+                  <div className="col-span-full mb-1">
+                    <Label className="flex items-center gap-2 text-primary">
+                      <Star className="h-4 w-4 fill-primary" /> Funcionalidade Premium: Múltiplas Categorias
+                    </Label>
+                    <p className="text-xs text-muted-foreground mt-1">Como assinante de longo prazo, pode aparecer em mais 2 categorias adicionais para maximizar os seus clientes.</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="secondary_category_1">Categoria Secundária 1</Label>
+                    <select 
+                      id="secondary_category_1" 
+                      name="secondary_category_1" 
+                      value={formData.secondary_category_1} 
+                      onChange={handleChange} 
+                      className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                    >
+                      <option value="">Nenhuma</option>
+                      {categories.filter(c => c.id !== formData.category).map((cat) => (
+                        <option key={cat.id} value={cat.id}>{cat.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="secondary_category_2">Categoria Secundária 2</Label>
+                    <select 
+                      id="secondary_category_2" 
+                      name="secondary_category_2" 
+                      value={formData.secondary_category_2} 
+                      onChange={handleChange} 
+                      className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                    >
+                      <option value="">Nenhuma</option>
+                      {categories.filter(c => c.id !== formData.category && c.id !== formData.secondary_category_1).map((cat) => (
+                        <option key={cat.id} value={cat.id}>{cat.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="description">Biografia / Descrição</Label>
                 <Textarea id="description" name="description" value={formData.description} onChange={handleChange} rows={4} required />

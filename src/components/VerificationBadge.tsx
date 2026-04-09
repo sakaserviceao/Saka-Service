@@ -20,8 +20,8 @@ export const VerificationBadge = ({ verified, size = "md", className = "" }: Pro
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className={`inline-flex items-center text-blue-500 ${className}`}>
-            <BadgeCheck className={`${sizeClasses[size]} text-white`} fill="currentColor" />
+          <div className={`inline-flex items-center ${className}`}>
+            <BadgeCheck className={`${sizeClasses[size]} text-blue-500`} fill="currentColor" />
           </div>
         </TooltipTrigger>
         <TooltipContent>

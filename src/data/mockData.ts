@@ -4,6 +4,8 @@ export interface Professional {
   title: string;
   description: string;
   category: string;
+  secondary_category_1?: string;
+  secondary_category_2?: string;
   location: string;
   rating: number;
   reviewCount: number;

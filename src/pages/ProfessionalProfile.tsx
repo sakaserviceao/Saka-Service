@@ -142,7 +142,7 @@ const ProfessionalProfile = () => {
         <div className="mb-6 flex flex-wrap justify-end gap-3">
           {isOwner && (
             <Button variant="outline" className="gap-2 bg-secondary" asChild>
-              <Link to="/edit-profile"><Edit className="h-4 w-4" /> Editar o Meu Perfil</Link>
+              <Link to="/perfil-editar"><Edit className="h-4 w-4" /> Editar o Meu Perfil</Link>
             </Button>
           )}
           
@@ -185,7 +185,7 @@ const ProfessionalProfile = () => {
               </div>
               <h1 className="text-3xl font-bold text-foreground md:text-4xl flex flex-wrap items-center gap-2">
                 {pro.name}
-                <VerificationBadge verified={pro.verification_status} size="lg" />
+                <VerificationBadge verified={pro.verification_status === 'ativo' || pro.subscription_status === 'active'} size="lg" />
                 {(isOwner || isAdmin) && (
                   <span className={`text-[10px] uppercase font-black px-2 py-1 rounded flex items-center gap-1 shadow-sm ${
                     pro.subscription_status === 'active' 

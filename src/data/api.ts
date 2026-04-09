@@ -8,7 +8,7 @@ export const getProfessionalsByCategory = async (categoryId: string): Promise<Pr
   const { data, error } = await supabasePublic
     .from('professionals')
     .select('*, portfolios(*), reviews(*)')
-    .eq('category', categoryId);
+    .or(`category.eq.${categoryId},secondary_category_1.eq.${categoryId},secondary_category_2.eq.${categoryId}`);
 
   if (error) {
     return [];
@@ -21,7 +21,7 @@ export const getProfessionalsByCategory = async (categoryId: string): Promise<Pr
       const { data: retryData } = await supabasePublic
         .from('professionals')
         .select('*, portfolios(*), reviews(*)')
-        .eq('category', categories.name);
+        .or(`category.eq.${categories.name},secondary_category_1.eq.${categories.name},secondary_category_2.eq.${categories.name}`);
 
       if (retryData && retryData.length > 0) {
         return retryData.map(mapProfessional);
@@ -34,14 +34,26 @@ export const getProfessionalsByCategory = async (categoryId: string): Promise<Pr
 
 // Helper to map DB record to Professional interface
 const mapProfessional = (pro: any): Professional => {
+  const reviews = pro.reviews || [];
+  
+  // Calculate average rating dynamically
+  let calculatedRating = pro.rating;
+  if (reviews.length > 0) {
+     const sum = reviews.reduce((acc: number, curr: any) => acc + (curr.rating || 5), 0);
+     calculatedRating = Number((sum / reviews.length).toFixed(1));
+  }
+
   return {
     ...pro,
-    reviewCount: pro.review_count || 0,
+    rating: calculatedRating || 5.0,
+    reviewCount: pro.review_count || reviews.length || 0,
     avatar: pro.avatar || "",
     category: pro.category || "other",
+    secondary_category_1: pro.secondary_category_1 || "",
+    secondary_category_2: pro.secondary_category_2 || "",
     // Mantemos os dois nomes para compatibilidade com o que já existe nos componentes
     portfolio: pro.portfolios || [],
-    reviews: pro.reviews || [],
+    reviews: reviews,
     subscription_status: pro.subscription_status || pro.status || 'pending',
     subscription_plan: pro.subscription_plan || pro.approved_plan || pro.selected_plan || 'MENSAL',
     // Fallback de teste para 07/05/2026 (30 dias após hoje)

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Search, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 import { useTheme } from "@/hooks/useTheme";
+import { useSettings } from "@/hooks/useSettings";
 
 /**
  * ============================================================
@@ -18,6 +19,7 @@ const HeroSection = () => {
   const [query, setQuery] = useState("");
   const { theme } = useTheme();
   const navigate = useNavigate();
+  const { getSetting } = useSettings();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,7 +72,7 @@ const HeroSection = () => {
           className="mb-8 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-xs font-semibold text-white backdrop-blur-sm shadow-sm"
         >
           <Sparkles className="h-3.5 w-3.5" />
-          <span>Qualidade e Confiança em Angola</span>
+          <span>{getSetting('hero_badge_text', 'Qualidade e Confiança em Angola')}</span>
         </motion.div>
 
         {/* Título Principal */}
@@ -78,9 +80,9 @@ const HeroSection = () => {
           variants={itemVariants}
           className={`text-4xl font-extrabold leading-tight ${theme === 'dark' ? 'text-slate-100' : 'text-white'} sm:text-5xl md:text-6xl lg:text-7xl`}
         >
-          Encontre soluções rápidas com <br />
+          {getSetting('hero_title_text', 'Encontre soluções rápidas com')} <br />
           <span className="bg-gradient-to-r from-accent via-white to-accent bg-clip-text text-transparent">
-            profissionais qualificados
+            {getSetting('hero_title_highlight', 'profissionais qualificados')}
           </span>
         </motion.h1>
 
@@ -89,7 +91,7 @@ const HeroSection = () => {
           variants={itemVariants}
           className={`mx-auto mt-6 max-w-2xl text-lg ${theme === 'dark' ? 'text-slate-300' : 'text-primary-foreground/80'} md:text-xl`}
         >
-          Conecte-se com especialistas em tecnologia, design, marketing e muito mais.
+          {getSetting('hero_subtitle_text', 'Conecte-se com especialistas em tecnologia, design, marketing e muito mais.')}
         </motion.p>
 
         {/* Barra de Busca (Glassmorphism) */}

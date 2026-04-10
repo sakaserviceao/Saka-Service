@@ -27,7 +27,7 @@ import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/hooks/useAuth";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const AdminVerifications = () => {
   const queryClient = useQueryClient();
@@ -90,6 +90,15 @@ const AdminVerifications = () => {
                     user?.email === 'podosk2010@hotmail.com';
 
   const isAuthorized = isAdmin || isManager;
+
+  // Security: Auto-fallback for non-admins trying to access restricted views
+  useEffect(() => {
+    if (!isLoading && !isLoadingAdmins && !isAdmin && (viewMode === 'settings' || viewMode === 'platform')) {
+      setViewMode('pending');
+      toast.error("Acesso restrito a administradores.");
+    }
+  }, [viewMode, isAdmin, isLoading, isLoadingAdmins]);
+
 
   // Restricted Access Check
   if (!isLoadingAdmins && !isAuthorized) {
@@ -234,6 +243,7 @@ const AdminVerifications = () => {
                   mutation={mutation} 
                   featuredMutation={featuredMutation}
                   deleteMutation={deleteMutation}
+                  canManage={isAuthorized}
                 />
               ))}
             </div>
@@ -314,6 +324,7 @@ const AdminVerifications = () => {
                     mutation={mutation} 
                     featuredMutation={featuredMutation}
                     deleteMutation={deleteMutation}
+                    canManage={isAuthorized}
                   />
                 ))}
               </div>
@@ -338,65 +349,74 @@ const AdminVerifications = () => {
                     mutation={mutation} 
                     featuredMutation={featuredMutation}
                     deleteMutation={deleteMutation}
+                    canManage={isAuthorized}
                   />
                 ))}
               </div>
             )}
           </>
         ) : viewMode === 'settings' ? (
-          <SettingsPanel 
-            adminList={adminList} 
-            newEmail={newAdminEmail} 
-            setNewEmail={setNewAdminEmail}
-            managerList={managerList}
-            newManagerEmail={newManagerEmail}
-            setNewManagerEmail={setNewManagerEmail}
-            onAdd={() => {
-              if (!newAdminEmail.includes('@')) return toast.error("E-mail inválido");
-              addAdmin(newAdminEmail)
-                .then(() => {
-                  toast.success("Administrador adicionado!");
-                  setNewAdminEmail("");
-                  queryClient.invalidateQueries({ queryKey: ['adminList'] });
-                })
-                .catch(err => toast.error("Erro: " + err.message));
-            }}
-            onRemove={(email: string) => {
-              if (email === user?.email) return toast.error("Não pode remover-se a si mesmo!");
-              if (confirm(`Remover ${email} da lista de administradores?`)) {
-                removeAdmin(email)
+          isAdmin ? (
+            <SettingsPanel 
+              adminList={adminList} 
+              newEmail={newAdminEmail} 
+              setNewEmail={setNewAdminEmail}
+              managerList={managerList}
+              newManagerEmail={newManagerEmail}
+              setNewManagerEmail={setNewManagerEmail}
+              onAdd={() => {
+                if (!newAdminEmail.includes('@')) return toast.error("E-mail inválido");
+                addAdmin(newAdminEmail)
                   .then(() => {
-                    toast.success("Administrador removido.");
+                    toast.success("Administrador adicionado!");
+                    setNewAdminEmail("");
                     queryClient.invalidateQueries({ queryKey: ['adminList'] });
                   })
                   .catch(err => toast.error("Erro: " + err.message));
-              }
-            }}
-            onAddManager={() => {
-              if (!newManagerEmail.includes('@')) return toast.error("E-mail inválido");
-              if (managerList.includes(newManagerEmail)) return toast.error("Este e-mail já é um gestor operacional");
-              
-              const newList = [...managerList, newManagerEmail].join(',');
-              updateSiteSetting('manager_emails', newList)
-                .then(() => {
-                  toast.success("Gestor Operacional adicionado com sucesso!");
-                  setNewManagerEmail("");
-                  queryClient.invalidateQueries({ queryKey: ['siteSettings'] });
-                })
-                .catch(err => toast.error("Erro ao adicionar gestor: " + err.message));
-            }}
-            onRemoveManager={(email: string) => {
-              if (confirm(`Remover ${email} das funções de gestor?`)) {
-                const newList = managerList.filter((e: string) => e !== email).join(',');
+              }}
+              onRemove={(email: string) => {
+                if (email === user?.email) return toast.error("Não pode remover-se a si mesmo!");
+                if (confirm(`Remover ${email} da lista de administradores?`)) {
+                  removeAdmin(email)
+                    .then(() => {
+                      toast.success("Administrador removido.");
+                      queryClient.invalidateQueries({ queryKey: ['adminList'] });
+                    })
+                    .catch(err => toast.error("Erro: " + err.message));
+                }
+              }}
+              onAddManager={() => {
+                if (!newManagerEmail.includes('@')) return toast.error("E-mail inválido");
+                if (managerList.includes(newManagerEmail)) return toast.error("Este e-mail já é um gestor operacional");
+                
+                const newList = [...managerList, newManagerEmail].join(',');
                 updateSiteSetting('manager_emails', newList)
                   .then(() => {
-                    toast.success("Gestor removido.");
+                    toast.success("Gestor Operacional adicionado com sucesso!");
+                    setNewManagerEmail("");
                     queryClient.invalidateQueries({ queryKey: ['siteSettings'] });
                   })
-                  .catch(err => toast.error("Erro ao remover gestor: " + err.message));
-              }
-            }}
-          />
+                  .catch(err => toast.error("Erro ao adicionar gestor: " + err.message));
+              }}
+              onRemoveManager={(email: string) => {
+                if (confirm(`Remover ${email} das funções de gestor?`)) {
+                  const newList = managerList.filter((e: string) => e !== email).join(',');
+                  updateSiteSetting('manager_emails', newList)
+                    .then(() => {
+                      toast.success("Gestor removido.");
+                      queryClient.invalidateQueries({ queryKey: ['siteSettings'] });
+                    })
+                    .catch(err => toast.error("Erro ao remover gestor: " + err.message));
+                }
+              }}
+            />
+          ) : (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <Shield className="h-12 w-12 text-destructive/20 mb-4" />
+              <h3 className="text-lg font-bold">Acesso Restrito</h3>
+              <p className="text-muted-foreground">Esta secção é exclusiva para administradores.</p>
+            </div>
+          )
         ) : viewMode === 'analytics' ? (
           <AnalyticsPanel />
         ) : viewMode === 'subscriptions' ? (
@@ -406,7 +426,15 @@ const AdminVerifications = () => {
             loading={isLoadingPendingSubs || isLoadingAllSubs} 
           />
         ) : (
-          <PlatformManagementPanel settings={settings} categories={categories} />
+          isAdmin ? (
+            <PlatformManagementPanel settings={settings} categories={categories} />
+          ) : (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <Shield className="h-12 w-12 text-destructive/20 mb-4" />
+              <h3 className="text-lg font-bold">Acesso Restrito</h3>
+              <p className="text-muted-foreground">Apenas administradores podem configurar o site e categorias.</p>
+            </div>
+          )
         )}
       </div>
     </div>
@@ -1166,7 +1194,7 @@ const SettingsPanel = ({
 
 
 // Reusable Verification Card Component
-const VerificationItem = ({ pro, mutation, featuredMutation, deleteMutation }: { pro: any, mutation: any, featuredMutation: any, deleteMutation: any }) => {
+const VerificationItem = ({ pro, mutation, featuredMutation, deleteMutation, canManage }: { pro: any, mutation: any, featuredMutation: any, deleteMutation: any, canManage: boolean }) => {
   const [isRejecting, setIsRejecting] = useState(false);
   const [reason, setReason] = useState("");
   const queryClient = useQueryClient();
@@ -1379,39 +1407,43 @@ const VerificationItem = ({ pro, mutation, featuredMutation, deleteMutation }: {
           </div>
         )}
         
-        <Button 
-          variant={pro.featured ? "outline" : "secondary"}
-          className={`w-full h-11 font-bold ${pro.featured ? "border-yellow-500 text-yellow-600 hover:bg-yellow-50" : "bg-yellow-500 hover:bg-yellow-600 text-white"}`}
-          onClick={() => featuredMutation.mutate({ id: pro.id, featured: !pro.featured })}
-          disabled={featuredMutation.isPending}
-        >
-          <Star className={`mr-2 h-5 w-5 ${pro.featured ? "fill-yellow-500" : ""}`} /> 
-          {pro.featured ? 'Remover Top' : 'Tornar Top Pro'}
-        </Button>
+        {canManage && (
+          <>
+            <Button 
+              variant={pro.featured ? "outline" : "secondary"}
+              className={`w-full h-11 font-bold ${pro.featured ? "border-yellow-500 text-yellow-600 hover:bg-yellow-50" : "bg-yellow-500 hover:bg-yellow-600 text-white"}`}
+              onClick={() => featuredMutation.mutate({ id: pro.id, featured: !pro.featured })}
+              disabled={featuredMutation.isPending}
+            >
+              <Star className={`mr-2 h-5 w-5 ${pro.featured ? "fill-yellow-500" : ""}`} /> 
+              {pro.featured ? 'Remover Top' : 'Tornar Top Pro'}
+            </Button>
 
-        {pro.verification_status === 'ativo' && (
-          <Button 
-            variant="outline" 
-            className="w-full h-11 font-bold border-orange-500 text-orange-600 hover:bg-orange-50"
-            onClick={() => mutation.mutate({ id: pro.id, status: 'suspenso' })}
-            disabled={mutation.isPending}
-          >
-            <Pause className="mr-2 h-5 w-5" /> Suspender
-          </Button>
+            {pro.verification_status === 'ativo' && (
+              <Button 
+                variant="outline" 
+                className="w-full h-11 font-bold border-orange-500 text-orange-600 hover:bg-orange-50"
+                onClick={() => mutation.mutate({ id: pro.id, status: 'suspenso' })}
+                disabled={mutation.isPending}
+              >
+                <Pause className="mr-2 h-5 w-5" /> Suspender
+              </Button>
+            )}
+
+            <Button 
+              variant="destructive" 
+              className="w-full h-11 font-bold"
+              onClick={() => {
+                if (confirm("TEM A CERTEZA? Esta ação é definitiva e removerá todos os dados (fotos, portfólio e avaliações) permanentemente!")) {
+                  deleteMutation.mutate(pro.id);
+                }
+              }}
+              disabled={deleteMutation.isPending}
+            >
+              <X className="mr-2 h-5 w-5" /> Eliminar Definitivamente
+            </Button>
+          </>
         )}
-
-        <Button 
-          variant="destructive" 
-          className="w-full h-11 font-bold"
-          onClick={() => {
-            if (confirm("TEM A CERTEZA? Esta ação é definitiva e removerá todos os dados (fotos, portfólio e avaliações) permanentemente!")) {
-              deleteMutation.mutate(pro.id);
-            }
-          }}
-          disabled={deleteMutation.isPending}
-        >
-          <X className="mr-2 h-5 w-5" /> Eliminar Definitivamente
-        </Button>
         <Link to={`/professional/${pro.id}`} className="text-xs text-center text-primary hover:underline italic">
           Ver perfil público →
         </Link>

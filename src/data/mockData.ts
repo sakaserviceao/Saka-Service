@@ -31,6 +31,12 @@ export interface Professional {
   total_views?: number;
   subscription_status?: 'pending' | 'active' | 'expired' | 'blocked' | string;
   subscription_end_date?: string;
+  recommendation_percentage?: number;
+  category_ratings?: {
+    punctuality: number;
+    presentation: number;
+    technical: number;
+  };
 }
 
 export interface Subscription {

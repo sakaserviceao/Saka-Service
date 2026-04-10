@@ -31,32 +31,60 @@ export const getProfessionalsByCategory = async (categoryId: string): Promise<Pr
 
   return (data || []).map(mapProfessional);
 };
-
 // Helper to map DB record to Professional interface
 const mapProfessional = (pro: any): Professional => {
   const reviews = pro.reviews || [];
   
   // Calculate average rating dynamically
   let calculatedRating = pro.rating;
+  let recommendCount = 0;
+  let cat_punctuality = 0;
+  let cat_presentation = 0;
+  let cat_technical = 0;
+  let structuredCount = 0;
+
   if (reviews.length > 0) {
-     const sum = reviews.reduce((acc: number, curr: any) => acc + (curr.rating || 5), 0);
+     const sum = reviews.reduce((acc: number, curr: any) => {
+        // If it's a structured review, use the average of the 3 metrics
+        if (curr.punctuality_rating && curr.presentation_rating && curr.technical_rating) {
+           structuredCount++;
+           cat_punctuality += curr.punctuality_rating;
+           cat_presentation += curr.presentation_rating;
+           cat_technical += curr.technical_rating;
+           const avg = (curr.punctuality_rating + curr.presentation_rating + curr.technical_rating) / 3;
+           if (curr.would_recommend) recommendCount++;
+           return acc + avg;
+        }
+        // Fallback for legacy reviews
+        if (curr.would_recommend !== false) recommendCount++; // Assume recommended if not explicitly false
+        return acc + (curr.rating || 5);
+     }, 0);
+     
      calculatedRating = Number((sum / reviews.length).toFixed(1));
   }
+
+  const recPercentage = reviews.length > 0 
+    ? Math.round((recommendCount / reviews.length) * 100) 
+    : 100;
 
   return {
     ...pro,
     rating: calculatedRating || 5.0,
     reviewCount: pro.review_count || reviews.length || 0,
+    recommendation_percentage: recPercentage,
+    category_ratings: structuredCount > 0 ? {
+      punctuality: Number((cat_punctuality / structuredCount).toFixed(1)),
+      presentation: Number((cat_presentation / structuredCount).toFixed(1)),
+      technical: Number((cat_technical / structuredCount).toFixed(1)),
+    } : undefined,
     avatar: pro.avatar || "",
     category: pro.category || "other",
     secondary_category_1: pro.secondary_category_1 || "",
     secondary_category_2: pro.secondary_category_2 || "",
-    // Mantemos os dois nomes para compatibilidade com o que já existe nos componentes
     portfolio: pro.portfolios || [],
     reviews: reviews,
     subscription_status: pro.subscription_status || pro.status || 'pending',
     subscription_plan: pro.subscription_plan || pro.approved_plan || pro.selected_plan || 'MENSAL',
-    // Fallback de teste para 07/05/2026 (30 dias após hoje)
     subscription_end_date: pro.subscription_end_date || pro.end_date || '2026-05-07T23:59:59.000Z'
   };
 };
@@ -442,7 +470,17 @@ export const deletePortfolioItem = async (id: string) => {
   return true;
 };
 
-export const addReview = async (reviewData: { professional_id: string, author: string, rating: number, comment: string }) => {
+export const addReview = async (reviewData: { 
+  professional_id: string, 
+  author: string, 
+  rating: number, 
+  comment: string,
+  punctuality_rating?: number,
+  presentation_rating?: number,
+  technical_rating?: number,
+  would_recommend?: boolean,
+  hire_id?: string
+}) => {
   const { data, error } = await supabase
     .from('reviews')
     .insert([reviewData])
@@ -452,6 +490,48 @@ export const addReview = async (reviewData: { professional_id: string, author: s
   if (error) {
     console.error('Error adding review:', error);
     throw error;
+  }
+  return data;
+};
+
+export const addServiceHire = async (professional_id: string, user_id: string) => {
+  const { data, error } = await supabase
+    .from('service_hires')
+    .insert([{ professional_id, user_id, status: 'completed' }])
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error adding hire:', error);
+    throw error;
+  }
+  return data;
+};
+
+export const getUserHires = async (professional_id: string, user_id: string) => {
+  const { data, error } = await supabase
+    .from('service_hires')
+    .select('*')
+    .eq('professional_id', professional_id)
+    .eq('user_id', user_id);
+
+  if (error) {
+    console.error('Error fetching hires:', error);
+    return [];
+  }
+  return data || [];
+};
+
+export const getUserReviewForHire = async (hire_id: string) => {
+  const { data, error } = await supabase
+    .from('reviews')
+    .select('*')
+    .eq('hire_id', hire_id)
+    .single();
+
+  if (error && error.code !== 'PGRST116') {
+    console.error('Error fetching review for hire:', error);
+    return null;
   }
   return data;
 };

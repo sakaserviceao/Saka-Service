@@ -19,15 +19,18 @@ import {
   getPendingSubscriptions,
   getAllSubscriptions,
   approveSubscription,
-  rejectSubscription
+  rejectSubscription,
+  logExportAction
 } from "@/data/api";
+import * as XLSX from 'xlsx';
+import Papa from 'papaparse';
 import { Button } from "@/components/ui/button";
 import { Check, X, ExternalLink, Shield, ShieldCheck, Users, FileText, ArrowLeft, Search, AlertCircle, Star, Pause, RotateCcw, Settings, Plus, Trash2, Mail, BarChart3, TrendingUp, Calendar, Eye, LayoutGrid, Save, Image as ImageIcon, CreditCard, Receipt, Clock, CheckCircle, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/hooks/useAuth";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 
 const AdminVerifications = () => {
   const queryClient = useQueryClient();
@@ -35,7 +38,7 @@ const AdminVerifications = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
-  const [viewMode, setViewMode] = useState<'pending' | 'all' | 'settings' | 'analytics' | 'platform' | 'subscriptions'>('pending');
+  const [viewMode, setViewMode] = useState<'pending' | 'all' | 'settings' | 'analytics' | 'platform' | 'subscriptions' | 'professionalManagement'>('pending');
   const [newAdminEmail, setNewAdminEmail] = useState("");
   const [newManagerEmail, setNewManagerEmail] = useState("");
 
@@ -294,6 +297,13 @@ const AdminVerifications = () => {
             {pendingSubs.length > 0 && <span className="bg-amber-500 text-white text-[10px] px-1.5 py-0.5 rounded-full ml-1">{pendingSubs.length}</span>}
           </Button>
           <Button 
+            variant={viewMode === 'professionalManagement' ? 'default' : 'outline'} 
+            onClick={() => setViewMode('professionalManagement')}
+            className={`rounded-full flex items-center gap-2 ${isAdmin ? "border-primary text-primary" : "hidden"}`}
+          >
+            <Users className="h-4 w-4" /> Gestão de Profissionais
+          </Button>
+          <Button 
             variant={viewMode === 'analytics' ? 'default' : 'outline'} 
             onClick={() => setViewMode('analytics')}
             className="rounded-full flex items-center gap-2"
@@ -425,6 +435,19 @@ const AdminVerifications = () => {
             allSubs={allSubs} 
             loading={isLoadingPendingSubs || isLoadingAllSubs} 
           />
+        ) : viewMode === 'professionalManagement' ? (
+          isAdmin ? (
+            <ProfessionalManagementPanel 
+              allPros={allPros} 
+              onExportLog={(format, count, filters) => logExportAction(user?.email || "", format, count, filters)}
+            />
+          ) : (
+             <div className="flex flex-col items-center justify-center py-20 text-center">
+              <Shield className="h-12 w-12 text-destructive/20 mb-4" />
+              <h3 className="text-lg font-bold">Acesso Restrito</h3>
+              <p className="text-muted-foreground">Esta secção é exclusiva para administradores.</p>
+            </div>
+          )
         ) : (
           isAdmin ? (
             <PlatformManagementPanel settings={settings} categories={categories} />
@@ -436,6 +459,216 @@ const AdminVerifications = () => {
             </div>
           )
         )}
+      </div>
+    </div>
+  );
+};
+
+// Professional Management & Export Panel
+const ProfessionalManagementPanel = ({ allPros, onExportLog }: { allPros: any[], onExportLog: (format: string, count: number, filters: any) => void }) => {
+  const [filters, setFilters] = useState({
+    profession: "all",
+    location: "all",
+    status: "all",
+    date: "all"
+  });
+
+  const filteredPros = useMemo(() => {
+    return allPros.filter(pro => {
+      const matchProfession = filters.profession === "all" || pro.title === filters.profession || pro.category === filters.profession;
+      const matchLocation = filters.location === "all" || pro.location?.toLowerCase().includes(filters.location.toLowerCase());
+      const matchStatus = filters.status === "all" || pro.verification_status === filters.status;
+      
+      let matchDate = true;
+      if (filters.date !== "all" && pro.created_at) {
+        const proDate = new Date(pro.created_at);
+        const now = new Date();
+        if (filters.date === "today") {
+          matchDate = proDate.toDateString() === now.toDateString();
+        } else if (filters.date === "week") {
+          const weekAgo = new Date();
+          weekAgo.setDate(now.getDate() - 7);
+          matchDate = proDate >= weekAgo;
+        } else if (filters.date === "month") {
+          const monthAgo = new Date();
+          monthAgo.setMonth(now.getMonth() - 1);
+          matchDate = proDate >= monthAgo;
+        }
+      }
+
+      return matchProfession && matchLocation && matchStatus && matchDate;
+    });
+  }, [allPros, filters]);
+
+  const uniqueProfessions = useMemo(() => {
+    const occupations = allPros.map(p => p.title).filter(Boolean);
+    return Array.from(new Set(occupations));
+  }, [allPros]);
+
+  const uniqueLocations = useMemo(() => {
+    const locs = allPros.map(p => p.location?.split(',')[0]).filter(Boolean);
+    return Array.from(new Set(locs));
+  }, [allPros]);
+
+  const handleExport = async (format: 'CSV' | 'Excel') => {
+    const dataToExport = filteredPros.map(pro => ({
+      "Nome Completo": pro.name,
+      "Nº BI / Identidade": pro.id_number || "Não informado",
+      "Profissão": pro.title || pro.category,
+      "Localização": pro.location,
+      "Contacto": pro.phone || pro.email || "Sem contacto",
+      "Estado": pro.verification_status,
+      "Data de Registo": pro.created_at ? new Date(pro.created_at).toLocaleDateString('pt-PT') : "N/A"
+    }));
+
+    if (format === 'CSV') {
+      const csv = Papa.unparse(dataToExport);
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", `sakaservice_profissionais_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else {
+      const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Profissionais");
+      XLSX.writeFile(workbook, `sakaservice_profissionais_${new Date().toISOString().split('T')[0]}.xlsx`);
+    }
+
+    onExportLog(format, dataToExport.length, filters);
+    toast.success(`Exportação ${format} concluída com sucesso (${dataToExport.length} registos).`);
+  };
+
+  return (
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-bold flex items-center gap-2">
+            <Users className="h-6 w-6 text-primary" /> Gestão Avançada de Profissionais
+          </h2>
+          <p className="text-sm text-muted-foreground">Controle, filtre e exporte dados para análise externa.</p>
+        </div>
+        <div className="flex gap-2">
+          <Button onClick={() => handleExport('CSV')} variant="outline" className="gap-2 border-primary/20 hover:bg-primary/5">
+            <FileText className="h-4 w-4" /> Exportar CSV
+          </Button>
+          <Button onClick={() => handleExport('Excel')} className="gap-2 bg-emerald-600 hover:bg-emerald-700">
+            <Calendar className="h-4 w-4 text-white" /> Exportar Excel
+          </Button>
+        </div>
+      </div>
+
+      {/* Filters Bar */}
+      <div className="bg-card border rounded-2xl p-6 shadow-sm grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="space-y-2">
+          <label className="text-[10px] font-bold uppercase text-muted-foreground">Profissão</label>
+          <select 
+            className="w-full h-10 px-3 rounded-lg border bg-background text-sm"
+            value={filters.profession}
+            onChange={(e) => setFilters(prev => ({ ...prev, profession: e.target.value }))}
+          >
+            <option value="all">Todas as Profissões</option>
+            {uniqueProfessions.map(prof => <option key={prof} value={prof}>{prof}</option>)}
+          </select>
+        </div>
+        <div className="space-y-2">
+          <label className="text-[10px] font-bold uppercase text-muted-foreground">Localização</label>
+          <select 
+            className="w-full h-10 px-3 rounded-lg border bg-background text-sm"
+            value={filters.location}
+            onChange={(e) => setFilters(prev => ({ ...prev, location: e.target.value }))}
+          >
+            <option value="all">Todas as Cidades</option>
+            {uniqueLocations.map(loc => <option key={loc} value={loc}>{loc}</option>)}
+          </select>
+        </div>
+        <div className="space-y-2">
+          <label className="text-[10px] font-bold uppercase text-muted-foreground">Estado</label>
+          <select 
+            className="w-full h-10 px-3 rounded-lg border bg-background text-sm"
+            value={filters.status}
+            onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
+          >
+            <option value="all">Todos os Estados</option>
+            <option value="ativo">Ativo</option>
+            <option value="suspenso">Suspenso</option>
+            <option value="pending_review">Pendente Review</option>
+          </select>
+        </div>
+        <div className="space-y-2">
+          <label className="text-[10px] font-bold uppercase text-muted-foreground">Data de Registo</label>
+          <select 
+            className="w-full h-10 px-3 rounded-lg border bg-background text-sm"
+            value={filters.date}
+            onChange={(e) => setFilters(prev => ({ ...prev, date: e.target.value }))}
+          >
+            <option value="all">Sempre</option>
+            <option value="today">Hoje</option>
+            <option value="week">Última Semana</option>
+            <option value="month">Último Mês</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Main Table */}
+      <div className="bg-card border rounded-2xl shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-muted/50 border-b text-[10px] font-black uppercase text-muted-foreground tracking-widest">
+              <tr>
+                <th className="px-6 py-4">Profissional</th>
+                <th className="px-6 py-4">Nº Identidade (BI)</th>
+                <th className="px-6 py-4">Profissão</th>
+                <th className="px-6 py-4">Localização</th>
+                <th className="px-6 py-4">Contacto</th>
+                <th className="px-6 py-4">Estado</th>
+                <th className="px-6 py-4">Registado em</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {filteredPros.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-20 text-center text-muted-foreground italic">Nenhum profissional encontrado com os filtros atuais.</td>
+                </tr>
+              ) : (
+                filteredPros.map((pro) => (
+                  <tr key={pro.id} className="hover:bg-muted/5 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-full overflow-hidden border">
+                          <img src={pro.avatar || "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100"} alt="" className="h-full w-full object-cover" />
+                        </div>
+                        <span className="font-bold">{pro.name}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 font-mono text-xs">{pro.id_number || "—"}</td>
+                    <td className="px-6 py-4">{pro.title || pro.category}</td>
+                    <td className="px-6 py-4">{pro.location}</td>
+                    <td className="px-6 py-4 flex flex-col">
+                      <span className="font-medium">{pro.phone || "—"}</span>
+                      <span className="text-[10px] text-muted-foreground">{pro.email}</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                        pro.verification_status === 'ativo' ? 'bg-green-100 text-green-700' :
+                        pro.verification_status === 'suspenso' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'
+                      }`}>
+                        {pro.verification_status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-xs text-muted-foreground font-medium">
+                      {pro.created_at ? new Date(pro.created_at).toLocaleDateString() : "N/A"}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

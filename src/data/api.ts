@@ -597,31 +597,44 @@ export const resendVerificationEmail = async (email: string) => {
 };
 
 export const recordProfileVisit = async (visitedId: string, visitorId?: string) => {
-  const { error } = await supabase.rpc('record_profile_visit', {
-    visited_user_id: visitedId,
-    visitor_user_id: visitorId || null
-  });
+  try {
+    const { error } = await supabase.rpc('record_profile_visit', {
+      visited_user_id: visitedId,
+      visitor_user_id: visitorId || null
+    });
 
-  if (error) {
-    // We don't throw here to avoid breaking the UI for an analytics failure
-    console.error('Error recording profile visit:', error);
+    if (error) {
+      console.warn('Saka Service Analytics: Error recording visit:', error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.warn('Saka Service Analytics: Critical error in recordProfileVisit:', err);
     return false;
   }
-  return true;
 };
 
 export const getSiteStats = async () => {
-  const { data, error } = await supabase
-    .from('site_stats')
-    .select('*')
-    .eq('id', 'global')
-    .single();
+  try {
+    const { data, error } = await supabase
+      .from('site_stats')
+      .select('*')
+      .eq('id', 'global')
+      .single();
 
-  if (error) {
-    console.error('Error fetching site stats:', error);
-    return null;
+    if (error) {
+      if (error.code === 'PGRST116') {
+        console.warn('Saka Service Analytics: site_stats "global" not found. Returning defaults.');
+        return { daily_visits: 0, monthly_visits: 0, yearly_visits: 0 };
+      }
+      console.error('Saka Service Analytics: Error fetching site stats:', error.message);
+      return { daily_visits: 0, monthly_visits: 0, yearly_visits: 0 };
+    }
+    return data;
+  } catch (err) {
+    console.error('Saka Service Analytics: Fatal error fetching stats:', err);
+    return { daily_visits: 0, monthly_visits: 0, yearly_visits: 0 };
   }
-  return data;
 };
 
 export const getTopProfiles = async (limit: number = 10) => {
@@ -632,10 +645,29 @@ export const getTopProfiles = async (limit: number = 10) => {
     .limit(limit);
 
   if (error) {
-    console.error('Error fetching top profiles:', error);
+    console.error('Saka Service Analytics: Error fetching top profiles:', error.message);
     return [];
   }
   return (data || []).map(mapProfessional);
+};
+
+export const logExportAction = async (adminEmail: string, format: string, rowCount: number, filters: any) => {
+  try {
+    const { error } = await supabase
+      .from('export_logs')
+      .insert([{
+        admin_email: adminEmail,
+        format: format,
+        row_count: rowCount,
+        filters_used: filters
+      }]);
+    
+    if (error) console.error('Error logging export action:', error.message);
+    return !error;
+  } catch (err) {
+    console.error('Fatal error in logExportAction:', err);
+    return false;
+  }
 };
 
 export const updateSiteSetting = async (key: string, value: string) => {

@@ -100,14 +100,26 @@ const Index = () => {
 
           {/* Search Bar above categories */}
           <div className="mb-10 max-w-2xl">
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.currentTarget);
+                const q = formData.get('q')?.toString().trim();
+                navigate(q ? `/search?q=${encodeURIComponent(q)}` : '/search');
+              }}
+              className="relative flex items-center overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all focus-within:border-primary/50 focus-within:ring-4 focus-within:ring-primary/5"
+            >
+              <Search className="ml-4 h-5 w-5 text-muted-foreground shrink-0" />
               <input
+                name="q"
                 type="text"
                 placeholder="Que serviço procura hoje?"
-                className="h-14 w-full rounded-2xl border border-border bg-card pl-12 pr-4 text-base shadow-sm outline-none transition-all focus:border-primary/50 focus:ring-4 focus:ring-primary/5"
+                className="h-14 flex-1 bg-transparent px-3 text-base outline-none"
               />
-            </div>
+              <Button type="submit" className="m-1.5 h-11 rounded-xl px-6 font-bold shadow-sm">
+                Buscar
+              </Button>
+            </form>
           </div>
 
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">

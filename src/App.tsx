@@ -27,6 +27,9 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import ConfigError from "./components/ConfigError";
 import ConfirmEmail from "./pages/ConfirmEmail";
 import SubscriptionPlans from "./pages/SubscriptionPlans";
+import Imoveis from "./pages/Imoveis";
+import ImovelDetail from "./pages/ImovelDetail";
+import PropertySubmit from "./pages/PropertySubmit";
 
 // Check for missing Supabase configuration
 const isConfigured = Boolean(
@@ -82,6 +85,9 @@ const App = () => {
                 <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                 <Route path="/terms-of-service" element={<TermsOfService />} />
                 <Route path="/perfil-editar" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
+                <Route path="/imoveis" element={<Imoveis />} />
+                <Route path="/imoveis/:id" element={<ImovelDetail />} />
+                <Route path="/imoveis/anunciar" element={<ProtectedRoute><PropertySubmit /></ProtectedRoute>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>

@@ -307,7 +307,7 @@ const SubscriptionPlans = () => {
                         <div className="relative">
                           <Input
                             type="file"
-                            accept="image/*,application/pdf"
+                            accept="application/pdf"
                             className="bg-background cursor-pointer h-12 file:mr-4 file:h-full file:border-0 file:bg-muted file:px-4 file:text-sm file:font-medium hover:file:bg-primary/10"
                             onChange={(e) => setProofFile(e.target.files?.[0] || null)}
                             required

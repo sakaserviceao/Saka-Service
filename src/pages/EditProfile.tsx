@@ -402,7 +402,7 @@ const EditProfile = () => {
                     <Trash2 className="h-5 w-5" />
                   </button>
                   <div className="space-y-2 pr-8 mt-2">
-                    <Label>Fotografia do Novo Trabalho</Label>
+                    <Label>Foto do Novo Trabalho</Label>
                     <Input type="file" accept="image/*" onChange={(e) => handleNewPortfolioChange(index, 'imageFile', e.target.files?.[0] || null)} />
                   </div>
                   <div className="space-y-2">
@@ -429,7 +429,7 @@ const EditProfile = () => {
 
 // --- Componentes Auxiliares (SakaServ Subscription System) ---
 
-const SubscriptionStatusBanner = ({ status, endDate, onRenew, professionalId }: { status: string, endDate?: string, onRenew: () => void, professionalId: string }) => {
+function SubscriptionStatusBanner({ status, endDate, onRenew, professionalId }: { status: string, endDate?: string, onRenew: () => void, professionalId: string }) {
   if (status === 'blocked') {
     return (
       <div className="mb-6 rounded-2xl border border-destructive/20 bg-destructive/5 p-6 flex flex-col md:flex-row items-center justify-between gap-4 animate-in shake duration-500">

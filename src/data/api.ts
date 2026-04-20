@@ -2,7 +2,8 @@ import { supabase, supabasePublic } from '../lib/supabase';
 export { supabase, supabasePublic };
 
 // Helper typings para reusar as que já existiam
-import type { Professional, Category, SiteSetting } from './mockData';
+import type { Professional, Category, SiteSetting, Imovel } from './mockData';
+import { mockImoveis } from './mockData';
 
 export const getProfessionalsByCategory = async (categoryId: string): Promise<Professional[]> => {
   const { data, error } = await supabasePublic
@@ -798,26 +799,146 @@ export const approveSubscription = async (id: string, approvedPlan: 'trimestral'
 };
 
 export const rejectSubscription = async (id: string, reason: string) => {
-  const { error: subError } = await supabase
+  const { error } = await supabase
     .from('subscriptions')
     .update({ 
-      status: 'blocked',
-      blocked_at: new Date().toISOString()
+      status: 'rejected',
+      rejection_reason: reason 
     })
     .eq('id', id);
+
+  if (error) {
+    console.error('Error rejecting subscription:', error);
+    throw error;
+  }
+  return true;
+};
+
+// Property Data Mapper
+const mapProperty = (raw: any): Imovel => ({
+  id: raw.id,
+  tipologia: raw.tipologia as ImovelTipologia,
+  numero_quartos: raw.numero_quartos,
+  preco_mensal: Number(raw.preco_mensal),
+  localizacao: raw.localizacao,
+  imagens: raw.imagens || [],
+  descricao: raw.descricao || "",
+  contacto_nome: raw.contacto_nome || "Proprietário",
+  contacto_telefone: raw.contacto_telefone || "",
+  status: (raw.status as ImovelStatus) || "disponivel",
+  created_at: raw.created_at,
+});
+
+export const getImoveis = async (): Promise<Imovel[]> => {
+  try {
+    const { data, error } = await supabasePublic
+      .from('properties')
+      .select('*')
+      .eq('status', 'approved')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.warn('Properties table might not exist, using mock data');
+      return mockImoveis;
+    }
+    return (data || []).map(mapProperty);
+  } catch (err) {
+    return mockImoveis;
+  }
+};
+
+export const getImovelById = async (id: string): Promise<Imovel | null> => {
+  try {
+    const { data, error } = await supabasePublic
+      .from('properties')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      return mockImoveis.find(i => i.id === id) || null;
+    }
+    return data ? mapProperty(data) : null;
+  } catch (err) {
+    return mockImoveis.find(i => i.id === id) || null;
+  }
+};
+
+export const uploadPropertyFiles = async (files: File[], bucket: string = 'property-images'): Promise<string[]> => {
+  const urls: string[] = [];
+  for (const file of files) {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+    const filePath = `${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from(bucket)
+      .upload(filePath, file);
+
+    if (uploadError) {
+      console.error('Upload error:', uploadError);
+      continue;
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from(bucket)
+      .getPublicUrl(filePath);
+    
+    urls.push(publicUrl);
+  }
+  return urls;
+};
+
+export const submitPropertyListing = async (propertyData: any, photos: File[], receipt: File | null) => {
+  // 1. Upload Photos
+  const imageUrls = await uploadPropertyFiles(photos);
   
-  if (subError) {
-    console.error('Erro ao rejeitar subscrição:', subError);
-    throw subError;
+  // 2. Upload Receipt
+  let receiptUrl = "";
+  if (receipt) {
+    const receiptUrls = await uploadPropertyFiles([receipt]); // Using same bucket for now
+    if (receiptUrls.length > 0) receiptUrl = receiptUrls[0];
   }
 
-  const { data: sub } = await supabase.from('subscriptions').select('professional_id').eq('id', id).single();
-  if (sub) {
-    await supabase.from('professionals').update({
-      subscription_status: 'blocked'
-    }).eq('id', sub.professional_id);
-  }
+  // 3. Insert Data
+  const { data, error } = await supabase
+    .from('properties')
+    .insert([{
+      ...propertyData,
+      imagens: imageUrls,
+      comprovativo_url: receiptUrl,
+      status: 'pending'
+    }])
+    .select()
+    .single();
 
+  if (error) {
+    console.error('Error submitting property:', error);
+    throw error;
+  }
+  return data;
+};
+
+export const getPendingProperties = async () => {
+  const { data, error } = await supabase
+    .from('properties')
+    .select('*')
+    .eq('status', 'pending');
+  
+  if (error) return [];
+  return (data || []).map(mapProperty);
+};
+
+export const updatePropertyStatus = async (id: string, status: 'approved' | 'rejected', reason?: string) => {
+  const { error } = await supabase
+    .from('properties')
+    .update({ 
+      status: status === 'approved' ? 'approved' : 'rejected', 
+      rejection_reason: reason 
+    })
+    .eq('id', id);
+
+  if (error) throw error;
   return true;
 };
 

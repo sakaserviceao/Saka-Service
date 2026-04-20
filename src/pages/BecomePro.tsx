@@ -296,7 +296,7 @@ const BecomePro = () => {
                         <Trash2 className="h-5 w-5" />
                       </button>
                       <div className="space-y-2 mt-2">
-                        <Label>Escolher Fotografia</Label>
+                        <Label>Escolher Imagem</Label>
                         <Input type="file" accept="image/*" onChange={(e) => handlePortfolioChange(index, 'imageFile', e.target.files?.[0] || null)} />
                       </div>
                       <Input value={port.title} onChange={(e) => handlePortfolioChange(index, 'title', e.target.value)} placeholder="Título do trabalho" className="text-xs" />

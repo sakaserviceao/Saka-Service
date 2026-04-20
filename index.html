@@ -23,6 +23,14 @@
 </head>
 
   <body>
+    <script>
+      window.addEventListener('error', function(e) {
+        document.body.innerHTML += '<div style="position:fixed;top:0;left:0;right:0;background:red;color:white;z-index:999999;padding:20px;font-family:monospace;white-space:pre-wrap;"><h1>FALHA CRÍTICA CAPTURADA PELO ASSISTENTE DE IA:</h1><br/>' + e.message + '<br/><br/>' + e.filename + ':' + e.lineno + '<br/><br/>' + (e.error ? e.error.stack : '') + '</div>';
+      });
+      window.addEventListener('unhandledrejection', function(e) {
+        document.body.innerHTML += '<div style="position:fixed;top:0;left:0;right:0;background:red;color:white;z-index:999999;padding:20px;font-family:monospace;white-space:pre-wrap;"><h1>FALHA DE PROMISE CRÍTICA:</h1><br/>' + (e.reason && e.reason.stack ? e.reason.stack : e.reason) + '</div>';
+      });
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

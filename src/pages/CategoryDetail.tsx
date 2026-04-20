@@ -58,13 +58,28 @@ const CategoryDetail = () => {
             {/* Premium Advertising Banner (1580x170 recommended) */}
             {category.banner_url && (
               <div className="w-full min-h-[170px] max-h-[170px] rounded-xl overflow-hidden shadow-sm border border-border bg-secondary/50 flex items-center justify-center relative group">
-                <img 
-                  src={category.banner_url} 
-                  alt={`Banner de publicidade em ${category.name}`}
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute top-2 right-2 bg-background/80 backdrop-blur text-[10px] text-muted-foreground px-2 py-0.5 rounded border opacity-0 group-hover:opacity-100 transition-opacity">
-                  Publicidade Patrocinada
+                {category.banner_link ? (
+                  <a 
+                    href={category.banner_link} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="w-full h-full block cursor-pointer"
+                  >
+                    <img 
+                      src={category.banner_url} 
+                      alt={`Banner de publicidade em ${category.name}`}
+                      className="w-full h-full object-cover hover:scale-[1.01] transition-transform duration-500"
+                    />
+                  </a>
+                ) : (
+                  <img 
+                    src={category.banner_url} 
+                    alt={`Banner de publicidade em ${category.name}`}
+                    className="w-full h-full object-cover"
+                  />
+                )}
+                <div className="absolute top-2 right-2 bg-background/80 backdrop-blur text-[10px] text-muted-foreground px-2 py-0.5 rounded border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                  Publicidade Patrocinada {category.banner_link && "• Clique para abrir"}
                 </div>
               </div>
             )}

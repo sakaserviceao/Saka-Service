@@ -25,7 +25,7 @@ import {
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
 import { Button } from "@/components/ui/button";
-import { Check, X, ExternalLink, Shield, ShieldCheck, Users, FileText, ArrowLeft, Search, AlertCircle, Star, Pause, RotateCcw, Settings, Plus, Trash2, Mail, BarChart3, TrendingUp, Calendar, Eye, LayoutGrid, Save, Image as ImageIcon, CreditCard, Receipt, Clock, CheckCircle, Sparkles } from "lucide-react";
+import { Check, X, ExternalLink, Shield, ShieldCheck, Users, FileText, ArrowLeft, Search, AlertCircle, Star, Pause, RotateCcw, Settings, Plus, Trash2, Mail, BarChart3, TrendingUp, Home, Calendar, Eye, LayoutGrid, Save, Image as ImageIcon, CreditCard, Receipt, Clock, CheckCircle, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -38,14 +38,11 @@ const AdminVerifications = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
-  const [viewMode, setViewMode] = useState<'pending' | 'all' | 'settings' | 'analytics' | 'platform' | 'subscriptions' | 'professionalManagement'>('pending');
+  const [viewMode, setViewMode] = useState<'pending' | 'all' | 'settings' | 'analytics' | 'platform' | 'subscriptions' | 'professionalManagement' | 'properties'>('pending');
   const [newAdminEmail, setNewAdminEmail] = useState("");
   const [newManagerEmail, setNewManagerEmail] = useState("");
 
-  // Restricted Access Check
-  if (isLoading) return <div className="flex justify-center py-20">Verificando permissões...</div>;
-
-  // Restricted Access Check (Moved below queries)
+  // Hooks MUST be evaluated unconditionally before any early returns
 
   const { data: pending = [], isLoading: isLoadingPending, error } = useQuery({
     queryKey: ['pendingVerifications'],
@@ -102,18 +99,6 @@ const AdminVerifications = () => {
     }
   }, [viewMode, isAdmin, isLoading, isLoadingAdmins]);
 
-
-  // Restricted Access Check
-  if (!isLoadingAdmins && !isAuthorized) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-4 text-center">
-        <Shield className="h-16 w-16 text-destructive/20 mb-4" />
-        <h1 className="text-2xl font-bold mb-2">Acesso Restrito</h1>
-        <p className="text-muted-foreground mb-6">Apenas administradores ou gestores autorizados podem aceder a esta página.</p>
-        <Button asChild><Link to="/">Voltar ao Início</Link></Button>
-      </div>
-    );
-  }
 
 
   const handleSearch = async () => {
@@ -190,24 +175,39 @@ const AdminVerifications = () => {
     }
   });
 
+  // Restricted Access Check
+  if (isLoading) return <div className="flex justify-center py-20">Verificando permissões...</div>;
+
+  // Restricted Access Check (Moved below queries)
+  if (!isLoadingAdmins && !isAuthorized) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 text-center">
+        <Shield className="h-16 w-16 text-destructive/20 mb-4" />
+        <h1 className="text-2xl font-bold mb-2">Acesso Restrito</h1>
+        <p className="text-muted-foreground mb-6">Apenas administradores ou gestores autorizados podem aceder a esta página.</p>
+        <Button asChild><Link to="/">Voltar ao Início</Link></Button>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background pb-12">
       <Navbar />
       <div className="container mt-8">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 items-start">
           <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2">
+            <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
               <Shield className="text-primary" /> Painel de Verificação
             </h1>
-            <p className="text-muted-foreground">Analise os documentos e aprove perfis de profissionais.</p>
+            <p className="text-sm md:text-base text-muted-foreground">Analise os documentos e aprove perfis de profissionais.</p>
           </div>
-          <Button variant="outline" asChild>
+          <Button variant="outline" asChild className="w-full md:w-auto">
             <Link to="/"><ArrowLeft className="mr-2 h-4 w-4" /> Voltar ao Início</Link>
           </Button>
         </div>
 
         {/* Manual Search Bar */}
-        <div className="mb-8 flex gap-4">
+        <div className="mb-8 flex flex-col sm:flex-row gap-4">
           <div className="flex-1">
             <input 
               type="text" 
@@ -218,7 +218,7 @@ const AdminVerifications = () => {
               className="w-full h-12 rounded-xl border bg-card px-4 outline-none focus:ring-2 focus:ring-primary/20"
             />
           </div>
-          <Button onClick={handleSearch} disabled={searching} className="bg-primary/10 text-primary hover:bg-primary/20">
+          <Button onClick={handleSearch} disabled={searching} className="bg-primary/10 text-primary hover:bg-primary/20 h-12 sm:w-auto">
             {searching ? "A pesquisar..." : "Procurar Manualmente"}
           </Button>
         </div>
@@ -255,7 +255,7 @@ const AdminVerifications = () => {
         )}
 
         {/* View Mode Selector */}
-        <div className="flex gap-2 mb-6">
+        <div className="flex gap-2 mb-6 overflow-x-auto pb-4 scrollbar-none whitespace-nowrap snap-x">
           <Button 
             variant={viewMode === 'pending' ? 'default' : 'outline'} 
             onClick={() => setViewMode('pending')}
@@ -309,6 +309,13 @@ const AdminVerifications = () => {
             className="rounded-full flex items-center gap-2"
           >
             <BarChart3 className="h-4 w-4" /> Analítica
+          </Button>
+          <Button 
+            variant={viewMode === 'properties' ? 'default' : 'outline'} 
+            onClick={() => setViewMode('properties')}
+            className="rounded-full flex items-center gap-2 border-primary/20 text-primary hover:bg-primary/5"
+          >
+            <Home className="h-4 w-4" /> Imóveis
           </Button>
         </div>
 
@@ -448,6 +455,8 @@ const AdminVerifications = () => {
               <p className="text-muted-foreground">Esta secção é exclusiva para administradores.</p>
             </div>
           )
+        ) : viewMode === 'properties' ? (
+          <PropertiesApprovalPanel isAdmin={isAdmin} />
         ) : (
           isAdmin ? (
             <PlatformManagementPanel settings={settings} categories={categories} />
@@ -465,7 +474,7 @@ const AdminVerifications = () => {
 };
 
 // Professional Management & Export Panel
-const ProfessionalManagementPanel = ({ allPros, onExportLog }: { allPros: any[], onExportLog: (format: string, count: number, filters: any) => void }) => {
+function ProfessionalManagementPanel({ allPros, onExportLog }: { allPros: any[], onExportLog: (format: string, count: number, filters: any) => void }) {
   const [filters, setFilters] = useState({
     profession: "all",
     location: "all",
@@ -672,10 +681,10 @@ const ProfessionalManagementPanel = ({ allPros, onExportLog }: { allPros: any[],
       </div>
     </div>
   );
-};
+}
 
 // Platform Management Panel
-const PlatformManagementPanel = ({ settings, categories }: { settings: any, categories: any[] }) => {
+function PlatformManagementPanel({ settings, categories }: { settings: any, categories: any[] }) {
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
 
@@ -700,6 +709,19 @@ const PlatformManagementPanel = ({ settings, categories }: { settings: any, cate
       queryClient.invalidateQueries({ queryKey: ['categories'] });
     } catch (e: any) {
       toast.error(e.message || "Erro ao atualizar categoria.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateCategoryLink = async (id: string, bannerLink: string) => {
+    try {
+      setLoading(true);
+      await updateCategory(id, { banner_link: bannerLink });
+      toast.success("Link do banner atualizado.");
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao atualizar link da categoria.");
     } finally {
       setLoading(false);
     }
@@ -973,6 +995,17 @@ const PlatformManagementPanel = ({ settings, categories }: { settings: any, cate
               />
             </div>
             <div className="space-y-2">
+              <label className="text-xs font-bold uppercase text-muted-foreground italic">Banner Topo (Link de Redirecionamento)</label>
+              <input 
+                type="text" 
+                placeholder="https://saka-service.com/pagina"
+                defaultValue={settings.banner_topo_link || ""} 
+                className="w-full h-11 px-4 rounded-xl border bg-background border-primary/20"
+                onBlur={(e) => handleUpdateSetting('banner_topo_link', e.target.value)}
+              />
+            </div>
+            <hr className="opacity-50" />
+            <div className="space-y-2">
               <label className="text-xs font-bold uppercase text-muted-foreground">Banner Pré-CTA (URL Imagem)</label>
               <input 
                 type="text" 
@@ -981,6 +1014,102 @@ const PlatformManagementPanel = ({ settings, categories }: { settings: any, cate
                 className="w-full h-11 px-4 rounded-xl border bg-background"
                 onBlur={(e) => handleUpdateSetting('banner_pre_cta_url', e.target.value)}
               />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase text-muted-foreground italic">Banner Pré-CTA (Link de Redirecionamento)</label>
+              <input 
+                type="text" 
+                placeholder="https://saka-service.com/pagina"
+                defaultValue={settings.banner_pre_cta_link || ""} 
+                className="w-full h-11 px-4 rounded-xl border bg-background border-primary/20"
+                onBlur={(e) => handleUpdateSetting('banner_pre_cta_link', e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Gestão Saka Imóveis (Home) Section */}
+        <div className="bg-card border rounded-2xl p-6 shadow-sm border-l-4 border-l-primary">
+          <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
+            <Home className="h-5 w-5 text-primary" /> Gestão Saka Imóveis (Home)
+          </h3>
+          <div className="space-y-6">
+            <div className="flex items-center justify-between p-4 rounded-xl bg-primary/5 border border-primary/10">
+              <div className="space-y-1">
+                <p className="font-bold">Exibir Secção de Imóveis</p>
+                <p className="text-xs text-muted-foreground">Ativa ou desativa a vizualização no Início.</p>
+              </div>
+              <div className="flex gap-1 bg-background p-1 rounded-lg border">
+                <Button 
+                  size="sm" 
+                  variant={settings.show_imoveis === 'true' ? 'default' : 'ghost'}
+                  onClick={() => handleUpdateSetting('show_imoveis', 'true')}
+                  className="rounded-md h-8 text-xs px-3"
+                >
+                  Ativado
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant={settings.show_imoveis !== 'true' ? 'destructive' : 'ghost'}
+                  onClick={() => handleUpdateSetting('show_imoveis', 'false')}
+                  className="rounded-md h-8 text-xs px-3"
+                >
+                  Desativado
+                </Button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase text-muted-foreground">Badge Texto (Ex: NOVIDADE)</label>
+                <input 
+                  type="text" 
+                  defaultValue={settings.imoveis_badge || "NOVIDADE"} 
+                  className="w-full h-11 px-4 rounded-xl border bg-background"
+                  onBlur={(e) => handleUpdateSetting('imoveis_badge', e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase text-muted-foreground">Texto do Botão</label>
+                <input 
+                  type="text" 
+                  defaultValue={settings.imoveis_button_text || "Ver imóveis disponíveis"} 
+                  className="w-full h-11 px-4 rounded-xl border bg-background"
+                  onBlur={(e) => handleUpdateSetting('imoveis_button_text', e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase text-muted-foreground">Título Principal</label>
+              <input 
+                type="text" 
+                defaultValue={settings.imoveis_title || "Procura casa para arrendar?"} 
+                className="w-full h-11 px-4 rounded-xl border bg-background font-bold"
+                onBlur={(e) => handleUpdateSetting('imoveis_title', e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase text-muted-foreground">Descrição / Subtítulo</label>
+              <textarea 
+                rows={3}
+                defaultValue={settings.imoveis_description || "Explore imóveis disponíveis em Luanda, com informação clara e contacto direto com proprietários ou agentes verificados."} 
+                className="w-full p-4 rounded-xl border bg-background resize-none text-sm"
+                onBlur={(e) => handleUpdateSetting('imoveis_description', e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-4 pt-6 border-t mt-6">
+              <label className="text-xs font-bold uppercase text-primary font-black">Consulte o Preçário (URL do Preçário)</label>
+              <input 
+                type="text" 
+                placeholder="https://exemplo.com/precario-imoveis.pdf"
+                defaultValue={settings.imoveis_pricing_url || ""} 
+                className="w-full h-11 px-4 rounded-xl border border-primary/30 bg-primary/5 font-medium text-primary focus:ring-1 focus:ring-primary shadow-sm"
+                onBlur={(e) => handleUpdateSetting('imoveis_pricing_url', e.target.value)}
+              />
+              <p className="text-[10px] text-muted-foreground">URL para o documento PDF ou página que descreve os preços para anunciar. Se preenchido, o botão "Consulte o Preçário" aparecerá na página de anunciar imóvel.</p>
             </div>
           </div>
         </div>
@@ -1181,15 +1310,27 @@ const PlatformManagementPanel = ({ settings, categories }: { settings: any, cate
                 <span className="text-2xl">{cat.icon}</span>
                 <h4 className="font-bold">{cat.name}</h4>
               </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase text-muted-foreground">URL do Banner</label>
-                <input 
-                  type="text" 
-                  placeholder="URL da imagem..."
-                  defaultValue={cat.banner_url || ""} 
-                  className="w-full h-9 px-3 text-xs rounded-lg border bg-background focus:ring-1 focus:ring-primary"
-                  onBlur={(e) => handleUpdateCategoryBanner(cat.id, e.target.value)}
-                />
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase text-muted-foreground">URL do Banner</label>
+                  <input 
+                    type="text" 
+                    placeholder="URL da imagem..."
+                    defaultValue={cat.banner_url || ""} 
+                    className="w-full h-9 px-3 text-xs rounded-lg border bg-background focus:ring-1 focus:ring-primary"
+                    onBlur={(e) => handleUpdateCategoryBanner(cat.id, e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase text-primary font-black">Link do Banner (Redirecionamento)</label>
+                  <input 
+                    type="text" 
+                    placeholder="https://..."
+                    defaultValue={cat.banner_link || ""} 
+                    className="w-full h-9 px-3 text-xs rounded-lg border border-primary/30 bg-background focus:ring-1 focus:ring-primary shadow-sm"
+                    onBlur={(e) => handleUpdateCategoryLink(cat.id, e.target.value)}
+                  />
+                </div>
               </div>
               {cat.banner_url && (
                 <div className="relative h-12 w-full rounded-md overflow-hidden bg-muted">
@@ -1218,10 +1359,10 @@ const PlatformManagementPanel = ({ settings, categories }: { settings: any, cate
       </div>
     </div>
   );
-};
+}
 
 // Analytics Panel Component
-const AnalyticsPanel = () => {
+function AnalyticsPanel() {
   const { data: stats, isLoading: loadingStats } = useQuery({
     queryKey: ['siteStats'],
     queryFn: getSiteStats,
@@ -1302,13 +1443,14 @@ const AnalyticsPanel = () => {
       </div>
     </div>
   );
-};
+}
 
 // Settings Panel Component
-const SettingsPanel = ({ 
+function SettingsPanel({ 
   adminList, newEmail, setNewEmail, onAdd, onRemove,
   managerList, newManagerEmail, setNewManagerEmail, onAddManager, onRemoveManager 
-}: any) => (
+}: any) {
+  return (
   <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
       {/* Administrators Management */}
@@ -1369,8 +1511,8 @@ const SettingsPanel = ({
           <Users className="h-6 w-6 text-emerald-500" />
           <h2 className="text-xl font-bold">Gestores Operacionais</h2>
         </div>
-
-        <div className="bg-card border rounded-2xl p-6 shadow-sm border-l-4 border-l-emerald-500">
+        
+        <div className="bg-card border rounded-2xl p-6 shadow-sm">
           <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
             <Plus className="h-5 w-5 text-emerald-500" /> Adicionar Gestor
           </h3>
@@ -1379,55 +1521,54 @@ const SettingsPanel = ({
               <Mail className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
               <input 
                 type="email" 
-                placeholder="email@exemplo.com" 
+                placeholder="manager@exemplo.com" 
                 value={newManagerEmail}
                 onChange={(e) => setNewManagerEmail(e.target.value)}
-                className="w-full h-11 pl-10 pr-4 rounded-xl border bg-background outline-none focus:ring-2 focus:ring-emerald-500/20"
+                className="w-full h-11 pl-10 pr-4 rounded-xl border bg-background outline-none focus:ring-2 focus:ring-primary/20"
               />
             </div>
-            <Button onClick={onAddManager} className="w-full h-11 font-bold bg-emerald-500 hover:bg-emerald-600">
-              Guardar Gestor
+            <Button onClick={onAddManager} className="w-full h-11 font-bold bg-emerald-600 hover:bg-emerald-700">
+              Conceder Função de Gestor
             </Button>
           </div>
         </div>
 
         <div className="bg-card border rounded-2xl shadow-sm overflow-hidden">
           <div className="divide-y">
-            {managerList.length === 0 ? (
-              <div className="p-12 text-center text-muted-foreground">
-                <Users className="h-12 w-12 mx-auto mb-2 opacity-10" />
-                <p className="text-xs">Nenhum gestor operacional registado.</p>
-              </div>
-            ) : (
-              managerList.map((email: string) => (
-                <div key={email} className="flex items-center justify-between p-4 px-6 hover:bg-muted/10 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-600 font-bold">
-                      {email[0].toUpperCase()}
-                    </div>
-                    <p className="font-medium">{email}</p>
+            {managerList.map((email: string) => (
+              <div key={email} className="flex items-center justify-between p-4 px-6 hover:bg-muted/10 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold">
+                    {email[0].toUpperCase()}
                   </div>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="text-destructive hover:bg-destructive/10"
-                    onClick={() => onRemoveManager(email)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <p className="font-medium text-sm">{email}</p>
                 </div>
-              ))
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="text-destructive hover:bg-destructive/10"
+                  onClick={() => onRemoveManager(email)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+            {managerList.length === 0 && (
+              <div className="p-8 text-center text-muted-foreground text-sm italic">
+                Nenhum gestor operacional configurado.
+              </div>
             )}
           </div>
         </div>
       </div>
     </div>
   </div>
-);
+  );
+}
 
 
 // Reusable Verification Card Component
-const VerificationItem = ({ pro, mutation, featuredMutation, deleteMutation, canManage }: { pro: any, mutation: any, featuredMutation: any, deleteMutation: any, canManage: boolean }) => {
+function VerificationItem({ pro, mutation, featuredMutation, deleteMutation, canManage }: { pro: any, mutation: any, featuredMutation: any, deleteMutation: any, canManage: boolean }) {
   const [isRejecting, setIsRejecting] = useState(false);
   const [reason, setReason] = useState("");
   const queryClient = useQueryClient();
@@ -1684,10 +1825,10 @@ const VerificationItem = ({ pro, mutation, featuredMutation, deleteMutation, can
       </div>
     </div>
   );
-};
+}
 
 // Subscription Management Panel Component
-const SubscriptionManagementPanel = ({ pendingSubs, allSubs, loading }: { pendingSubs: any[], allSubs: any[], loading: boolean }) => {
+function SubscriptionManagementPanel({ pendingSubs, allSubs, loading }: { pendingSubs: any[], allSubs: any[], loading: boolean }) {
   const [subView, setSubView] = useState<'pending' | 'all'>('pending');
   
   if (loading) return <div className="flex justify-center py-20 text-muted-foreground">A carregar dados de pagamentos...</div>;
@@ -1733,9 +1874,9 @@ const SubscriptionManagementPanel = ({ pendingSubs, allSubs, loading }: { pendin
       </div>
     </div>
   );
-};
+}
 
-const SubscriptionItem = ({ sub }: { sub: any }) => {
+function SubscriptionItem({ sub }: { sub: any }) {
   const queryClient = useQueryClient();
   const [approvedPlan, setApprovedPlan] = useState<'trimestral' | 'semestral' | 'anual'>(sub.selected_plan || 'trimestral');
   const pro = sub.professionals;
@@ -1886,6 +2027,144 @@ const SubscriptionItem = ({ sub }: { sub: any }) => {
       </div>
     </div>
   );
-};
+}
+
+function PropertiesApprovalPanel({ isAdmin }: { isAdmin: boolean }) {
+  const queryClient = useQueryClient();
+  const { data: properties = [], isLoading } = useQuery({
+    queryKey: ['pendingProperties'],
+    queryFn: () => import("@/data/api").then(api => api.getPendingProperties()),
+  });
+
+  const approveMutation = useMutation({
+    mutationFn: (id: string) => import("@/data/api").then(api => api.updatePropertyStatus(id, 'approved')),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pendingProperties'] });
+      toast.success("Imóvel aprovado e publicado!");
+    },
+    onError: (err: any) => toast.error("Erro ao aprovar: " + err.message)
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: ({ id, reason }: { id: string, reason: string }) => 
+      import("@/data/api").then(api => api.updatePropertyStatus(id, 'rejected', reason)),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pendingProperties'] });
+      toast.success("Imóvel rejeitado.");
+    },
+    onError: (err: any) => toast.error("Erro ao rejeitar: " + err.message)
+  });
+
+  if (isLoading) return <div className="flex justify-center py-20">A carregar anúncios pendentes...</div>;
+
+  return (
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="bg-primary/5 p-6 rounded-2xl border border-primary/10">
+        <h3 className="text-xl font-bold flex items-center gap-2">
+          <Home className="h-6 w-6 text-primary" /> Aprovação de Imóveis
+        </h3>
+        <p className="text-sm text-muted-foreground mt-1">
+          Analise as fotos, descrição e comprovativo bancário antes de aprovar.
+        </p>
+      </div>
+
+      {properties.length === 0 ? (
+        <div className="rounded-2xl border border-dashed p-20 text-center">
+          <CheckCircle className="mx-auto h-12 w-12 text-muted-foreground opacity-20 mb-4" />
+          <h3 className="text-lg font-medium text-muted-foreground">Não há imóveis pendentes de aprovação.</h3>
+        </div>
+      ) : (
+        <div className="grid gap-6">
+          {properties.map((prop: any) => (
+            <div key={prop.id} className="bg-card border rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all">
+              <div className="flex flex-col lg:flex-row">
+                {/* Image Gallery Preview */}
+                <div className="lg:w-80 h-48 lg:h-auto bg-muted relative shrink-0">
+                  {prop.imagens && prop.imagens.length > 0 ? (
+                    <img src={prop.imagens[0]} className="w-full h-full object-cover" alt="Property" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-muted-foreground">Sem fotos</div>
+                  )}
+                  <div className="absolute bottom-2 right-2 bg-black/50 text-white text-[10px] px-2 py-1 rounded-full font-bold">
+                    {prop.imagens?.length || 0} fotos
+                  </div>
+                </div>
+
+                <div className="p-6 flex-1 flex flex-col gap-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="bg-primary/10 text-primary text-[10px] font-black px-2 py-0.5 rounded uppercase">{prop.tipologia}</span>
+                        <span className="text-xs text-muted-foreground flex items-center gap-1"><MapPin className="h-3 w-3" /> {prop.localizacao}</span>
+                      </div>
+                      <h4 className="font-bold text-lg">{prop.preco_mensal.toLocaleString()} Kz <span className="text-xs font-normal text-muted-foreground">/mês</span></h4>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase">Submetido em</p>
+                      <p className="text-xs">{new Date(prop.created_at).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+
+                  <p className="text-sm text-muted-foreground line-clamp-2">{prop.descricao}</p>
+
+                  <div className="grid grid-cols-2 gap-4 bg-muted/30 p-3 rounded-xl border border-border/50">
+                    <div>
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Contacto</p>
+                      <p className="text-xs font-bold">{prop.contacto_nome}</p>
+                      <p className="text-[10px] text-muted-foreground">{prop.contacto_telefone}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Comprovativo</p>
+                      {prop.comprovativo_url ? (
+                        <a 
+                          href={prop.comprovativo_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-primary text-xs font-bold flex items-center gap-1 hover:underline"
+                        >
+                          <Receipt className="h-3 w-3" /> Ver Recibo
+                        </a>
+                      ) : (
+                        <span className="text-xs text-destructive font-medium">Não anexado</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 pt-2 border-t mt-auto">
+                    <Button 
+                      size="sm" 
+                      className="bg-green-600 hover:bg-green-700 text-white font-bold gap-2"
+                      onClick={() => approveMutation.mutate(prop.id)}
+                      disabled={approveMutation.isPending}
+                    >
+                      <Check className="h-4 w-4" /> Aprovar Anúncio
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="border-destructive text-destructive hover:bg-destructive/5 font-bold"
+                      onClick={() => {
+                        const reason = prompt("Razão da rejeição?");
+                        if (reason) rejectMutation.mutate({ id: prop.id, reason });
+                      }}
+                      disabled={rejectMutation.isPending}
+                    >
+                      <X className="h-4 w-4" /> Rejeitar
+                    </Button>
+                    <Button variant="ghost" size="sm" asChild className="ml-auto text-muted-foreground h-8 text-xs font-medium">
+                        <Link to={`/imoveis/${prop.id}`} target="_blank" className="flex items-center gap-1">
+                            <ExternalLink className="h-3 w-3" /> Pré-visualizar
+                        </Link>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default AdminVerifications;

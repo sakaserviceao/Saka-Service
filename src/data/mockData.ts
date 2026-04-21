@@ -14,6 +14,7 @@ export interface Professional {
   id_card_front_url?: string;
   id_card_back_url?: string;
   certificate_url?: string;
+  activity_video_url?: string;
   id_number?: string;
   verified_at?: string;
   phone?: string;

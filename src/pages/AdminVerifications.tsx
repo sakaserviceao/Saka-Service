@@ -20,14 +20,23 @@ import {
   getAllSubscriptions,
   approveSubscription,
   rejectSubscription,
-  logExportAction
+  logExportAction,
+  getEmailTemplates,
+  updateEmailTemplate
 } from "@/data/api";
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
 import { Button } from "@/components/ui/button";
-import { Check, X, ExternalLink, Shield, ShieldCheck, Users, FileText, ArrowLeft, Search, AlertCircle, Star, Pause, RotateCcw, Settings, Plus, Trash2, Mail, BarChart3, TrendingUp, Home, Calendar, Eye, LayoutGrid, Save, Image as ImageIcon, CreditCard, Receipt, Clock, CheckCircle, Sparkles } from "lucide-react";
+import { Check, X, ExternalLink, Shield, ShieldCheck, Users, FileText, ArrowLeft, Search, AlertCircle, Star, Pause, RotateCcw, Settings, Plus, Trash2, Mail, BarChart3, TrendingUp, Home, Calendar, Eye, LayoutGrid, Save, Image as ImageIcon, CreditCard, Receipt, Clock, CheckCircle, Sparkles, Bell, Megaphone, Info } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
+import NotificationsManagementPanel from "@/components/NotificationsManagementPanel";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/hooks/useAuth";
 import { useState, useEffect, useMemo } from "react";
@@ -38,7 +47,7 @@ const AdminVerifications = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
-  const [viewMode, setViewMode] = useState<'pending' | 'all' | 'settings' | 'analytics' | 'platform' | 'subscriptions' | 'professionalManagement' | 'properties'>('pending');
+  const [viewMode, setViewMode] = useState<'pending' | 'all' | 'settings' | 'analytics' | 'platform' | 'subscriptions' | 'professionalManagement' | 'properties' | 'notifications'>('pending');
   const [newAdminEmail, setNewAdminEmail] = useState("");
   const [newManagerEmail, setNewManagerEmail] = useState("");
 
@@ -317,10 +326,19 @@ const AdminVerifications = () => {
           >
             <Home className="h-4 w-4" /> Imóveis
           </Button>
+          <Button 
+            variant={viewMode === 'notifications' ? 'default' : 'outline'} 
+            onClick={() => setViewMode('notifications')}
+            className={`rounded-full flex items-center gap-2 ${isAdmin ? "border-amber-500 text-amber-600 bg-amber-50 shadow-sm" : "hidden"}`}
+          >
+            <Bell className="h-4 w-4" /> Notificações
+          </Button>
         </div>
 
         {/* Main Content Section */}
-        {viewMode === 'pending' ? (
+        {viewMode === 'notifications' ? (
+          <NotificationsManagementPanel />
+        ) : viewMode === 'pending' ? (
           <>
             <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
               <ShieldCheck className="h-5 w-5 text-primary" /> Perfis que Aguardam Verificação
@@ -457,7 +475,7 @@ const AdminVerifications = () => {
           )
         ) : viewMode === 'properties' ? (
           <PropertiesApprovalPanel isAdmin={isAdmin} />
-        ) : (
+        ) : viewMode === 'platform' ? (
           isAdmin ? (
             <PlatformManagementPanel settings={settings} categories={categories} />
           ) : (
@@ -467,7 +485,7 @@ const AdminVerifications = () => {
               <p className="text-muted-foreground">Apenas administradores podem configurar o site e categorias.</p>
             </div>
           )
-        )}
+        ) : null}
       </div>
     </div>
   );
@@ -641,7 +659,7 @@ function ProfessionalManagementPanel({ allPros, onExportLog }: { allPros: any[],
             <tbody className="divide-y">
               {filteredPros.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-20 text-center text-muted-foreground italic">Nenhum profissional encontrado com os filtros atuais.</td>
+                  <td colSpan={7} className="px-6 py-20 text-center text-muted-foreground">Nenhum profissional encontrado com os filtros atuais.</td>
                 </tr>
               ) : (
                 filteredPros.map((pro) => (
@@ -680,6 +698,127 @@ function ProfessionalManagementPanel({ allPros, onExportLog }: { allPros: any[],
         </div>
       </div>
     </div>
+  );
+}
+
+
+// Email Template Management Components
+function EmailTemplateManagement() {
+  const { data: templates = [], isLoading } = useQuery({
+    queryKey: ['email_templates'],
+    queryFn: getEmailTemplates,
+  });
+
+  if (isLoading) return <div className="py-20 text-center text-muted-foreground">A carregar modelos de e-mail...</div>;
+
+  return (
+    <div className="grid gap-6">
+      {templates.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground bg-background rounded-xl border border-dashed">
+          Nenhum modelo de e-mail encontrado na base de dados.
+        </div>
+      ) : (
+        templates.map((template: any) => (
+          <EmailTemplateItem key={template.id} template={template} />
+        ))
+      )}
+    </div>
+  );
+}
+
+function EmailTemplateItem({ template }: { template: any }) {
+  const queryClient = useQueryClient();
+  const [isEditing, setIsEditing] = useState(false);
+  const [subject, setSubject] = useState(template.subject);
+  const [body, setBody] = useState(template.body);
+
+  const updateMutation = useMutation({
+    mutationFn: (data: any) => updateEmailTemplate(template.id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['email_templates'] });
+      toast.success("Modelo de e-mail atualizado!");
+      setIsEditing(false);
+    },
+    onError: (error: any) => {
+      toast.error("Erro ao atualizar modelo: " + error.message);
+    }
+  });
+
+  return (
+    <Card className="border-primary/20 transition-all hover:shadow-lg bg-background">
+      <CardHeader className="py-5 border-b border-primary/5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-inner">
+              <Mail className="h-6 w-6" />
+            </div>
+            <div>
+              <CardTitle className="text-lg font-bold">{template.name}</CardTitle>
+              <CardDescription className="text-xs font-mono uppercase tracking-widest text-primary/60">ID: {template.id}</CardDescription>
+            </div>
+          </div>
+          <Button 
+            variant={isEditing ? "ghost" : "outline"}
+            size="sm" 
+            onClick={() => setIsEditing(!isEditing)}
+            className="font-bold flex items-center gap-2 border-primary/20"
+          >
+            {isEditing ? "Cancelar Edição" : "Editar Modelo"}
+          </Button>
+        </div>
+      </CardHeader>
+      
+      {isEditing ? (
+        <CardContent className="space-y-6 pt-6 bg-primary/5 shadow-inner">
+          <div className="space-y-2">
+            <Label className="text-xs font-black uppercase text-primary tracking-tighter">Assunto do E-mail</Label>
+            <Input 
+              value={subject} 
+              onChange={(e) => setSubject(e.target.value)} 
+              className="h-12 text-lg font-medium border-primary/20"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-xs font-black uppercase text-primary tracking-tighter">Corpo do E-mail (HTML permitido)</Label>
+            <Textarea 
+              value={body} 
+              onChange={(e) => setBody(e.target.value)} 
+              className="min-h-[300px] font-mono text-sm leading-relaxed border-primary/20 bg-white"
+            />
+            <div className="flex items-start gap-2 p-3 bg-amber-50 rounded-lg border border-amber-100 mt-2">
+               <Info className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+               <p className="text-[10px] text-amber-800 leading-tight">
+                <strong>Tags Dinâmicas:</strong> Use <code>{"{{name}}"}</code>, <code>{"{{id}}"}</code> ou <code>{"{{status}}"}</code> conforme o e-mail para injetar dados reais do utilizador.
+               </p>
+            </div>
+          </div>
+          <div className="flex justify-end pt-2">
+            <Button 
+              className="font-black gap-2 px-8 py-6 rounded-xl shadow-hero" 
+              onClick={() => updateMutation.mutate({ subject, body })}
+              disabled={updateMutation.isPending}
+            >
+              <Save className="h-5 w-5" /> Salvar Alterações
+            </Button>
+          </div>
+        </CardContent>
+      ) : (
+        <CardContent className="pt-6">
+           <div className="rounded-xl bg-muted/30 p-5 border border-dashed space-y-3">
+              <div className="pb-3 border-b border-muted">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase">Assunto Atual</span>
+                <p className="font-bold text-sm text-foreground mt-1">{template.subject}</p>
+              </div>
+              <div>
+                <span className="text-[10px] font-bold text-muted-foreground uppercase">Pré-visualização do Conteúdo</span>
+                <p className="text-xs text-muted-foreground mt-1 line-clamp-3 leading-relaxed">
+                  {template.body.replace(/<[^>]*>?/gm, '')}
+                </p>
+              </div>
+           </div>
+        </CardContent>
+      )}
+    </Card>
   );
 }
 
@@ -826,7 +965,7 @@ function PlatformManagementPanel({ settings, categories }: { settings: any, cate
             </div>
           </div>
         </div>
-        <p className="text-[10px] text-muted-foreground mt-4 italic mb-8">
+        <p className="text-[10px] text-muted-foreground mt-4 mb-8">
           * Estes valores serão exibidos automaticamente na página de seleção de planos para novos profissionais.
         </p>
 
@@ -995,7 +1134,7 @@ function PlatformManagementPanel({ settings, categories }: { settings: any, cate
               />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase text-muted-foreground italic">Banner Topo (Link de Redirecionamento)</label>
+              <label className="text-xs font-bold uppercase text-muted-foreground">Banner Topo (Link de Redirecionamento)</label>
               <input 
                 type="text" 
                 placeholder="https://saka-service.com/pagina"
@@ -1016,7 +1155,7 @@ function PlatformManagementPanel({ settings, categories }: { settings: any, cate
               />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase text-muted-foreground italic">Banner Pré-CTA (Link de Redirecionamento)</label>
+              <label className="text-xs font-bold uppercase text-muted-foreground">Banner Pré-CTA (Link de Redirecionamento)</label>
               <input 
                 type="text" 
                 placeholder="https://saka-service.com/pagina"
@@ -1185,7 +1324,7 @@ function PlatformManagementPanel({ settings, categories }: { settings: any, cate
                 className="w-full h-11 px-4 rounded-xl border bg-background"
                 onBlur={(e) => handleUpdateSetting('logo_url', e.target.value)}
               />
-              <p className="text-[10px] text-muted-foreground italic">Recomendado: Fundo transparente (PNG/SVG) e formato horizontal.</p>
+              <p className="text-[10px] text-muted-foreground">Recomendado: Fundo transparente (PNG/SVG) e formato horizontal.</p>
             </div>
           </div>
         </div>
@@ -1294,6 +1433,20 @@ function PlatformManagementPanel({ settings, categories }: { settings: any, cate
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Email Templates Section */}
+      <div className="bg-card border-2 border-primary/20 rounded-2xl p-6 shadow-md bg-primary/5">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h3 className="text-xl font-black flex items-center gap-2 text-primary uppercase tracking-tight">
+              <Mail className="h-6 w-6" /> Gestão de Modelos de E-mail
+            </h3>
+            <p className="text-sm text-muted-foreground mt-1">Configure o assunto e o corpo das comunicações automáticas da plataforma.</p>
+          </div>
+        </div>
+        
+        <EmailTemplateManagement />
       </div>
 
       {/* Categories Banners Section */}
@@ -1554,7 +1707,7 @@ function SettingsPanel({
               </div>
             ))}
             {managerList.length === 0 && (
-              <div className="p-8 text-center text-muted-foreground text-sm italic">
+              <div className="p-8 text-center text-muted-foreground text-sm">
                 Nenhum gestor operacional configurado.
               </div>
             )}
@@ -1588,7 +1741,7 @@ function VerificationItem({ pro, mutation, featuredMutation, deleteMutation, can
   });
 
   return (
-    <div className="bg-card border rounded-2xl p-6 shadow-sm overflow-hidden relative">
+    <div className="bg-card border rounded-2xl p-6 shadow-md overflow-hidden relative border-gradient-hero">
     {pro.featured && (
       <div className="absolute top-0 right-0 bg-yellow-400 text-yellow-900 text-[10px] font-bold px-3 py-1 rounded-bl-lg flex items-center gap-1 shadow-sm">
         <Star className="h-3 w-3 fill-current" /> TOP PROFISSIONAL
@@ -1684,25 +1837,36 @@ function VerificationItem({ pro, mutation, featuredMutation, deleteMutation, can
 
           <div className="space-y-2">
             <p className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
-              <Check className="h-3 w-3" /> Certificado / Diploma
+              <ImageIcon className="h-3 w-3" /> Vídeo / Atividade
             </p>
-            {pro.certificate_url ? (
-              <a href={pro.certificate_url} target="_blank" rel="noopener noreferrer" className="block group relative">
-                <div className="h-40 w-full overflow-hidden rounded-xl border bg-muted/20 flex items-center justify-center">
-                  {pro.certificate_url.toLowerCase().endsWith('.pdf') ? (
-                    <div className="text-center">
-                      <FileText className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
-                      <span className="text-[10px] font-bold">VER PDF</span>
-                    </div>
+            {pro.activity_video_url ? (
+              <div className="space-y-2">
+                <div className="h-40 w-full overflow-hidden rounded-xl border bg-black flex items-center justify-center relative group">
+                  {pro.activity_video_url ? (
+                    <video 
+                      src={pro.activity_video_url.includes('drive.google.com') 
+                           ? pro.activity_video_url.replace('view?usp=sharing', 'preview') 
+                           : pro.activity_video_url} 
+                      className="h-full w-full object-contain"
+                      controls
+                    />
                   ) : (
-                    <img src={pro.certificate_url} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
+                    <div className="text-center text-white">
+                      <FileText className="h-10 w-10 mx-auto mb-2 opacity-50" />
+                      <span className="text-[10px] font-bold">FORMATO DRIVE</span>
+                    </div>
                   )}
+                  <a 
+                    href={pro.activity_video_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-xl z-20"
+                  >
+                    <ExternalLink className="h-5 w-5 text-white" />
+                  </a>
                 </div>
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-xl">
-                  <ExternalLink className="h-6 w-6 text-white" />
-                </div>
-              </a>
-            ) : <div className="h-40 border border-dashed rounded-xl flex items-center justify-center text-[10px] text-muted-foreground bg-muted/10">CERTIFICADO EM FALTA</div>}
+              </div>
+            ) : <div className="h-40 border border-dashed rounded-xl flex items-center justify-center text-[10px] text-muted-foreground bg-muted/10">VÍDEO NÃO CARREGADO</div>}
           </div>
 
           <div className="space-y-2 rounded-xl bg-muted/20 p-4 border flex flex-col justify-center">
@@ -1715,6 +1879,10 @@ function VerificationItem({ pro, mutation, featuredMutation, deleteMutation, can
                <div className="flex justify-between items-center text-xs">
                  <span>Certificado:</span>
                  {pro.certificate_url ? <Check className="h-4 w-4 text-green-500" /> : <X className="h-4 w-4 text-red-500" />}
+               </div>
+               <div className="flex justify-between items-center text-xs">
+                 <span>Vídeo Atividade:</span>
+                 {pro.activity_video_url ? <Check className="h-4 w-4 text-green-500" /> : <X className="h-4 w-4 text-red-500" />}
                </div>
                <div className="flex justify-between items-center text-xs">
                  <span>Nº Identificação:</span>
@@ -1818,7 +1986,7 @@ function VerificationItem({ pro, mutation, featuredMutation, deleteMutation, can
             </Button>
           </>
         )}
-        <Link to={`/professional/${pro.id}`} className="text-xs text-center text-primary hover:underline italic">
+        <Link to={`/professional/${pro.id}`} className="text-xs text-center text-primary hover:underline">
           Ver perfil público →
         </Link>
       </div>
@@ -1976,7 +2144,7 @@ function SubscriptionItem({ sub }: { sub: any }) {
                 <ExternalLink className="h-3 w-3" /> Ver PDF
               </a>
             ) : (
-              <span className="text-xs text-muted-foreground italic">Express</span>
+              <span className="text-xs text-muted-foreground">Express</span>
             )}
           </div>
           <div className="space-y-1">
@@ -2019,7 +2187,7 @@ function SubscriptionItem({ sub }: { sub: any }) {
             </>
           )}
           {sub.status === 'active' && (
-            <Button size="sm" variant="ghost" className="w-full text-muted-foreground italic text-[10px]" disabled>
+            <Button size="sm" variant="ghost" className="w-full text-muted-foreground text-[10px]" disabled>
               Ativado em {new Date(sub.start_date).toLocaleDateString()}
             </Button>
           )}
@@ -2166,5 +2334,6 @@ function PropertiesApprovalPanel({ isAdmin }: { isAdmin: boolean }) {
     </div>
   );
 }
+
 
 export default AdminVerifications;

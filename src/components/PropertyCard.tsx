@@ -27,7 +27,7 @@ const PropertyCard = ({ property }: PropertyCardProps) => {
   };
 
   return (
-    <div className="group overflow-hidden rounded-2xl border border-border bg-card transition-all hover:shadow-lg">
+    <div className="group overflow-hidden rounded-2xl border border-border bg-card transition-all hover:shadow-xl border-gradient-hero">
       {/* Image Container */}
       <div className="relative aspect-[4/3] overflow-hidden">
         <img

@@ -50,9 +50,9 @@ const Index = () => {
   };
 
   const dynamicStats = [
-    { icon: Users, label: "Profissionais Ativos", value: formatNumber(stats.activePros) },
-    { icon: Shield, label: "Avaliações Verificadas", value: formatNumber(stats.verifiedReviews) },
-    { icon: Zap, label: "Projetos Concluídos", value: formatNumber(stats.completedProjects) },
+    { icon: Users, label: "Profissionais Ativos", value: formatNumber(stats.activePros), path: "/search" },
+    { icon: Shield, label: "Avaliações Verificadas", value: formatNumber(stats.verifiedReviews), path: "/search?rated=true" },
+    { icon: Zap, label: "Projetos Concluídos", value: formatNumber(stats.completedProjects), path: "/search?projects=true" },
   ];
 
   return (
@@ -60,15 +60,23 @@ const Index = () => {
       <Navbar />
       <HeroSection />
 
-      {/* Stats */}
+      {/* Stats Section - Made Interactive */}
       <section className="border-b border-border bg-card">
-        <div className="container grid grid-cols-3 divide-x divide-border py-8">
+        <div className="container grid grid-cols-3 divide-x divide-border overflow-hidden">
           {dynamicStats.map((s) => (
-            <div key={s.label} className="flex flex-col items-center gap-1 px-2 text-center">
-              <s.icon className="h-5 w-5 text-primary" />
-              <span className="text-lg font-bold text-foreground md:text-2xl">{s.value}</span>
-              <span className="text-xs text-muted-foreground">{s.label}</span>
-            </div>
+            <button 
+              key={s.label} 
+              onClick={() => navigate(s.path)}
+              className="flex flex-col items-center gap-1.5 py-8 px-2 text-center transition-all duration-300 hover:bg-primary/5 group"
+            >
+              <s.icon className="h-6 w-6 text-primary transition-transform duration-300 group-hover:scale-110" />
+              <span className="text-xl font-bold text-foreground md:text-3xl transition-colors duration-300 group-hover:text-primary">
+                {s.value}
+              </span>
+              <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground transition-colors duration-300 group-hover:text-primary/70">
+                {s.label}
+              </span>
+            </button>
           ))}
         </div>
       </section>
@@ -147,7 +155,7 @@ const Index = () => {
               Ver todos os profissionais <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
-          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-2 gap-4 sm:gap-8 lg:grid-cols-3">
             {featured.slice(0, 6).map((pro, i) => (
               <ProfessionalCard key={pro.id} professional={pro} index={i} />
             ))}

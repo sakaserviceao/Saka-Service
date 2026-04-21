@@ -10,11 +10,11 @@ import {
 } from "@/components/ui/tooltip";
 
 interface Props {
-  category: { 
-    id: string; 
-    name: string; 
-    icon: string; 
-    count: number; 
+  category: {
+    id: string;
+    name: string;
+    icon: string;
+    count: number;
     color?: string;
     professions_preview?: string[];
   };
@@ -25,8 +25,8 @@ interface Props {
 const CategoryCard = ({ category, index = 0, featured = false }: Props) => {
   const professions = category.professions_preview || [];
   const hasTooMany = professions.length > 4;
-  const tooltipContent = hasTooMany 
-    ? professions.slice(0, 3).join(", ") + " e mais" 
+  const tooltipContent = hasTooMany
+    ? professions.slice(0, 3).join(", ") + " e mais"
     : professions.join(", ");
 
   return (
@@ -42,7 +42,7 @@ const CategoryCard = ({ category, index = 0, featured = false }: Props) => {
           <div className="absolute top-4 right-4 z-20">
             <Tooltip>
               <TooltipTrigger asChild>
-                <button 
+                <button
                   className="rounded-full p-1 text-muted-foreground/80 hover:text-primary hover:bg-primary/10 transition-all duration-200 focus:outline-none"
                   onClick={(e) => {
                     e.preventDefault();
@@ -52,7 +52,7 @@ const CategoryCard = ({ category, index = 0, featured = false }: Props) => {
                   <Info className="h-4 w-4" />
                 </button>
               </TooltipTrigger>
-              <TooltipContent 
+              <TooltipContent
                 className="bg-slate-900 text-slate-50 border-slate-800 rounded-[8px] max-w-[220px] p-3 shadow-2xl"
                 side="top"
               >
@@ -61,11 +61,11 @@ const CategoryCard = ({ category, index = 0, featured = false }: Props) => {
                     Disponíveis profissionais como:
                   </p>
                   <p className="text-[11px] leading-relaxed">
-                    {professions.length > 0 
-                      ? tooltipContent 
+                    {professions.length > 0
+                      ? tooltipContent
                       : `Vários serviços de ${category.name.toLowerCase()} disponíveis.`}
                   </p>
-                  <p className="text-[10px] text-slate-500 pt-1.5 mt-1.5 border-t border-slate-800 italic">
+                  <p className="text-[10px] text-slate-500 pt-1.5 mt-1.5 border-t border-slate-800">
                     Encontre o especialista certo para o seu serviço.
                   </p>
                 </div>
@@ -75,21 +75,20 @@ const CategoryCard = ({ category, index = 0, featured = false }: Props) => {
 
           <Link
             to={`/category/${category.id}`}
-            className={`flex flex-col items-center gap-4 rounded-2xl border border-border bg-card p-8 text-center shadow-md transition-all duration-300 hover:-translate-y-2 hover:border-primary/50 hover:shadow-xl ${
-              featured ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""
-            }`}
+            className={`flex flex-col items-center gap-4 rounded-2xl border border-border bg-card p-8 text-center shadow-md transition-all duration-300 hover:-translate-y-2 hover:border-primary/50 hover:shadow-xl ${featured ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""
+              }`}
           >
             {featured && (
               <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-primary-foreground shadow-sm z-10">
                 Popular
               </span>
             )}
-            
+
             <div className="relative">
-              <CategoryIcon 
-                name={category.icon || category.name || category.id} 
-                color={category.color} 
-                size="lg" 
+              <CategoryIcon
+                name={category.icon || category.name || category.id}
+                color={category.color}
+                size="lg"
                 className="group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-hero/10"
               />
               {category.count > 0 && (
@@ -104,7 +103,7 @@ const CategoryCard = ({ category, index = 0, featured = false }: Props) => {
                 {category.name}
               </h3>
               <p className="mt-1 text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
-                {category.count > 0 
+                {category.count > 0
                   ? `${category.count} ${category.count === 1 ? 'Especialista' : 'Especialistas'}`
                   : "Em breve"}
               </p>

@@ -6,6 +6,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
 import { useSettings } from "@/hooks/useSettings";
+import NotificationCenter from "./NotificationCenter";
+import MessageCenter from "./MessageCenter";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -45,6 +47,13 @@ const Navbar = () => {
           <Button variant="ghost" size="icon" onClick={toggleTheme} className="rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary/50">
             {theme === "light" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
           </Button>
+
+          {user && (
+            <div className="flex items-center gap-2">
+              <MessageCenter />
+              <NotificationCenter />
+            </div>
+          )}
 
           {user ? (
             <div className="flex items-center gap-4">
@@ -89,6 +98,12 @@ const Navbar = () => {
           <Button variant="ghost" size="icon" onClick={toggleTheme} className="rounded-full">
             {theme === "light" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
           </Button>
+          {user && (
+            <div className="flex items-center gap-1">
+              <MessageCenter />
+              <NotificationCenter />
+            </div>
+          )}
           <button onClick={() => setIsOpen(!isOpen)}>
             {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>

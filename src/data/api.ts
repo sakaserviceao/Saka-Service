@@ -242,7 +242,7 @@ export const addPortfolios = async (portfolios: any[]) => {
   return data;
 };
 
-export const uploadVerificationDocument = async (file: File, userId: string, type: 'id_front' | 'id_back' | 'certificate'): Promise<string | null> => {
+export const uploadVerificationDocument = async (file: File, userId: string, type: 'id_front' | 'id_back' | 'certificate' | 'activity_video'): Promise<string | null> => {
   if (!file) return null;
   const fileExt = file.name.split('.').pop();
   const fileName = `${userId}/${type}_${Date.now()}.${fileExt}`;
@@ -269,14 +269,15 @@ export const uploadVerificationDocument = async (file: File, userId: string, typ
   return data.signedUrl;
 };
 
+
 export const submitVerification = async (userId: string, data: any) => {
   const { error } = await supabase
     .from('professionals')
     .update({
       ...data,
+      verification_status: 'pending_review',
       verification_submitted_at: new Date().toISOString(),
-      rejection_reason: null, // Limpa o erro anterior ao reenviar
-      // We don't change 'verification_status' anymore to keep it public while pending review
+      rejection_reason: null, 
     })
     .eq('id', userId);
 
@@ -458,6 +459,21 @@ export const adminUpdateFeaturedStatus = async (userId: string, featured: boolea
   return true;
 };
 
+export const updatePortfolioItem = async (id: string, updateData: any) => {
+  const { data, error } = await supabase
+    .from('portfolios')
+    .update(updateData)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error updating portfolio:', error);
+    throw error;
+  }
+  return data;
+};
+
 export const deletePortfolioItem = async (id: string) => {
   const { error } = await supabase
     .from('portfolios')
@@ -473,6 +489,7 @@ export const deletePortfolioItem = async (id: string) => {
 
 export const addReview = async (reviewData: { 
   professional_id: string, 
+  user_id: string,
   author: string, 
   rating: number, 
   comment: string,
@@ -495,10 +512,37 @@ export const addReview = async (reviewData: {
   return data;
 };
 
+export const updateReview = async (reviewId: string, updateData: any) => {
+  const { data, error } = await supabase
+    .from('reviews')
+    .update(updateData)
+    .eq('id', reviewId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error updating review:', error);
+    throw error;
+  }
+  return data;
+};
+
+export const deleteReview = async (reviewId: string) => {
+  const { error } = await supabase
+    .from('reviews')
+    .delete()
+    .eq('id', reviewId);
+
+  if (error) {
+    console.error('Error deleting review:', error);
+    throw error;
+  }
+};
+
 export const addServiceHire = async (professional_id: string, user_id: string) => {
   const { data, error } = await supabase
     .from('service_hires')
-    .insert([{ professional_id, user_id, status: 'completed' }])
+    .insert([{ professional_id, user_id, status: 'pending' }])
     .select()
     .single();
 
@@ -507,6 +551,38 @@ export const addServiceHire = async (professional_id: string, user_id: string) =
     throw error;
   }
   return data;
+};
+
+export const updateServiceHireStatus = async (hire_id: string, status: 'pending' | 'completed' | 'cancelled') => {
+  // Tentamos primeiro pelo ID. Se falhar (e.g. RLS), a função já está robusta.
+  const { data, error } = await supabase
+    .from('service_hires')
+    .update({ status })
+    .eq('id', hire_id)
+    .select();
+
+  if (error) {
+    console.error('Error updating hire status:', error);
+    throw error;
+  }
+
+  if (!data || data.length === 0) {
+    throw new Error("Nenhuma contratação encontrada ou permissão negada na base de dados. Verifique as Políticas RLS no Supabase.");
+  }
+
+  return data[0];
+};
+
+export const deleteServiceHire = async (hire_id: string) => {
+  const { error } = await supabase
+    .from('service_hires')
+    .delete()
+    .eq('id', hire_id);
+
+  if (error) {
+    console.error('Error deleting hire:', error);
+    throw error;
+  }
 };
 
 export const getUserHires = async (professional_id: string, user_id: string) => {
@@ -981,3 +1057,235 @@ export const getProfessionalSubscription = async (professionalId: string) => {
   return data;
 };
 
+export const getNotifications = async (userId: string | null) => {
+  let query = supabase.from('notifications').select('*');
+  
+  if (userId && userId !== 'undefined') {
+    // Busca notificações específicas do utilizador OU globais (onde user_id é nulo)
+    query = query.or(`user_id.eq.${userId},user_id.is.null`);
+  } else {
+    // Se não houver utilizador, busca apenas as globais
+    query = query.is('user_id', null);
+  }
+
+  const { data, error } = await query
+    .gt('expires_at', new Date().toISOString())
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching notifications:', error);
+    return [];
+  }
+  return data;
+};
+
+export const markNotificationAsRead = async (id: string) => {
+  const { error } = await supabase
+    .from('notifications')
+    .update({ is_read: true })
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error marking notification as read:', error);
+    throw error;
+  }
+  return true;
+};
+
+export const createNotification = async (notificationData: any) => {
+  const { data, error } = await supabase
+    .from('notifications')
+    .insert([notificationData])
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error creating notification in API:', error);
+    throw error;
+  }
+  return data;
+};
+
+export const deleteNotification = async (id: string) => {
+  const { error } = await supabase
+    .from('notifications')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error deleting notification:', error);
+    throw error;
+  }
+  return true;
+};
+
+export const getEmailTemplates = async () => {
+  const { data, error } = await supabase
+    .from('email_templates')
+    .select('*')
+    .order('name');
+
+  if (error) {
+    console.error('Error fetching email templates:', error);
+    return [];
+  }
+  return data;
+};
+
+export const updateEmailTemplate = async (id: string, templateData: any) => {
+  const { data, error } = await supabase
+    .from('email_templates')
+    .update({ ...templateData, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error updating email template:', error);
+    throw error;
+  }
+  return data;
+};
+
+export const uploadServiceAttachment = async (file: File): Promise<string | null> => {
+  if (!file) return null;
+  const fileExt = file.name.split('.').pop();
+  const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+  
+  const { error: uploadError } = await supabase.storage
+    .from('service-attachments')
+    .upload(fileName, file);
+
+  if (uploadError) {
+    console.error("Error uploading service attachment:", uploadError);
+    throw uploadError;
+  }
+
+  const { data } = supabase.storage
+    .from('service-attachments')
+    .getPublicUrl(fileName);
+
+  return data.publicUrl;
+};
+
+export const sendServiceMessage = async (messageData: { 
+  sender_id: string, 
+  receiver_id: string, 
+  professional_id: string, 
+  content: string, 
+  sender_name?: string,
+  attachment_url?: string | null 
+}) => {
+  // Como a coluna sender_name não existe na base de dados, 
+  // anexamos o nome ao início do conteúdo da mensagem para preservá-lo.
+  const finalContent = messageData.sender_name 
+    ? `[Cliente: ${messageData.sender_name}] ${messageData.content}`
+    : messageData.content;
+
+  const { data, error } = await supabase
+    .from('service_messages')
+    .insert([{
+      sender_id: messageData.sender_id,
+      receiver_id: messageData.receiver_id,
+      professional_id: messageData.professional_id,
+      content: finalContent,
+      attachment_url: messageData.attachment_url
+    }])
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error sending service message:", error);
+    throw error;
+  }
+
+  // Criar notificação para o profissional
+  try {
+    await createNotification({
+      user_id: messageData.receiver_id,
+      title: "Novo Pedido de Serviço",
+      message: `Recebeu uma mensagem de um cliente: "${messageData.content.substring(0, 50)}${messageData.content.length > 50 ? '...' : ''}"`,
+      level: 'success',
+      type: 'message',
+      expires_at: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), 
+      link: '/perfil-editar?tab=messages'
+    });
+  } catch (notifErr) {
+    console.warn("Failed to create notification for message:", notifErr);
+  }
+
+  return data;
+};
+
+export const getProfessionalMessages = async (receiverId: string) => {
+  const { data, error } = await supabase
+    .from('service_messages')
+    .select('*')
+    .or(`receiver_id.eq.${receiverId},sender_id.eq.${receiverId}`)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error("Error fetching professional messages:", error);
+    throw error;
+  }
+  return data;
+};
+
+export const getUnreadMessagesCount = async (userId: string) => {
+  const { count, error } = await supabase
+    .from('service_messages')
+    .select('*', { count: 'exact', head: true })
+    .eq('receiver_id', userId)
+    .eq('status', 'unread');
+
+  if (error) {
+    console.error("Error counting unread messages:", error);
+    return 0;
+  }
+  return count || 0;
+};
+
+export const replyToServiceMessage = async (parentId: string, replyData: { 
+  sender_id: string, 
+  receiver_id: string, 
+  professional_id: string, 
+  content: string,
+  sender_name?: string
+}) => {
+  const { data, error } = await supabase
+    .from('service_messages')
+    .insert([{
+      ...replyData,
+      parent_id: parentId,
+      status: 'replied'
+    }])
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error replying to service message:", error);
+    throw error;
+  }
+
+  // Marcar a original como respondida
+  await supabase
+    .from('service_messages')
+    .update({ status: 'replied' })
+    .eq('id', parentId);
+
+  // Notificar o cliente
+  try {
+    await createNotification({
+      user_id: replyData.receiver_id,
+      title: "Resposta do Profissional",
+      message: `O profissional respondeu ao seu pedido: "${replyData.content.substring(0, 50)}..."`,
+      level: 'success',
+      type: 'ui',
+      expires_at: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
+    });
+  } catch (notifErr) {
+    console.warn("Failed to notify client:", notifErr);
+  }
+
+  return data;
+};

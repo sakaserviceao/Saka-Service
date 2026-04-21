@@ -33,7 +33,7 @@ const TermsOfService = () => {
           <section>
             <h2 className="text-2xl font-bold mb-4">3. Verificação de Profissionais</h2>
             <div className="rounded-xl border border-primary/20 bg-primary/5 p-6 space-y-4">
-              <p className="text-muted-foreground italic">
+              <p className="text-muted-foreground">
                 A Sakaservice reserva-se o direito de solicitar documentos de identificação e certificados para validade das competências anunciadas. Perfis só serão publicados após aprovação administrativa.
               </p>
             </div>

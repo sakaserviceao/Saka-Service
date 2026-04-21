@@ -38,10 +38,14 @@ const VerificationPage = () => {
   const [files, setFiles] = useState<{
     id_card: File | null;
     certificate: File | null;
+    activity_video: File | null;
   }>({
     id_card: null,
     certificate: null,
+    activity_video: null,
   });
+
+  const [verificationType, setVerificationType] = useState<'certificate' | 'video'>('certificate');
 
   if (!user) return null;
 
@@ -64,8 +68,13 @@ const VerificationPage = () => {
       }
     }
     
-    if (step === 2 && !files.certificate) {
-      return toast.error("Por favor, faça upload do seu Certificado de Habilitações.");
+    if (step === 2) {
+      if (verificationType === 'certificate' && !files.certificate) {
+        return toast.error("Por favor, faça upload do seu Certificado de Habilitações.");
+      }
+      if (verificationType === 'video' && !files.activity_video) {
+        return toast.error("Por favor, faça upload do vídeo exercendo a atividade.");
+      }
     }
 
     if (step === 2) {
@@ -80,14 +89,16 @@ const VerificationPage = () => {
     try {
       toast.info("A enviar documentos para análise segura...");
       
-      const [idCardUrl, certUrl] = await Promise.all([
+      const [idCardUrl, certUrl, videoUrl] = await Promise.all([
         uploadVerificationDocument(files.id_card!, user.id, 'id_front'),
-        uploadVerificationDocument(files.certificate!, user.id, 'certificate')
+        files.certificate ? uploadVerificationDocument(files.certificate, user.id, 'certificate') : Promise.resolve(null),
+        files.activity_video ? uploadVerificationDocument(files.activity_video, user.id, 'activity_video') : Promise.resolve(null)
       ]);
 
       await submitVerification(user.id, {
         id_card_front_url: idCardUrl,
         certificate_url: certUrl,
+        activity_video_url: videoUrl,
         id_number: idNumber,
       });
 
@@ -107,7 +118,7 @@ const VerificationPage = () => {
       <Navbar />
       <div className="container max-w-2xl mt-12 text-center">
         {rejectionReason && (
-          <div className="mb-6 p-4 bg-destructive/10 text-destructive border border-destructive/20 rounded-xl italic">
+          <div className="mb-6 p-4 bg-destructive/10 text-destructive border border-destructive/20 rounded-xl">
              "{rejectionReason}"
           </div>
         )}
@@ -139,13 +150,41 @@ const VerificationPage = () => {
           )}
 
           {step === 2 && (
-            <div className="space-y-4">
-              <h3 className="font-bold">Comprovativo de Habilitações</h3>
-               <DocumentUpload 
-                label="Certificado ou Diploma" 
-                description="Carregue o comprovativo das suas qualificações profissionais."
-                onFileSelect={(file) => handleFileSelect('certificate', file)}
-              />
+            <div className="space-y-6">
+              <div className="bg-secondary/20 p-4 rounded-xl border border-primary/10 mb-2">
+                <p className="text-sm font-semibold mb-3">Como deseja comprovar a sua atividade?</p>
+                <div className="flex gap-4">
+                  <button 
+                    onClick={() => setVerificationType('certificate')}
+                    className={`flex-1 p-3 rounded-lg border-2 transition-all text-sm font-bold ${verificationType === 'certificate' ? 'border-primary bg-primary/5 text-primary' : 'border-muted bg-card text-muted-foreground'}`}
+                  >
+                    Certificado / Diploma
+                  </button>
+                  <button 
+                    onClick={() => setVerificationType('video')}
+                    className={`flex-1 p-3 rounded-lg border-2 transition-all text-sm font-bold ${verificationType === 'video' ? 'border-primary bg-primary/5 text-primary' : 'border-muted bg-card text-muted-foreground'}`}
+                  >
+                    Vídeo de Atividade
+                  </button>
+                </div>
+              </div>
+
+              {verificationType === 'certificate' ? (
+                <DocumentUpload 
+                  label="Certificado ou Diploma" 
+                  description="Carregue o comprovativo das suas qualificações profissionais."
+                  onFileSelect={(file) => handleFileSelect('certificate', file)}
+                  maxSize={10}
+                />
+              ) : (
+                <DocumentUpload 
+                  label="Vídeo Exercendo a Atividade" 
+                  description="Grave ou carregue um vídeo curto comprovando as suas habilidades."
+                  onFileSelect={(file) => handleFileSelect('activity_video', file)}
+                  accept="video/*"
+                  maxSize={10}
+                />
+              )}
             </div>
           )}
 

@@ -208,7 +208,7 @@ const SubscriptionPlans = () => {
                     : "hover:border-primary/50"
                   }`}
               >
-                <Card className={plan.popular ? "border-primary/50 bg-primary/5" : ""}>
+                <Card className={`${plan.popular ? "border-primary/50 bg-primary/5" : ""} border-gradient-hero`}>
                   {plan.popular && (
                     <div className="absolute -top-3 right-4 bg-primary text-primary-foreground text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider">
                       Mais Popular
@@ -243,7 +243,7 @@ const SubscriptionPlans = () => {
             animate={{ x: 0, opacity: 1 }}
             transition={{ delay: 0.4 }}
           >
-            <Card className="border-border shadow-card sticky top-24">
+            <Card className="border-border shadow-card sticky top-24 border-gradient-hero">
               <CardHeader className="bg-secondary/30">
                 <CardTitle className="flex items-center gap-2 text-xl font-bold">
                   <CreditCard className="h-5 w-5 text-primary" /> Finalizar Ativação
@@ -302,7 +302,7 @@ const SubscriptionPlans = () => {
                           <CheckCircle2 className="h-5 w-5 text-primary" /> Carregar Comprovativo de Pagamento
                         </Label>
                         <p className="text-xs text-muted-foreground mb-4">
-                          Após a transferência, anexe o comprovativo da operação. A sua conta será ativada automaticamente quando um administrador validar o documento.
+                          {settings.msg_payment_proof || "Após a transferência, anexe o comprovativo da operação. A sua conta será ativada automaticamente quando um administrador validar o documento."}
                         </p>
                         <div className="relative">
                           <Input

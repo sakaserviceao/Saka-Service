@@ -10,9 +10,16 @@ interface Props {
   description?: string;
   onFileSelect: (file: File | null) => void;
   accept?: string;
+  maxSize?: number; // In MB
 }
 
-export const DocumentUpload = ({ label, description, onFileSelect, accept = "image/*,application/pdf" }: Props) => {
+export const DocumentUpload = ({ 
+  label, 
+  description, 
+  onFileSelect, 
+  accept = "image/*,application/pdf",
+  maxSize = 5 
+}: Props) => {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -20,8 +27,8 @@ export const DocumentUpload = ({ label, description, onFileSelect, accept = "ima
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0] || null;
     if (selectedFile) {
-      if (selectedFile.size > 5 * 1024 * 1024) {
-        toast.error("O ficheiro é demasiado grande. O limite máximo é 5MB.");
+      if (selectedFile.size > maxSize * 1024 * 1024) {
+        toast.error(`O ficheiro é demasiado grande. O limite máximo é ${maxSize}MB.`);
         return;
       }
       setFile(selectedFile);

@@ -25,11 +25,22 @@ const SearchPage = () => {
 
   const results = useMemo(() => {
     let filtered = searchResults;
+    
+    // Filter by 'rated' parameter (Avaliações Verificadas)
+    if (searchParams.get("rated") === "true") {
+      filtered = filtered.filter((p: any) => p.reviewCount > 0);
+    }
+
+    // Filter by 'projects' parameter (Projetos Concluídos)
+    if (searchParams.get("projects") === "true") {
+      filtered = filtered.filter((p: any) => p.portfolio && p.portfolio.length > 0);
+    }
+
     if (selectedCategory) {
       filtered = filtered.filter((p: any) => p.category === selectedCategory);
     }
     return filtered;
-  }, [searchResults, selectedCategory]);
+  }, [searchResults, selectedCategory, searchParams]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,7 +104,7 @@ const SearchPage = () => {
           {isLoading ? (
             <div className="py-12 text-center text-muted-foreground">Carregando resultados...</div>
           ) : results.length > 0 ? (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-2 gap-3 sm:gap-8 lg:grid-cols-3">
               {results.map((pro: any, i: number) => (
                 <ProfessionalCard key={pro.id} professional={pro} index={i} />
               ))}

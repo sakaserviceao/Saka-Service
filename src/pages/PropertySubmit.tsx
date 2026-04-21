@@ -261,7 +261,7 @@ const PropertySubmit = () => {
                     {photos.length < 10 && (
                       <label className="aspect-square rounded-2xl border-2 border-dashed border-primary/20 hover:border-primary/50 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all hover:bg-primary/5">
                         <Plus className="h-6 w-6 text-primary" />
-                        <span className="text-[10px] font-bold text-primary italic uppercase">Adicionar</span>
+                        <span className="text-[10px] font-bold text-primary uppercase">Adicionar</span>
                         <input type="file" multiple accept="image/*" className="hidden" onChange={handlePhotoUpload} />
                       </label>
                     )}
@@ -325,7 +325,7 @@ const PropertySubmit = () => {
                       <div className="p-3 bg-primary/10 rounded-full">
                         <Plus className="h-6 w-6 text-primary" />
                       </div>
-                      <span className="text-sm font-bold text-primary italic uppercase">Carregar Recibo (Apenas PDF)</span>
+                      <span className="text-sm font-bold text-primary uppercase">Carregar Recibo (Apenas PDF)</span>
                       <input type="file" accept="application/pdf" className="hidden" onChange={handleReceiptUpload} />
                     </label>
                   ) : (

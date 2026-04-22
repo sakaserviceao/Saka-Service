@@ -73,6 +73,8 @@ const TermsOfService = () => {
                 <p className="text-muted-foreground leading-relaxed">
                   Podemos alterar estes termos a qualquer momento. O uso continuado da plataforma após tais alterações constitui a sua aceitação dos novos termos.
                 </p>
+              </section>
+
               <section className="mt-12 rounded-2xl border bg-primary/5 p-8 border-primary/20">
                 <h2 className="text-xl font-bold mb-4">Questões?</h2>
                 <p className="text-muted-foreground mb-4">

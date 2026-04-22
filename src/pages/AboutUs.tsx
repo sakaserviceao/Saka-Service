@@ -18,7 +18,8 @@ const AboutUs = () => {
 
   const teamMembers = (() => {
     try {
-      return settings?.team_members_json ? JSON.parse(settings.team_members_json) : [];
+      const data = settings?.team_members_json ? JSON.parse(settings.team_members_json) : [];
+      return Array.isArray(data) ? data : [];
     } catch (e) {
       return [];
     }

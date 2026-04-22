@@ -1683,7 +1683,7 @@ function SettingsPanel({
   useEffect(() => {
     try {
       const savedTeam = settings.team_members_json ? JSON.parse(settings.team_members_json) : [];
-      setTeamMembers(savedTeam);
+      setTeamMembers(Array.isArray(savedTeam) ? savedTeam : []);
     } catch (e) {
       setTeamMembers([]);
     }

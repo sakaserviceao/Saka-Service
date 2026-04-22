@@ -13,8 +13,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Headphones, Send, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { createNotification } from "@/data/api";
+import { createNotification, getSiteSettings } from "@/data/api";
 import { useAuth } from "@/hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
 
 interface SupportDialogProps {
   open: boolean;
@@ -26,6 +27,11 @@ const SupportDialog = ({ open, onOpenChange }: SupportDialogProps) => {
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const { data: settings } = useQuery({
+    queryKey: ['siteSettings'],
+    queryFn: getSiteSettings,
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,7 +50,7 @@ const SupportDialog = ({ open, onOpenChange }: SupportDialogProps) => {
         type: 'support_request',
         user_id: null, // Global notification for admins to see in their panel
         link: `reply-support://${user?.id}`, // Hidden link for admin to reply
-        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
+        expires_at: new Date(Date.now() + parseInt(settings?.notification_duration_days || "7") * 24 * 60 * 60 * 1000).toISOString(),
       });
 
       toast.success("A sua mensagem foi enviada à administração. Responderemos em breve via e-mail ou WhatsApp.");

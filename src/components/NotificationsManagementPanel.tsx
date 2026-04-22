@@ -22,7 +22,12 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 
-const NotificationsManagementPanel = () => {
+interface NotificationsManagementPanelProps {
+  initialTargetUserId?: string | null;
+  initialTitle?: string | null;
+}
+
+const NotificationsManagementPanel = ({ initialTargetUserId, initialTitle }: NotificationsManagementPanelProps) => {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("alerts");
   
@@ -61,6 +66,18 @@ const NotificationsManagementPanel = () => {
       setSystemMessages(fetchedSettings);
     }
   }, [fetchedSettings]);
+
+  // Initialize from props if provided (for replying to support)
+  useEffect(() => {
+    if (initialTargetUserId) {
+      setTargetType("specific");
+      setTargetUserId(initialTargetUserId);
+    }
+    if (initialTitle) {
+      setNewTitle(`Resposta ao seu pedido de suporte: ${initialTitle.replace('Suporte: ', '')}`);
+      setNewLevel('info');
+    }
+  }, [initialTargetUserId, initialTitle]);
 
   const handleUpdateSetting = async (key: string, value: string) => {
     setIsSavingSettings(true);
@@ -112,6 +129,8 @@ const NotificationsManagementPanel = () => {
       return;
     }
 
+    const durationDays = parseInt(fetchedSettings?.notification_duration_days || "3");
+
     createMutation.mutate({
       title: newTitle,
       message: newMessage,
@@ -119,7 +138,7 @@ const NotificationsManagementPanel = () => {
       link: newLink || null,
       user_id: targetType === "specific" ? targetUserId : null,
       type: 'ui',
-      expires_at: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days Default
+      expires_at: new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000).toISOString(),
     });
   };
 

@@ -22,12 +22,13 @@ import {
   rejectSubscription,
   logExportAction,
   getEmailTemplates,
-  updateEmailTemplate
+  updateEmailTemplate,
+  uploadImage
 } from "@/data/api";
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
 import { Button } from "@/components/ui/button";
-import { Check, X, ExternalLink, Shield, ShieldCheck, Users, FileText, ArrowLeft, Search, AlertCircle, Star, Pause, RotateCcw, Settings, Plus, Trash2, Mail, BarChart3, TrendingUp, Home, Calendar, Eye, LayoutGrid, Save, Image as ImageIcon, CreditCard, Receipt, Clock, CheckCircle, Sparkles, Bell, Megaphone, Info } from "lucide-react";
+import { Check, X, ExternalLink, Shield, ShieldCheck, Users, FileText, ArrowLeft, Search, AlertCircle, Star, Pause, RotateCcw, Settings, Plus, Trash2, Mail, BarChart3, TrendingUp, Home, Calendar, Eye, LayoutGrid, Save, Image as ImageIcon, CreditCard, Receipt, Clock, CheckCircle, Sparkles, Bell, Megaphone, Info, FileCode, Target } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -40,16 +41,39 @@ import NotificationsManagementPanel from "@/components/NotificationsManagementPa
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/hooks/useAuth";
 import { useState, useEffect, useMemo } from "react";
+import { useLocation } from "react-router-dom";
 
 const AdminVerifications = () => {
   const queryClient = useQueryClient();
   const { user, isLoading } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
+
+  const handleUpdateSettingInAdmin = async (key: string, value: string) => {
+    try {
+      await updateSiteSetting(key, value);
+      toast.success(`Definição "${key}" atualizada.`);
+      queryClient.invalidateQueries({ queryKey: ['siteSettings'] });
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao atualizar definição.");
+    }
+  };
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
   const [viewMode, setViewMode] = useState<'pending' | 'all' | 'settings' | 'analytics' | 'platform' | 'subscriptions' | 'professionalManagement' | 'properties' | 'notifications'>('pending');
   const [newAdminEmail, setNewAdminEmail] = useState("");
   const [newManagerEmail, setNewManagerEmail] = useState("");
+  const location = useLocation();
+
+  // Parse URL parameters for direct navigation/actions
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tab = params.get('tab');
+    if (tab === 'notifications') {
+      setViewMode('notifications');
+    }
+  }, [location.search]);
+
+  const queryParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
 
   // Hooks MUST be evaluated unconditionally before any early returns
 
@@ -99,6 +123,29 @@ const AdminVerifications = () => {
                     user?.email === 'podosk2010@hotmail.com';
 
   const isAuthorized = isAdmin || isManager;
+
+  const canAccess = (tab: string) => {
+    if (isAdmin) return true;
+    if (!isManager) return false;
+    
+    const perms = (settings.manager_permissions || "verifications,properties").split(',');
+    
+    switch(tab) {
+      case 'pending':
+      case 'all':
+        return perms.includes('verifications');
+      case 'subscriptions':
+        return perms.includes('subscriptions');
+      case 'properties':
+        return perms.includes('properties');
+      case 'notifications':
+        return perms.includes('notifications');
+      case 'analytics':
+        return perms.includes('analytics');
+      default:
+        return false;
+    }
+  };
 
   // Security: Auto-fallback for non-admins trying to access restricted views
   useEffect(() => {
@@ -184,6 +231,8 @@ const AdminVerifications = () => {
     }
   });
 
+
+
   // Restricted Access Check
   if (isLoading) return <div className="flex justify-center py-20">Verificando permissões...</div>;
 
@@ -265,20 +314,24 @@ const AdminVerifications = () => {
 
         {/* View Mode Selector */}
         <div className="flex gap-2 mb-6 overflow-x-auto pb-4 scrollbar-none whitespace-nowrap snap-x">
-          <Button 
-            variant={viewMode === 'pending' ? 'default' : 'outline'} 
-            onClick={() => setViewMode('pending')}
-            className="rounded-full"
-          >
-            Pendentes Review ({pending.length})
-          </Button>
-          <Button 
-            variant={viewMode === 'all' ? 'default' : 'outline'} 
-            onClick={() => setViewMode('all')}
-            className="rounded-full"
-          >
-            Todos os Perfis ({allPros.length})
-          </Button>
+          {canAccess('pending') && (
+            <Button 
+              variant={viewMode === 'pending' ? 'default' : 'outline'} 
+              onClick={() => setViewMode('pending')}
+              className="rounded-full"
+            >
+              Pendentes Review ({pending.length})
+            </Button>
+          )}
+          {canAccess('all') && (
+            <Button 
+              variant={viewMode === 'all' ? 'default' : 'outline'} 
+              onClick={() => setViewMode('all')}
+              className="rounded-full"
+            >
+              Todos os Perfis ({allPros.length})
+            </Button>
+          )}
           {isAdmin && (
             <>
               <Button 
@@ -297,47 +350,60 @@ const AdminVerifications = () => {
               </Button>
             </>
           )}
-          <Button 
-            variant={viewMode === 'subscriptions' ? 'default' : 'outline'} 
-            onClick={() => setViewMode('subscriptions')}
-            className={`rounded-full flex items-center gap-2 ${pendingSubs.length > 0 ? "border-amber-500 text-amber-600 bg-amber-50" : ""}`}
-          >
-            <CreditCard className="h-4 w-4" /> Pagamentos 
-            {pendingSubs.length > 0 && <span className="bg-amber-500 text-white text-[10px] px-1.5 py-0.5 rounded-full ml-1">{pendingSubs.length}</span>}
-          </Button>
-          <Button 
-            variant={viewMode === 'professionalManagement' ? 'default' : 'outline'} 
-            onClick={() => setViewMode('professionalManagement')}
-            className={`rounded-full flex items-center gap-2 ${isAdmin ? "border-primary text-primary" : "hidden"}`}
-          >
-            <Users className="h-4 w-4" /> Gestão de Profissionais
-          </Button>
-          <Button 
-            variant={viewMode === 'analytics' ? 'default' : 'outline'} 
-            onClick={() => setViewMode('analytics')}
-            className="rounded-full flex items-center gap-2"
-          >
-            <BarChart3 className="h-4 w-4" /> Analítica
-          </Button>
-          <Button 
-            variant={viewMode === 'properties' ? 'default' : 'outline'} 
-            onClick={() => setViewMode('properties')}
-            className="rounded-full flex items-center gap-2 border-primary/20 text-primary hover:bg-primary/5"
-          >
-            <Home className="h-4 w-4" /> Imóveis
-          </Button>
-          <Button 
-            variant={viewMode === 'notifications' ? 'default' : 'outline'} 
-            onClick={() => setViewMode('notifications')}
-            className={`rounded-full flex items-center gap-2 ${isAdmin ? "border-amber-500 text-amber-600 bg-amber-50 shadow-sm" : "hidden"}`}
-          >
-            <Bell className="h-4 w-4" /> Notificações
-          </Button>
+          {canAccess('subscriptions') && (
+            <Button 
+              variant={viewMode === 'subscriptions' ? 'default' : 'outline'} 
+              onClick={() => setViewMode('subscriptions')}
+              className={`rounded-full flex items-center gap-2 ${pendingSubs.length > 0 ? "border-amber-500 text-amber-600 bg-amber-50" : ""}`}
+            >
+              <CreditCard className="h-4 w-4" /> Pagamentos 
+              {pendingSubs.length > 0 && <span className="bg-amber-500 text-white text-[10px] px-1.5 py-0.5 rounded-full ml-1">{pendingSubs.length}</span>}
+            </Button>
+          )}
+          {isAdmin && (
+            <Button 
+              variant={viewMode === 'professionalManagement' ? 'default' : 'outline'} 
+              onClick={() => setViewMode('professionalManagement')}
+              className={`rounded-full flex items-center gap-2 border-primary text-primary`}
+            >
+              <Users className="h-4 w-4" /> Gestão de Profissionais
+            </Button>
+          )}
+          {canAccess('analytics') && (
+            <Button 
+              variant={viewMode === 'analytics' ? 'default' : 'outline'} 
+              onClick={() => setViewMode('analytics')}
+              className="rounded-full flex items-center gap-2"
+            >
+              <BarChart3 className="h-4 w-4" /> Analítica
+            </Button>
+          )}
+          {canAccess('properties') && (
+            <Button 
+              variant={viewMode === 'properties' ? 'default' : 'outline'} 
+              onClick={() => setViewMode('properties')}
+              className="rounded-full flex items-center gap-2 border-primary/20 text-primary hover:bg-primary/5"
+            >
+              <Home className="h-4 w-4" /> Imóveis
+            </Button>
+          )}
+          {canAccess('notifications') && (
+            <Button 
+              variant={viewMode === 'notifications' ? 'default' : 'outline'} 
+              onClick={() => setViewMode('notifications')}
+              className={`rounded-full flex items-center gap-2 ${isAdmin ? "border-amber-500 text-amber-600 bg-amber-50 shadow-sm" : ""}`}
+            >
+              <Bell className="h-4 w-4" /> Notificações
+            </Button>
+          )}
         </div>
 
         {/* Main Content Section */}
         {viewMode === 'notifications' ? (
-          <NotificationsManagementPanel />
+          <NotificationsManagementPanel 
+            initialTargetUserId={queryParams.get('replyTo')}
+            initialTitle={queryParams.get('notifTitle')}
+          />
         ) : viewMode === 'pending' ? (
           <>
             <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
@@ -399,6 +465,8 @@ const AdminVerifications = () => {
               managerList={managerList}
               newManagerEmail={newManagerEmail}
               setNewManagerEmail={setNewManagerEmail}
+              settings={settings}
+              onUpdateSetting={handleUpdateSettingInAdmin}
               onAdd={() => {
                 if (!newAdminEmail.includes('@')) return toast.error("E-mail inválido");
                 addAdmin(newAdminEmail)
@@ -1601,8 +1669,57 @@ function AnalyticsPanel() {
 // Settings Panel Component
 function SettingsPanel({ 
   adminList, newEmail, setNewEmail, onAdd, onRemove,
-  managerList, newManagerEmail, setNewManagerEmail, onAddManager, onRemoveManager 
+  managerList, newManagerEmail, setNewManagerEmail, onAddManager, onRemoveManager,
+  settings, onUpdateSetting
 }: any) {
+  const [aboutUs, setAboutUs] = useState(settings.about_us_content || "");
+  const [vision, setVision] = useState(settings.about_us_vision || "");
+  const [privacy, setPrivacy] = useState(settings.privacy_policy_content || "");
+  const [terms, setTerms] = useState(settings.terms_service_content || "");
+  const [privacyEmail, setPrivacyEmail] = useState(settings.privacy_policy_email || "privacidade@sakaservice.com");
+  const [termsEmail, setTermsEmail] = useState(settings.terms_service_email || "termos@sakaservice.com");
+  const [teamMembers, setTeamMembers] = useState<any[]>([]);
+
+  useEffect(() => {
+    try {
+      const savedTeam = settings.team_members_json ? JSON.parse(settings.team_members_json) : [];
+      setTeamMembers(savedTeam);
+    } catch (e) {
+      setTeamMembers([]);
+    }
+  }, [settings.team_members_json]);
+
+  useEffect(() => {
+    setAboutUs(settings.about_us_content || "");
+    setVision(settings.about_us_vision || "");
+    setPrivacy(settings.privacy_policy_content || "");
+    setTerms(settings.terms_service_content || "");
+    setPrivacyEmail(settings.privacy_policy_email || "privacidade@sakaservice.com");
+    setTermsEmail(settings.terms_service_email || "termos@sakaservice.com");
+  }, [settings]);
+
+  const managerPermissions = (settings.manager_permissions || "verifications,properties").split(',');
+  const notifDuration = settings.notification_duration_days || "3";
+
+  const togglePermission = (perm: string) => {
+    const current = (settings.manager_permissions || "verifications,properties").split(',').filter(Boolean);
+    let updated;
+    if (current.includes(perm)) {
+      updated = current.filter(p => p !== perm);
+    } else {
+      updated = [...current, perm];
+    }
+    onUpdateSetting('manager_permissions', updated.join(','));
+  };
+
+  const permissions = [
+    { id: 'verifications', label: 'Gestão de Verificações' },
+    { id: 'subscriptions', label: 'Gestão de Pagamentos' },
+    { id: 'properties', label: 'Gestão de Imóveis' },
+    { id: 'notifications', label: 'Gestão de Notificações' },
+    { id: 'analytics', label: 'Acesso a Analítica' },
+  ];
+
   return (
   <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -1713,6 +1830,311 @@ function SettingsPanel({
             )}
           </div>
         </div>
+      </div>
+    </div>
+
+    {/* Advanced Permissions & Duration Settings */}
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-8 border-t">
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <Shield className="h-6 w-6 text-amber-500" />
+          <h2 className="text-xl font-bold">Permissões dos Gestores</h2>
+        </div>
+        <div className="bg-card border rounded-2xl p-6 shadow-sm space-y-4">
+          <p className="text-sm text-muted-foreground mb-4">
+            Defina o que os Gestores Operacionais podem visualizar e gerir na plataforma.
+          </p>
+          <div className="grid grid-cols-1 gap-3">
+            {permissions.map(perm => (
+              <div 
+                key={perm.id} 
+                className="flex items-center justify-between p-3 rounded-xl border bg-secondary/10 hover:bg-secondary/20 transition-colors cursor-pointer"
+                onClick={() => togglePermission(perm.id)}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`h-4 w-4 rounded border flex items-center justify-center ${managerPermissions.includes(perm.id) ? 'bg-primary border-primary text-white' : 'border-muted-foreground'}`}>
+                    {managerPermissions.includes(perm.id) && <Check className="h-3 w-3" />}
+                  </div>
+                  <span className="text-sm font-medium">{perm.label}</span>
+                </div>
+                <Badge variant={managerPermissions.includes(perm.id) ? "default" : "outline"} className="text-[10px]">
+                  {managerPermissions.includes(perm.id) ? "Ativo" : "Restrito"}
+                </Badge>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <Clock className="h-6 w-6 text-blue-500" />
+          <h2 className="text-xl font-bold">Ciclo de Vida do Sistema</h2>
+        </div>
+        <div className="bg-card border rounded-2xl p-6 shadow-sm space-y-6">
+          <div className="space-y-3">
+            <Label className="text-sm font-bold">Duração das Notificações (Dias)</Label>
+            <div className="flex items-center gap-4">
+              <Input 
+                type="number" 
+                value={notifDuration}
+                onChange={(e) => onUpdateSetting('notification_duration_days', e.target.value)}
+                className="w-32 h-11 text-lg font-bold"
+                min="1"
+                max="30"
+              />
+              <p className="text-xs text-muted-foreground">
+                As notificações serão removidas automaticamente após este período. 
+                <br />(Recomendado: 3 a 7 dias)
+              </p>
+            </div>
+          </div>
+          
+          <div className="p-4 rounded-xl bg-blue-50 border border-blue-100 flex items-start gap-3">
+            <Info className="h-5 w-5 text-blue-500 mt-0.5" />
+            <p className="text-xs text-blue-800 leading-relaxed">
+              <strong>Nota:</strong> Alterar a duração não afeta as notificações já enviadas, apenas as novas a partir de agora.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div className="space-y-6">
+      <div className="flex items-center gap-3">
+        <Users className="h-6 w-6 text-indigo-500" />
+        <h2 className="text-xl font-bold">Gestão da Equipa (About Us)</h2>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {teamMembers.map((member, index) => (
+          <Card key={index} className="relative overflow-hidden group">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="absolute top-2 right-2 z-10 text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={() => {
+                const updated = [...teamMembers];
+                updated.splice(index, 1);
+                setTeamMembers(updated);
+              }}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+            <div className="aspect-square bg-muted flex items-center justify-center overflow-hidden">
+              {member.photo ? (
+                <img src={member.photo} alt={member.name} className="h-full w-full object-cover" />
+              ) : (
+                <ImageIcon className="h-10 w-10 text-muted-foreground/30" />
+              )}
+            </div>
+            <CardContent className="p-4 space-y-3">
+              <Input 
+                value={member.name} 
+                placeholder="Nome do colaborador"
+                onChange={(e) => {
+                  const updated = [...teamMembers];
+                  updated[index].name = e.target.value;
+                  setTeamMembers(updated);
+                }}
+                className="h-8 text-sm font-bold"
+              />
+              <Input 
+                value={member.role} 
+                placeholder="Função (Ex: CEO)"
+                onChange={(e) => {
+                  const updated = [...teamMembers];
+                  updated[index].role = e.target.value;
+                  setTeamMembers(updated);
+                }}
+                className="h-8 text-xs"
+              />
+              <div className="flex gap-2">
+                <Input 
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  id={`team-photo-${index}`}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      toast.info("A carregar foto...");
+                      try {
+                        const url = await uploadImage(file);
+                        if (url) {
+                          const updated = [...teamMembers];
+                          updated[index].photo = url;
+                          setTeamMembers(updated);
+                          toast.success("Foto carregada.");
+                        }
+                      } catch (err) {
+                        toast.error("Erro ao carregar imagem.");
+                      }
+                    }
+                  }}
+                />
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full text-[10px] h-7"
+                  onClick={() => document.getElementById(`team-photo-${index}`)?.click()}
+                >
+                  <ImageIcon className="h-3 w-3 mr-1" /> Alterar Foto
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+        
+        <button 
+          onClick={() => setTeamMembers([...teamMembers, { name: "", role: "", photo: "" }])}
+          className="flex flex-col items-center justify-center gap-3 border-2 border-dashed rounded-2xl p-8 hover:bg-secondary/5 hover:border-primary/50 transition-all text-muted-foreground hover:text-primary"
+        >
+          <Plus className="h-8 w-8" />
+          <span className="text-sm font-medium">Adicionar Membro</span>
+        </button>
+      </div>
+
+      <div className="flex justify-end">
+        <Button 
+          onClick={() => onUpdateSetting('team_members_json', JSON.stringify(teamMembers))}
+          disabled={JSON.stringify(teamMembers) === settings.team_members_json}
+          className="h-12 px-10 bg-indigo-600 hover:bg-indigo-700 font-bold"
+        >
+          <Save className="h-4 w-4 mr-2" /> Guardar Toda a Equipa
+        </Button>
+      </div>
+    </div>
+
+    <hr className="border-muted my-10" />
+
+    {/* Content Editor Section */}
+    <div className="space-y-6">
+      <div className="flex items-center gap-3">
+        <FileCode className="h-6 w-6 text-amber-500" />
+        <h2 className="text-xl font-bold">Editor de Conteúdo Institucional</h2>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+        <Card className="border-amber-200/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2"><Info className="h-4 w-4 text-amber-500" /> Nossa Missão</CardTitle>
+            <CardDescription className="text-xs">O propósito da plataforma.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Textarea 
+              value={aboutUs}
+              placeholder="Descreva a missão..."
+              onChange={(e) => setAboutUs(e.target.value)}
+              className="min-h-[200px] text-sm resize-none focus:ring-amber-500/20"
+            />
+            <Button 
+              onClick={() => onUpdateSetting('about_us_content', aboutUs)}
+              disabled={aboutUs === settings.about_us_content}
+              className="w-full h-10 font-bold bg-amber-600 hover:bg-amber-700"
+            >
+              <Save className="h-4 w-4 mr-2" /> Guardar Missão
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="border-emerald-200/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2"><Target className="h-4 w-4 text-emerald-500" /> Nossa Visão</CardTitle>
+            <CardDescription className="text-xs">Onde queremos chegar.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Textarea 
+              value={vision}
+              placeholder="Descreva a visão..."
+              onChange={(e) => setVision(e.target.value)}
+              className="min-h-[200px] text-sm resize-none focus:ring-emerald-500/20"
+            />
+            <Button 
+              onClick={() => onUpdateSetting('about_us_vision', vision)}
+              disabled={vision === settings.about_us_vision}
+              className="w-full h-10 font-bold bg-emerald-600 hover:bg-emerald-700"
+            >
+              <Save className="h-4 w-4 mr-2" /> Guardar Visão
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="border-blue-200/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2"><Shield className="h-4 w-4 text-blue-500" /> Política de Privacidade</CardTitle>
+            <CardDescription className="text-xs">Tratamento de dados.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Textarea 
+              value={privacy}
+              placeholder="Escreva a política..."
+              onChange={(e) => setPrivacy(e.target.value)}
+              className="min-h-[200px] text-sm resize-none focus:ring-blue-500/20"
+            />
+            <div className="space-y-1.5">
+              <Label className="text-[10px] uppercase font-bold text-muted-foreground">Email de Contacto</Label>
+              <Input 
+                value={privacyEmail}
+                onChange={(e) => setPrivacyEmail(e.target.value)}
+                placeholder="Ex: privacidade@sakaservice.com"
+                className="h-9 text-xs"
+              />
+            </div>
+            <Button 
+              onClick={async () => {
+                await onUpdateSetting('privacy_policy_content', privacy);
+                await onUpdateSetting('privacy_policy_email', privacyEmail);
+              }}
+              disabled={privacy === settings.privacy_policy_content && privacyEmail === settings.privacy_policy_email}
+              className="w-full h-10 font-bold bg-blue-600 hover:bg-blue-700"
+            >
+              <Save className="h-4 w-4 mr-2" /> Guardar Privacidade
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="border-slate-200/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2"><FileText className="h-4 w-4 text-slate-500" /> Termos de Serviço</CardTitle>
+            <CardDescription className="text-xs">Regras de uso.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Textarea 
+              value={terms}
+              placeholder="Escreva os termos..."
+              onChange={(e) => setTerms(e.target.value)}
+              className="min-h-[200px] text-sm resize-none focus:ring-slate-500/20"
+            />
+            <div className="space-y-1.5">
+              <Label className="text-[10px] uppercase font-bold text-muted-foreground">Email de Contacto</Label>
+              <Input 
+                value={termsEmail}
+                onChange={(e) => setTermsEmail(e.target.value)}
+                placeholder="Ex: termos@sakaservice.com"
+                className="h-9 text-xs"
+              />
+            </div>
+            <Button 
+              onClick={async () => {
+                await onUpdateSetting('terms_service_content', terms);
+                await onUpdateSetting('terms_service_email', termsEmail);
+              }}
+              disabled={terms === settings.terms_service_content && termsEmail === settings.terms_service_email}
+              className="w-full h-10 font-bold bg-slate-700 hover:bg-slate-800"
+            >
+              <Save className="h-4 w-4 mr-2" /> Guardar Termos
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+      
+      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-amber-800 text-xs flex items-start gap-3">
+        <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+        <p className="leading-relaxed">
+          As alterações feitas nestes campos refletem-se instantaneamente nas páginas públicas correspondentes. 
+          Pode usar parágrafos simples. A formatação rica (HTML) será renderizada se suportada pelas páginas.
+        </p>
       </div>
     </div>
   </div>
@@ -1971,6 +2393,16 @@ function VerificationItem({ pro, mutation, featuredMutation, deleteMutation, can
                 <Pause className="mr-2 h-5 w-5" /> Suspender
               </Button>
             )}
+
+            <Button 
+              variant="outline"
+              className="w-full h-11 font-bold border-primary text-primary hover:bg-primary/5 gap-2"
+              asChild
+            >
+              <Link to={`/admin/verifications?tab=notifications&replyTo=${pro.id}&notifTitle=${encodeURIComponent(pro.name)}`}>
+                <Mail className="h-4 w-4" /> Contactar Profissional
+              </Link>
+            </Button>
 
             <Button 
               variant="destructive" 

@@ -193,6 +193,11 @@ const NotificationCenter = () => {
                                 if (n.link.startsWith('/')) {
                                   navigate(n.link);
                                   setIsOpen(false);
+                                } else if (n.link.startsWith('reply-support://')) {
+                                  // Redireciona para o painel admin com os parâmetros necessários para responder
+                                  const profId = n.link.replace('reply-support://', '');
+                                  navigate(`/admin/verifications?tab=notifications&replyTo=${profId}&notifTitle=${encodeURIComponent(n.title)}`);
+                                  setIsOpen(false);
                                 } else {
                                   window.open(n.link, '_blank');
                                 }

@@ -2,13 +2,27 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Shield, Users, Target, CheckCircle2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { getPlatformStats } from "@/data/api";
+import { motion } from "framer-motion";
+import { getPlatformStats, getSiteSettings } from "@/data/api";
 
 const AboutUs = () => {
   const { data: stats = { activePros: 0 } } = useQuery({
     queryKey: ['platformStats'],
     queryFn: getPlatformStats,
   });
+
+  const { data: settings } = useQuery({
+    queryKey: ['siteSettings'],
+    queryFn: getSiteSettings,
+  });
+
+  const teamMembers = (() => {
+    try {
+      return settings?.team_members_json ? JSON.parse(settings.team_members_json) : [];
+    } catch (e) {
+      return [];
+    }
+  })();
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -34,10 +48,18 @@ const AboutUs = () => {
           <div className="grid gap-12 md:grid-cols-2">
             <div className="space-y-6">
               <h2 className="text-3xl font-bold">Nossa Missão</h2>
-              <p className="text-lg text-muted-foreground leading-relaxed">
-                Nascemos para simplificar a contratação de serviços profissionais em todo o país. A Sakaservice é mais do que uma plataforma; é um ecossistema de confiança onde o talento angolano encontra oportunidades reais.
+              <p className="text-lg text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                {settings?.about_us_content || "Nascemos para simplificar a contratação de serviços profissionais em todo o país. A Sakaservice é mais do que uma plataforma; é um ecossistema de confiança onde o talento angolano encontra oportunidades reais."}
               </p>
-              <ul className="space-y-4">
+              
+              <div className="pt-8">
+                <h2 className="text-3xl font-bold mb-6">Nossa Visão</h2>
+                <p className="text-lg text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                  {settings?.about_us_vision || "Ser a maior plataforma de serviços de Angola, reconhecida pela excelência, segurança e inovação tecnológica, transformando a forma como os angolanos contratam e prestam serviços."}
+                </p>
+              </div>
+
+              <ul className="space-y-4 pt-6">
                 {[
                   "Fomentar o empreendedorismo local",
                   "Garantir segurança em cada transação",
@@ -52,19 +74,51 @@ const AboutUs = () => {
               </ul>
             </div>
             <div className="relative">
-              <div className="aspect-video overflow-hidden rounded-2xl shadow-2xl">
-                <img 
-                  src="https://images.unsplash.com/photo-1522071823991-b19c72f7049b?w=800&q=80" 
-                  alt="Team work" 
-                  className="h-full w-full object-cover" 
-                />
-              </div>
-              <div className="absolute -bottom-6 -left-6 rounded-2xl bg-white p-6 shadow-xl dark:bg-slate-900">
-                <p className="text-4xl font-bold text-primary">
-                  {stats.activePros >= 1000 ? `${(stats.activePros / 1000).toFixed(1)}k+` : stats.activePros}
-                </p>
-                <p className="text-sm font-medium text-muted-foreground">Profissionais Ativos</p>
-              </div>
+              {teamMembers.length > 0 ? (
+                <div className="grid grid-cols-2 gap-4">
+                  {teamMembers.map((member: any, i: number) => (
+                    <motion.div 
+                      key={i}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      whileInView={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: i * 0.1 }}
+                      className="group relative aspect-square overflow-hidden rounded-2xl bg-muted shadow-lg"
+                    >
+                      {member.photo ? (
+                        <img 
+                          src={member.photo} 
+                          alt={member.name} 
+                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" 
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center bg-indigo-50">
+                          <Users className="h-10 w-10 text-indigo-200" />
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
+                        <p className="text-white font-bold text-sm leading-tight">{member.name}</p>
+                        <p className="text-white/70 text-[10px] uppercase font-semibold tracking-wider">{member.role}</p>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <>
+                  <div className="aspect-video overflow-hidden rounded-2xl shadow-2xl">
+                    <img 
+                      src="https://images.unsplash.com/photo-1522071823991-b19c72f7049b?w=800&q=80" 
+                      alt="Team work" 
+                      className="h-full w-full object-cover" 
+                    />
+                  </div>
+                  <div className="absolute -bottom-6 -left-6 rounded-2xl bg-white p-6 shadow-xl dark:bg-slate-900">
+                    <p className="text-4xl font-bold text-primary">
+                      {stats.activePros >= 1000 ? `${(stats.activePros / 1000).toFixed(1)}k+` : stats.activePros}
+                    </p>
+                    <p className="text-sm font-medium text-muted-foreground">Profissionais Ativos</p>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </section>

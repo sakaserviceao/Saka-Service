@@ -374,7 +374,7 @@ const EditProfile = () => {
 
         <div className="bg-card border border-border rounded-xl p-0 shadow-sm overflow-hidden">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <div className="bg-secondary/20 border-b px-8 pt-6">
+            <div className="bg-secondary/20 border-b px-4 sm:px-8 pt-6">
               <div className="mb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                   <h1 className="text-3xl font-bold">Painel do Profissional</h1>
@@ -403,16 +403,16 @@ const EditProfile = () => {
                 </div>
               </div>
 
-              <TabsList className="bg-transparent border-b-0 h-auto p-0 gap-8">
+              <TabsList className="bg-transparent border-b-0 h-auto p-0 gap-4 sm:gap-8 overflow-x-auto flex-nowrap scrollbar-none pb-1 justify-start">
                 <TabsTrigger
                   value="profile"
-                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent bg-transparent px-0 py-3 font-bold text-sm transition-all"
+                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent bg-transparent px-0 py-3 font-bold text-sm transition-all whitespace-nowrap shrink-0"
                 >
                   <User className="h-4 w-4 mr-2" /> Editar Dados
                 </TabsTrigger>
                 <TabsTrigger
                   value="messages"
-                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent bg-transparent px-0 py-3 font-bold text-sm transition-all relative"
+                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent bg-transparent px-0 py-3 font-bold text-sm transition-all relative whitespace-nowrap shrink-0"
                 >
                   <MessageSquare className="h-4 w-4 mr-2" />
                   Mensagens
@@ -424,7 +424,7 @@ const EditProfile = () => {
                 </TabsTrigger>
                 <TabsTrigger
                   value="security"
-                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent bg-transparent px-0 py-3 font-bold text-sm transition-all"
+                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent bg-transparent px-0 py-3 font-bold text-sm transition-all whitespace-nowrap shrink-0"
                 >
                   <Lock className="h-4 w-4 mr-2" /> Segurança
                 </TabsTrigger>

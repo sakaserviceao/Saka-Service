@@ -75,8 +75,7 @@ const CategoryCard = ({ category, index = 0, featured = false }: Props) => {
 
           <Link
             to={`/category/${category.id}`}
-            className={`flex flex-col items-center gap-4 rounded-2xl border border-border bg-card p-8 text-center shadow-md transition-all duration-300 hover:-translate-y-2 hover:border-primary/50 hover:shadow-xl ${featured ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""
-              }`}
+            className={`flex flex-col items-center gap-4 rounded-2xl border border-border bg-card p-8 text-center shadow-md transition-all duration-300 hover:-translate-y-2 hover:border-primary/50 hover:shadow-xl ring-1 ring-primary ring-offset-2 ring-offset-background dark:ring-0 dark:ring-offset-0`}
           >
             {featured && (
               <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-primary-foreground shadow-sm z-10">

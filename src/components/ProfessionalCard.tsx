@@ -30,7 +30,7 @@ const ProfessionalCard = ({ professional, index = 0 }: Props) => {
     >
       <Link
         to={`/professional/${professional.id}`}
-        className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card p-3 sm:p-6 shadow-md transition-all duration-300 hover:-translate-y-2 hover:shadow-xl"
+        className={`group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card p-3 sm:p-6 shadow-md transition-all duration-300 hover:-translate-y-2 hover:shadow-xl ${professional.featured ? "ring-1 ring-primary ring-offset-2 ring-offset-background dark:ring-0 dark:ring-offset-0" : ""}`}
       >
         {/* Featured Badge - Repositioned to avoid overlap */}
         {professional.featured && (

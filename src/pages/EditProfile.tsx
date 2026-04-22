@@ -17,21 +17,23 @@ import {
 } from "@/data/api";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { format } from "date-fns";
-import { pt } from "date-fns/locale";
+import SupportDialog from "@/components/SupportDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Trash2, Plus, UploadCloud, Save, BarChart3, ShieldCheck,
-  Minus, CreditCard, AlertCircle, Clock, Eye, Star,
-  MessageSquare, Send, ExternalLink, User, History, Image as ImageIcon
+  Trash2, Plus, UploadCloud, Save, ShieldCheck,
+  CreditCard, AlertCircle, Clock, Eye, Star,
+  MessageSquare, Send, ExternalLink, User, History, Image as ImageIcon,
+  Headphones, Lock, EyeOff, Shield
 } from "lucide-react";
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 import DashboardStats from "@/components/DashboardStats";
+import { format } from "date-fns";
+import { pt } from "date-fns/locale";
+import { supabase } from "@/lib/supabase";
 
 const EditProfile = () => {
   const { user, isLoading } = useAuth();
@@ -64,10 +66,7 @@ const EditProfile = () => {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [existingAvatar, setExistingAvatar] = useState<string>("");
 
-  // Portfólios que já estavam na base de dados e não foram apagados
   const [existingPortfolios, setExistingPortfolios] = useState<any[]>([]);
-
-  // Novos portfólios guardados temporariamente para enviar
   const [newPortfolios, setNewPortfolios] = useState<{ title: string; description: string; imageFile: File | null; videoFile: File | null; is_pinned: boolean }[]>([]);
 
   const [verificationStatus, setVerificationStatus] = useState<string>("ativo");
@@ -76,10 +75,14 @@ const EditProfile = () => {
   const [subscriptionStatus, setSubscriptionStatus] = useState<string>("pending");
   const [settings, setSettings] = useState<any>({});
 
-  // Messaging State
   const [messages, setMessages] = useState<any[]>([]);
   const [isFetchingMessages, setIsFetchingMessages] = useState(false);
   const [activeTab, setActiveTab] = useState("profile");
+  const [supportOpen, setSupportOpen] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
   const [isSubmittingReply, setIsSubmittingReply] = useState(false);
@@ -135,7 +138,6 @@ const EditProfile = () => {
           setExistingAvatar(proData.avatar || "");
           setVerificationStatus(proData.verification_status || "ativo");
 
-          // Verificar se faltam documentos (BI obrigatório + (Certificado OU Vídeo))
           if (!proData.id_card_front_url || (!proData.certificate_url && !proData.activity_video_url)) {
             setMissingDocs(true);
           }
@@ -192,7 +194,7 @@ const EditProfile = () => {
 
       await replyToServiceMessage(parentId, {
         sender_id: user.id,
-        receiver_id: originalMsg.sender_id, // Responder ao cliente que enviou
+        receiver_id: originalMsg.sender_id,
         professional_id: user.id,
         content: replyText
       });
@@ -200,7 +202,6 @@ const EditProfile = () => {
       toast.success("Resposta enviada com sucesso!");
       setReplyText("");
       setReplyingTo(null);
-      // Refresh messages
       const updatedMessages = await getProfessionalMessages(user.id);
       setMessages(updatedMessages || []);
     } catch (err) {
@@ -333,12 +334,35 @@ const EditProfile = () => {
     }
   };
 
+  const handlePasswordUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword.length < 6) {
+      toast.error("A palavra-passe deve ter pelo menos 6 caracteres.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error("As palavras-passe não coincidem.");
+      return;
+    }
+
+    setPasswordLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      toast.success("Palavra-passe atualizada com sucesso!");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao atualizar palavra-passe.");
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background pb-12">
       <Navbar />
       <div className="container max-w-3xl mt-8">
-        {/* Banner de Verificação de Documentos (BI/Certificado) */}
-
         <SubscriptionStatusBanner
           status={subscriptionStatus || verificationStatus || 'active'}
           endDate={subscription?.end_date || '2026-05-07'}
@@ -356,17 +380,27 @@ const EditProfile = () => {
                   <h1 className="text-3xl font-bold">Painel do Profissional</h1>
                   <p className="text-muted-foreground text-sm">Gerencie o seu perfil e responda aos seus clientes.</p>
                 </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="border-primary text-primary hover:bg-primary/5 font-bold gap-2 rounded-xl h-10"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    navigate(`/professional/${user.id}`);
-                  }}
-                >
-                  <Eye className="h-4 w-4" /> Ver perfil público
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-primary text-primary hover:bg-primary/5 font-bold gap-2 rounded-xl h-10"
+                    onClick={() => setSupportOpen(true)}
+                  >
+                    <Headphones className="h-4 w-4" /> Suporte
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-primary text-primary hover:bg-primary/5 font-bold gap-2 rounded-xl h-10"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      navigate(`/professional/${user.id}`);
+                    }}
+                  >
+                    <Eye className="h-4 w-4" /> Ver perfil público
+                  </Button>
+                </div>
               </div>
 
               <TabsList className="bg-transparent border-b-0 h-auto p-0 gap-8">
@@ -388,6 +422,12 @@ const EditProfile = () => {
                     </Badge>
                   )}
                 </TabsTrigger>
+                <TabsTrigger
+                  value="security"
+                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent bg-transparent px-0 py-3 font-bold text-sm transition-all"
+                >
+                  <Lock className="h-4 w-4 mr-2" /> Segurança
+                </TabsTrigger>
               </TabsList>
             </div>
 
@@ -397,7 +437,6 @@ const EditProfile = () => {
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-8">
-                {/* Informação Básica */}
                 <div className="space-y-4">
                   <h2 className="text-xl font-semibold border-b pb-2">Informação Básica (Pública)</h2>
 
@@ -488,7 +527,6 @@ const EditProfile = () => {
                   </div>
                 </div>
 
-                {/* Contactos */}
                 <div className="space-y-4">
                   <h2 className="text-xl font-semibold border-b pb-2">Contactos de Trabalho</h2>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -511,7 +549,6 @@ const EditProfile = () => {
                   </div>
                 </div>
 
-                {/* Trabalhos Existentes */}
                 {existingPortfolios.length > 0 && (
                   <div className="space-y-4">
                     <h2 className="text-xl font-semibold border-b pb-2">Trabalhos Antigos no Portfólio</h2>
@@ -557,7 +594,6 @@ const EditProfile = () => {
                   </div>
                 )}
 
-                {/* Portfolio Novo */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between border-b pb-2">
                     <h2 className="text-xl font-semibold text-primary">Atualizar Portifolio</h2>
@@ -614,7 +650,6 @@ const EditProfile = () => {
                             type="file" 
                             accept="video/*" 
                             onChange={(e) => {
-                              // Check if there's already a video anywhere
                               const hasExistingVideo = existingPortfolios.some(p => p.video_url);
                               const hasOtherNewVideo = newPortfolios.some((p, idx) => p.videoFile && idx !== index);
                               
@@ -657,7 +692,6 @@ const EditProfile = () => {
                   <Save className="h-5 w-5 mr-2" /> {loading ? "A Atualizar..." : "Guardar Edições"}
                 </Button>
 
-                {/* Banner de Verificação de Identidade (Movido para aqui) */}
                 {(missingDocs || verificationStatus === 'pending_review' || verificationStatus === 'rejeitado') && (
                   <div className="mt-8 rounded-2xl border border-primary/20 bg-primary/5 p-6 flex flex-col md:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
                     <div className="flex items-center gap-3">
@@ -818,14 +852,73 @@ const EditProfile = () => {
                 )}
               </div>
             </TabsContent>
+
+            <TabsContent value="security" className="p-8 mt-0 border-none outline-none min-h-[500px]">
+              <div className="max-w-md mx-auto py-8">
+                <div className="text-center mb-8">
+                  <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center text-primary mx-auto mb-4">
+                    <Shield className="h-8 w-8" />
+                  </div>
+                  <h2 className="text-2xl font-bold">Segurança da Conta</h2>
+                  <p className="text-sm text-muted-foreground">Atualize a sua palavra-passe para manter a sua conta segura.</p>
+                </div>
+
+                <form onSubmit={handlePasswordUpdate} className="space-y-6">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="new-password">Nova Palavra-passe</Label>
+                      <div className="relative">
+                        <Input 
+                          id="new-password" 
+                          type={showNewPassword ? "text" : "password"} 
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          placeholder="Mínimo 6 caracteres"
+                          className="pr-10 h-12 rounded-xl"
+                          required
+                        />
+                        <button 
+                          type="button"
+                          onClick={() => setShowNewPassword(!showNewPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        >
+                          {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="confirm-password">Confirmar Nova Palavra-passe</Label>
+                      <Input 
+                        id="confirm-password" 
+                        type={showNewPassword ? "text" : "password"} 
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="Repita a palavra-passe"
+                        className="h-12 rounded-xl"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-gradient-hero py-6 h-auto font-bold text-lg rounded-xl shadow-lg shadow-primary/20"
+                    disabled={passwordLoading}
+                  >
+                    {passwordLoading ? "A atualizar..." : "Atualizar Palavra-passe"}
+                  </Button>
+                </form>
+              </div>
+            </TabsContent>
           </Tabs>
         </div>
       </div>
+      <div className="h-20" />
+      <SupportDialog open={supportOpen} onOpenChange={setSupportOpen} />
     </div>
   );
 };
-
-// --- Componentes Auxiliares (SakaServ Subscription System) ---
 
 function SubscriptionStatusBanner({ status, endDate, onRenew, professionalId, settings, hasSubscription }: { status: string, endDate?: string, onRenew: () => void, professionalId: string, settings: any, hasSubscription: boolean }) {
   if (status === 'blocked') {

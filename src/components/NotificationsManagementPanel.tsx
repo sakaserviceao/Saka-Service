@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Megaphone, Mail, Trash2, Save, Plus, Bell, AlertTriangle, Info, CheckCircle2, User, Users, Settings, ShieldCheck, Clock, CreditCard, Home } from "lucide-react";
+import { Megaphone, Mail, Trash2, Save, Plus, Bell, AlertTriangle, Info, CheckCircle2, User, Users, Settings, ShieldCheck, Clock, CreditCard, Home, Send } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -37,6 +37,8 @@ const NotificationsManagementPanel = () => {
   // System Messages State
   const [systemMessages, setSystemMessages] = useState<Record<string, string>>({});
   const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [replyingToId, setReplyingToId] = useState<string | null>(null);
+  const [replyMessage, setReplyMessage] = useState("");
 
   const { data: notifications = [], isLoading: isLoadingNotifications } = useQuery({
     queryKey: ['admin_notifications'],
@@ -280,15 +282,18 @@ const NotificationsManagementPanel = () => {
                           <div className="flex items-start justify-between gap-4">
                             <div className="space-y-1">
                               <div className="flex items-center gap-2">
-                                <Badge variant={n.level === 'error' ? 'destructive' : 'outline'} className="capitalize text-[10px] px-1.5 py-0">
-                                  {n.level}
-                                </Badge>
+                                  <Badge 
+                                    variant={n.type === 'support_request' ? 'default' : (n.level === 'error' ? 'destructive' : 'outline')} 
+                                    className={`capitalize text-[10px] px-1.5 py-0 ${n.type === 'support_request' ? 'bg-amber-500 text-white' : ''}`}
+                                  >
+                                    {n.type === 'support_request' ? 'SUPORTE' : n.level}
+                                  </Badge>
                                 <span className="text-xs text-muted-foreground">
                                   Expira {format(new Date(n.expires_at), "dd MMM HH:mm", { locale: pt })}
                                 </span>
                               </div>
-                              <h5 className="font-bold text-sm">{n.title}</h5>
-                              <p className="text-xs text-muted-foreground line-clamp-2">{n.message}</p>
+                              <h5 className={`font-bold text-sm ${n.type === 'support_request' ? 'text-amber-700' : ''}`}>{n.title}</h5>
+                              <p className="text-xs text-muted-foreground line-clamp-2 whitespace-pre-wrap">{n.message}</p>
                               {n.user_id ? (
                                 <p className="text-[10px] font-bold text-primary flex items-center gap-1 mt-2">
                                   <User className="h-2.5 w-2.5" /> Direcionado
@@ -299,14 +304,36 @@ const NotificationsManagementPanel = () => {
                                 </p>
                               )}
                             </div>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                              onClick={() => deleteMutation.mutate(n.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            <div className="flex gap-1">
+                              {n.type === 'support_request' && n.link?.startsWith('reply-support://') && (
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-8 w-8 text-primary"
+                                  onClick={() => {
+                                    const professionalId = n.link.replace('reply-support://', '');
+                                    setTargetType('specific');
+                                    setTargetUserId(professionalId);
+                                    setNewTitle(`Resposta ao seu pedido de suporte: ${n.title.replace('Suporte: ', '')}`);
+                                    setNewLevel('info');
+                                    // Scroll to form
+                                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                                    toast.info("Formulário preenchido para resposta.");
+                                  }}
+                                  title="Responder"
+                                >
+                                  <Send className="h-4 w-4" />
+                                </Button>
+                              )}
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={() => deleteMutation.mutate(n.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       ))}

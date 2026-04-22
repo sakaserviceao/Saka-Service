@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Menu, X, Search, LogOut, Sun, Moon } from "lucide-react";
+import { Menu, X, Search, LogOut, Sun, Moon, Headphones } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
@@ -8,9 +8,11 @@ import { useTheme } from "@/hooks/useTheme";
 import { useSettings } from "@/hooks/useSettings";
 import NotificationCenter from "./NotificationCenter";
 import MessageCenter from "./MessageCenter";
+import SupportDialog from "./SupportDialog";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [supportOpen, setSupportOpen] = useState(false);
   const { user, signOut, isProfessional } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0];
@@ -27,9 +29,29 @@ const Navbar = () => {
               className="h-full w-full object-contain" 
             />
           </div>
-          <span className="text-xl font-bold text-foreground">
-            {getSetting('brand_name', 'Sakaservice')}
-          </span>
+          <div className="flex flex-col">
+            <span className="text-xl font-bold text-foreground leading-none">
+              {getSetting('brand_name', 'Sakaservice')}
+            </span>
+            <div className="flex md:hidden items-center gap-3 mt-1">
+              {!user ? (
+                <>
+                  <Link to="/login" className="text-[10px] font-bold text-muted-foreground hover:text-primary transition-colors">
+                    Entrar
+                  </Link>
+                  <Link to="/register" className="text-[10px] font-bold text-primary hover:text-primary/80 transition-colors">
+                    Cadastrar-se
+                  </Link>
+                </>
+              ) : null}
+              <Link to="/search" className="text-muted-foreground hover:text-primary transition-colors">
+                <Search className="h-3 w-3" />
+              </Link>
+              <Link to="/categories" className="text-[10px] font-bold text-muted-foreground hover:text-primary transition-colors">
+                Categorias
+              </Link>
+            </div>
+          </div>
         </Link>
 
         {/* Desktop nav */}
@@ -65,6 +87,14 @@ const Navbar = () => {
               <span className="text-sm font-medium text-primary">{displayName}</span>
               {isProfessional ? (
                 <>
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    className="text-primary hover:bg-primary/5 gap-2" 
+                    onClick={() => setSupportOpen(true)}
+                  >
+                    <Headphones className="h-4 w-4" /> Suporte
+                  </Button>
                   <Button size="sm" variant="ghost" className="text-primary hover:bg-primary/5" asChild>
                     <Link to="/planos">Planos</Link>
                   </Button>
@@ -94,7 +124,7 @@ const Navbar = () => {
         </div>
 
         {/* Mobile actions */}
-        <div className="flex items-center gap-2 md:hidden">
+        <div className={`flex items-center gap-2 md:hidden ml-auto`}>
           <Button variant="ghost" size="icon" onClick={toggleTheme} className="rounded-full">
             {theme === "light" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
           </Button>
@@ -109,6 +139,7 @@ const Navbar = () => {
           </button>
         </div>
       </div>
+      <SupportDialog open={supportOpen} onOpenChange={setSupportOpen} />
 
       {/* Mobile menu */}
       <AnimatePresence>
@@ -120,9 +151,7 @@ const Navbar = () => {
             className="overflow-hidden border-t border-border md:hidden"
           >
             <div className="container flex flex-col gap-3 py-4">
-              <Link to="/" onClick={() => setIsOpen(false)} className="rounded-md px-3 py-2 text-sm font-medium text-foreground hover:bg-secondary">Início</Link>
-              <Link to="/categories" onClick={() => setIsOpen(false)} className="rounded-md px-3 py-2 text-sm font-medium text-foreground hover:bg-secondary">Categorias</Link>
-              <Link to="/search" onClick={() => setIsOpen(false)} className="rounded-md px-3 py-2 text-sm font-medium text-foreground hover:bg-secondary">Buscar</Link>
+              {/* Removidos links redundantes que agora estão no cabeçalho */}
               <div className="flex flex-col gap-2 pt-2">
                 {user ? (
                   <>
@@ -134,6 +163,17 @@ const Navbar = () => {
                     <span className="text-sm font-medium text-center text-primary mb-2">{displayName}</span>
                     {isProfessional ? (
                       <>
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          className="w-full text-primary hover:bg-primary/5 mb-2 gap-2 justify-start" 
+                          onClick={() => {
+                            setSupportOpen(true);
+                            setIsOpen(false);
+                          }}
+                        >
+                          <Headphones className="h-4 w-4" /> Suporte
+                        </Button>
                         <Button size="sm" variant="outline" className="w-full border-primary text-primary mb-2" asChild>
                           <Link to="/planos" onClick={() => setIsOpen(false)}>Planos de Subscrição</Link>
                         </Button>
@@ -151,14 +191,7 @@ const Navbar = () => {
                     </Button>
                   </>
                 ) : (
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="flex-1" asChild>
-                      <Link to="/login" onClick={() => setIsOpen(false)}>Entrar</Link>
-                    </Button>
-                    <Button size="sm" className={`flex-1 bg-gradient-hero ${theme === 'dark' ? 'text-slate-100' : 'text-primary-foreground'}`} asChild>
-                      <Link to="/register" onClick={() => setIsOpen(false)}>Cadastrar-se</Link>
-                    </Button>
-                  </div>
+                  null
                 )}
               </div>
             </div>

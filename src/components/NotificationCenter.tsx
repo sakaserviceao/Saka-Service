@@ -26,29 +26,82 @@ const NotificationCenter = () => {
     refetchInterval: 30000, // Refetch every 30 seconds
   });
 
-  const notifications = allNotifications.filter((n: any) => n.type !== 'message');
+  const notifications = allNotifications.filter((n: any) => n.type !== 'message' && n.type !== 'support_request');
 
   const unreadCount = notifications.filter((n: any) => !n.is_read).length;
 
   const markReadMutation = useMutation({
     mutationFn: markNotificationAsRead,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['notifications', user?.id] });
+      const previousNotifications = queryClient.getQueryData(['notifications', user?.id]);
+      queryClient.setQueryData(['notifications', user?.id], (old: any) => {
+        if (!Array.isArray(old)) return old;
+        return old.map((n: any) => n.id === id ? { ...n, is_read: true } : n);
+      });
+      return { previousNotifications };
+    },
+    onError: (err, id, context: any) => {
+      if (context?.previousNotifications) {
+        queryClient.setQueryData(['notifications', user?.id], context.previousNotifications);
+      }
+    },
+    onSettled: () => {
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
+      }, 1500);
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: deleteNotification,
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['notifications', user?.id] });
+      const previousNotifications = queryClient.getQueryData(['notifications', user?.id]);
+      queryClient.setQueryData(['notifications', user?.id], (old: any) => {
+        if (!Array.isArray(old)) return old;
+        return old.filter((n: any) => n.id !== id);
+      });
+      return { previousNotifications };
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
       toast.success("Notificação removida");
+    },
+    onError: (err, id, context: any) => {
+      if (context?.previousNotifications) {
+        queryClient.setQueryData(['notifications', user?.id], context.previousNotifications);
+      }
+    },
+    onSettled: () => {
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
+      }, 1500);
     },
   });
 
   const handleMarkAllAsRead = async () => {
     const unreadIds = notifications.filter((n: any) => !n.is_read).map((n: any) => n.id);
-    for (const id of unreadIds) {
-      await markReadMutation.mutateAsync(id);
+    if (unreadIds.length === 0) return;
+
+    // Cancela qualquer refetch em andamento para não sobrescrever a nossa alteração local
+    await queryClient.cancelQueries({ queryKey: ['notifications', user?.id] });
+
+    // Atualização otimista imediata
+    queryClient.setQueryData(['notifications', user?.id], (old: any) => {
+      if (!Array.isArray(old)) return old;
+      return old.map((n: any) => ({ ...n, is_read: true }));
+    });
+
+    try {
+      await Promise.all(unreadIds.map(id => markNotificationAsRead(id)));
+      
+      // Pequeno atraso antes de invalidar para dar tempo ao Supabase de processar tudo
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
+      }, 1000);
+    } catch (err) {
+      console.error("Erro ao marcar todas como lidas:", err);
+      queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
     }
   };
 

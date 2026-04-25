@@ -38,6 +38,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import NotificationsManagementPanel from "@/components/NotificationsManagementPanel";
+import { AnalyticsDashboard } from "@/components/AnalyticsDashboard";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/hooks/useAuth";
 import { useState, useEffect, useMemo } from "react";
@@ -521,7 +522,7 @@ const AdminVerifications = () => {
             </div>
           )
         ) : viewMode === 'analytics' ? (
-          <AnalyticsPanel />
+          <AnalyticsDashboard />
         ) : viewMode === 'subscriptions' ? (
           <SubscriptionManagementPanel 
             pendingSubs={pendingSubs} 

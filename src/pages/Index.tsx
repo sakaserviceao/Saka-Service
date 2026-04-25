@@ -33,7 +33,7 @@ const Index = () => {
   });
 
   const { theme } = useTheme();
-  const { getSetting } = useSettings();
+  const { getSetting, isLoading: isLoadingSettings } = useSettings();
 
   const [currentDate, setCurrentDate] = useState(new Date());
 
@@ -82,16 +82,22 @@ const Index = () => {
       </section>
 
       {/* Main Banner (banner_topo_home) */}
-      <HomeBanner
-        id="banner_topo_home"
-        imageUrl={getSetting('banner_topo_url', '/banners/banner_topo_home.png')}
-        linkUrl={getSetting('banner_topo_link', '#')}
-        altText="Publicidade Topo"
-        height={200}
-        mobileHeight={120}
-        maxWidth={1280}
-        className="my-8"
-      />
+      {isLoadingSettings ? (
+        <div className="container mx-auto px-4 my-8 max-w-[1280px]">
+          <div className="w-full h-[120px] sm:h-[200px] rounded-xl bg-muted animate-pulse border border-border/50" />
+        </div>
+      ) : (
+        <HomeBanner
+          id="banner_topo_home"
+          imageUrl={getSetting('banner_topo_url', '/banners/banner_topo_home.png')}
+          linkUrl={getSetting('banner_topo_link', '#')}
+          altText="Publicidade Topo"
+          height={200}
+          mobileHeight={120}
+          maxWidth={1280}
+          className="my-8"
+        />
+      )}
 
       {/* Categories */}
       <section className="py-20">
@@ -164,16 +170,22 @@ const Index = () => {
       </section>
 
       {/* Secondary Banner (banner_pre_cta_home) */}
-      <HomeBanner
-        id="banner_pre_cta_home"
-        imageUrl={getSetting('banner_pre_cta_url', '/banners/banner_pre_cta_home.png')}
-        linkUrl={getSetting('banner_pre_cta_link', '#')}
-        altText="Publicidade Pré-CTA"
-        height={100}
-        mobileHeight={80}
-        maxWidth={1280}
-        className="mt-10 mb-6"
-      />
+      {isLoadingSettings ? (
+        <div className="container mx-auto px-4 mt-10 mb-6 max-w-[1280px]">
+          <div className="w-full h-[80px] sm:h-[100px] rounded-xl bg-muted animate-pulse border border-border/50" />
+        </div>
+      ) : (
+        <HomeBanner
+          id="banner_pre_cta_home"
+          imageUrl={getSetting('banner_pre_cta_url', '/banners/banner_pre_cta_home.png')}
+          linkUrl={getSetting('banner_pre_cta_link', '#')}
+          altText="Publicidade Pré-CTA"
+          height={100}
+          mobileHeight={80}
+          maxWidth={1280}
+          className="mt-10 mb-6"
+        />
+      )}
 
       {/* Saka Imóveis Section */}
       {getSetting('show_imoveis', 'true') === 'true' && (

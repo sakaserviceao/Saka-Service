@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Megaphone, Mail, Trash2, Save, Plus, Bell, AlertTriangle, Info, CheckCircle2, User, Users, Settings, ShieldCheck, Clock, CreditCard, Home, Send } from "lucide-react";
+import { Megaphone, Mail, Trash2, Save, Plus, Bell, AlertTriangle, Info, CheckCircle2, User, Users, Settings, ShieldCheck, Clock, CreditCard, Home, Send, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -324,15 +324,40 @@ const NotificationsManagementPanel = ({ initialTargetUserId, initialTitle }: Not
                               )}
                             </div>
                             <div className="flex gap-1">
+                              {(() => {
+                                let targetId = n.user_id;
+                                if (!targetId && n.type === 'support_request' && n.link?.startsWith('reply-support://')) {
+                                  targetId = n.link.replace('reply-support://', '');
+                                }
+                                const pro = targetId ? professionals.find((p: any) => p.id === targetId || p.user_id === targetId) : null;
+                                const whatsapp = pro?.whatsapp;
+                                
+                                if (whatsapp) {
+                                  const whatsappUrl = `https://wa.me/${whatsapp.replace(/\\D/g, '')}?text=${encodeURIComponent(`Olá ${pro.name}, em relação a: ${n.title}`)}`;
+                                  return (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8 text-[#25D366] hover:text-[#25D366] hover:bg-[#25D366]/10"
+                                      onClick={() => window.open(whatsappUrl, '_blank')}
+                                      title="Contactar via WhatsApp"
+                                    >
+                                      <MessageCircle className="h-4 w-4" />
+                                    </Button>
+                                  );
+                                }
+                                return null;
+                              })()}
                               {n.type === 'support_request' && n.link?.startsWith('reply-support://') && (
                                 <Button 
                                   variant="ghost" 
                                   size="icon" 
                                   className="h-8 w-8 text-primary"
                                   onClick={() => {
-                                    const professionalId = n.link.replace('reply-support://', '');
+                                    const rawId = n.link.replace('reply-support://', '');
+                                    const foundPro = professionals.find((p: any) => p.id === rawId || p.user_id === rawId);
                                     setTargetType('specific');
-                                    setTargetUserId(professionalId);
+                                    setTargetUserId(foundPro ? foundPro.id : rawId);
                                     setNewTitle(`Resposta ao seu pedido de suporte: ${n.title.replace('Suporte: ', '')}`);
                                     setNewLevel('info');
                                     // Scroll to form

@@ -246,7 +246,7 @@ const EditProfile = () => {
 
   const handleTogglePinExisting = async (id: string, currentPin: boolean) => {
     const pinnedCount = existingPortfolios.filter(p => p.is_pinned).length + newPortfolios.filter(p => p.is_pinned).length;
-    
+
     if (!currentPin && pinnedCount >= 3) {
       toast.error("Só pode afixar até 3 grandes serviços.");
       return;
@@ -297,7 +297,7 @@ const EditProfile = () => {
       for (const p of newPortfolios) {
         if (p.title && (p.imageFile || p.videoFile)) {
           toast.info(`A carregar novo portfolio: ${p.title}...`);
-          
+
           let mediaUrl = "";
           let isVideo = false;
 
@@ -556,23 +556,23 @@ const EditProfile = () => {
                       {existingPortfolios.map((port: any) => (
                         <div key={port.id} className={`group overflow-hidden rounded-xl border border-border bg-card shadow-sm relative transition-all ${port.is_pinned ? 'border-primary ring-1 ring-primary/20 bg-primary/5' : 'border-gradient-hero'}`}>
                           <div className="absolute top-2 right-2 flex gap-1 z-10">
-                            <button 
-                              type="button" 
-                              onClick={() => handleTogglePinExisting(port.id, port.is_pinned)} 
+                            <button
+                              type="button"
+                              onClick={() => handleTogglePinExisting(port.id, port.is_pinned)}
                               className={`p-1.5 rounded-md hover:opacity-80 shadow-sm ${port.is_pinned ? 'bg-primary text-white' : 'bg-background border text-muted-foreground'}`}
                               title={port.is_pinned ? "Desafixar" : "Afixar como Grande Serviço"}
                             >
                               <Plus className={`h-4 w-4 transition-transform ${port.is_pinned ? 'rotate-45' : ''}`} />
                             </button>
-                            <button 
-                              type="button" 
-                              onClick={() => handleRemoveExistingPortfolio(port.id)} 
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveExistingPortfolio(port.id)}
                               className="bg-destructive text-destructive-foreground p-1.5 rounded-md hover:opacity-80"
                             >
                               <Trash2 className="h-4 w-4" />
                             </button>
                           </div>
-                          
+
                           {port.video_url ? (
                             <div className="h-32 w-full bg-black flex items-center justify-center">
                               <UploadCloud className="h-8 w-8 text-white/40" />
@@ -580,7 +580,7 @@ const EditProfile = () => {
                           ) : (
                             <img src={port.image} alt={port.title} className="h-32 w-full object-cover" />
                           )}
-                          
+
                           <div className="p-3">
                             <h3 className="font-semibold text-sm flex items-center gap-2">
                               {port.title}
@@ -605,39 +605,39 @@ const EditProfile = () => {
                   {newPortfolios.map((port, index) => (
                     <div key={index} className={`flex flex-col gap-3 p-4 border rounded-lg relative bg-primary/5 transition-all ${port.is_pinned ? 'border-primary ring-1 ring-primary/20' : 'border-input border-gradient-hero'}`}>
                       <div className="absolute top-3 right-3 flex gap-2">
-                         <button 
-                            type="button" 
-                            className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold shadow-sm transition-all ${port.is_pinned ? 'bg-primary text-white' : 'bg-background border text-muted-foreground'}`}
-                            onClick={() => {
-                              const pinnedCount = existingPortfolios.filter(p => p.is_pinned).length + newPortfolios.filter(p => p.is_pinned).length;
-                              if (!port.is_pinned && pinnedCount >= 3) {
-                                toast.error("Só pode afixar até 3 grandes serviços.");
-                                return;
-                              }
-                              handleNewPortfolioChange(index, 'is_pinned', !port.is_pinned);
-                            }}
-                          >
-                            <Plus className={`h-3 w-3 ${port.is_pinned ? 'rotate-45' : ''}`} />
-                            {port.is_pinned ? "AFIXADO" : "AFIXAR"}
-                          </button>
+                        <button
+                          type="button"
+                          className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold shadow-sm transition-all ${port.is_pinned ? 'bg-primary text-white' : 'bg-background border text-muted-foreground'}`}
+                          onClick={() => {
+                            const pinnedCount = existingPortfolios.filter(p => p.is_pinned).length + newPortfolios.filter(p => p.is_pinned).length;
+                            if (!port.is_pinned && pinnedCount >= 3) {
+                              toast.error("Só pode afixar até 3 grandes serviços.");
+                              return;
+                            }
+                            handleNewPortfolioChange(index, 'is_pinned', !port.is_pinned);
+                          }}
+                        >
+                          <Plus className={`h-3 w-3 ${port.is_pinned ? 'rotate-45' : ''}`} />
+                          {port.is_pinned ? "AFIXADO" : "AFIXAR"}
+                        </button>
                         <button type="button" onClick={() => removeNewPortfolio(index)} className="text-red-500 hover:text-red-700 bg-background/80 p-1 rounded-md border shadow-sm">
                           <Trash2 className="h-5 w-5" />
                         </button>
                       </div>
-                      
+
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
                         <div className="space-y-2">
                           <Label className="flex items-center gap-2">
                             <ImageIcon className="h-4 w-4" /> Foto do Trabalho
                           </Label>
-                          <Input 
-                            type="file" 
-                            accept="image/*" 
+                          <Input
+                            type="file"
+                            accept="image/*"
                             onChange={(e) => {
                               const file = e.target.files?.[0] || null;
                               handleNewPortfolioChange(index, 'imageFile', file);
                               if (file) handleNewPortfolioChange(index, 'videoFile', null);
-                            }} 
+                            }}
                             disabled={port.videoFile !== null}
                           />
                         </div>
@@ -646,13 +646,13 @@ const EditProfile = () => {
                           <Label className="flex items-center gap-2">
                             <UploadCloud className="h-4 w-4" /> Vídeo (Max 10MB)
                           </Label>
-                          <Input 
-                            type="file" 
-                            accept="video/*" 
+                          <Input
+                            type="file"
+                            accept="video/*"
                             onChange={(e) => {
                               const hasExistingVideo = existingPortfolios.some(p => p.video_url);
                               const hasOtherNewVideo = newPortfolios.some((p, idx) => p.videoFile && idx !== index);
-                              
+
                               if (hasExistingVideo || hasOtherNewVideo) {
                                 toast.error("Limite atingido: Cada profissional pode ter apenas 1 vídeo no portfólio.");
                                 e.target.value = "";
@@ -667,7 +667,7 @@ const EditProfile = () => {
                               }
                               handleNewPortfolioChange(index, 'videoFile', file);
                               if (file) handleNewPortfolioChange(index, 'imageFile', null);
-                            }} 
+                            }}
                             disabled={port.imageFile !== null || existingPortfolios.some(p => p.video_url) || newPortfolios.some((p, idx) => p.videoFile && idx !== index)}
                           />
                           {(existingPortfolios.some(p => p.video_url) || newPortfolios.some((p, idx) => p.videoFile && idx !== index)) && (
@@ -707,11 +707,11 @@ const EditProfile = () => {
                           )}
                         </h3>
                         <p className="text-sm text-muted-foreground">
-                          {verificationStatus === "ativo" 
+                          {verificationStatus === "ativo"
                             ? "O seu perfil está verificado e transmite confiança total aos clientes."
                             : verificationStatus === "rejeitado"
                               ? "Os seus documentos foram rejeitados. Por favor, submeta novamente documentos válidos."
-                              : missingDocs 
+                              : missingDocs
                                 ? (settings.msg_verification_pending || "Faltam carregar os seus documentos para obter o selo de Verificado")
                                 : "Os seus documentos estão a ser analisados manualmente pela nossa equipa."
                           }
@@ -720,7 +720,7 @@ const EditProfile = () => {
                     </div>
                     {verificationStatus === 'pending_review' && !missingDocs ? (
                       <Button className="bg-muted text-muted-foreground font-bold whitespace-nowrap cursor-not-allowed" disabled>
-                         Aguarde...
+                        Aguarde...
                       </Button>
                     ) : (
                       <Button className="bg-primary hover:bg-primary/90 text-white font-bold whitespace-nowrap" asChild>
@@ -868,16 +868,16 @@ const EditProfile = () => {
                     <div className="space-y-2">
                       <Label htmlFor="new-password">Nova Palavra-passe</Label>
                       <div className="relative">
-                        <Input 
-                          id="new-password" 
-                          type={showNewPassword ? "text" : "password"} 
+                        <Input
+                          id="new-password"
+                          type={showNewPassword ? "text" : "password"}
                           value={newPassword}
                           onChange={(e) => setNewPassword(e.target.value)}
                           placeholder="Mínimo 6 caracteres"
                           className="pr-10 h-12 rounded-xl"
                           required
                         />
-                        <button 
+                        <button
                           type="button"
                           onClick={() => setShowNewPassword(!showNewPassword)}
                           className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
@@ -889,9 +889,9 @@ const EditProfile = () => {
 
                     <div className="space-y-2">
                       <Label htmlFor="confirm-password">Confirmar Nova Palavra-passe</Label>
-                      <Input 
-                        id="confirm-password" 
-                        type={showNewPassword ? "text" : "password"} 
+                      <Input
+                        id="confirm-password"
+                        type={showNewPassword ? "text" : "password"}
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         placeholder="Repita a palavra-passe"
@@ -901,8 +901,8 @@ const EditProfile = () => {
                     </div>
                   </div>
 
-                  <Button 
-                    type="submit" 
+                  <Button
+                    type="submit"
                     className="w-full bg-gradient-hero py-6 h-auto font-bold text-lg rounded-xl shadow-lg shadow-primary/20"
                     disabled={passwordLoading}
                   >
@@ -945,11 +945,11 @@ function SubscriptionStatusBanner({ status, endDate, onRenew, professionalId, se
             <p className="text-sm opacity-80">{settings.msg_subscription_pending || "O seu perfil está invisível. Ative a sua subscrição para voltar a receber ofertas de clientes."}</p>
           </div>
         </div>
-        <Button 
+        <Button
           className="w-full bg-gradient-hero text-lg py-6 group"
           onClick={onRenew}
         >
-          <CreditCard className={`mr-2 h-5 w-5 ${!hasSubscription ? "text-[#00ffd5]" : ""}`} /> 
+          <CreditCard className={`mr-2 h-5 w-5 ${!hasSubscription ? "text-[#00ffd5]" : ""}`} />
           <span className={!hasSubscription ? "text-[#00ffd5] drop-shadow-[0_0_8px_rgba(0,255,213,0.4)]" : "text-white"}>
             {hasSubscription ? "Renovar Agora" : "Ative a subscrição"}
           </span>

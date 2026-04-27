@@ -1,11 +1,11 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Search } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ProfessionalCard from "@/components/ProfessionalCard";
-import { searchProfessionals, getCategories } from "@/data/api";
+import { searchProfessionals, getCategories, logSearch } from "@/data/api";
 
 const SearchPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -22,6 +22,21 @@ const SearchPage = () => {
     queryKey: ['search', initialQuery],
     queryFn: () => searchProfessionals(initialQuery),
   });
+
+  // Log de pesquisa inicial e quando a query muda
+  useEffect(() => {
+    if (initialQuery) {
+      logSearch(initialQuery, selectedCategory);
+    }
+  }, [initialQuery]);
+
+  // Log quando muda a categoria
+  useEffect(() => {
+    if (selectedCategory) {
+      const categoryName = categories.find((c: any) => c.id === selectedCategory)?.name;
+      logSearch(initialQuery || "Navegação por Categoria", categoryName || selectedCategory);
+    }
+  }, [selectedCategory, categories]);
 
   const results = useMemo(() => {
     let filtered = searchResults;

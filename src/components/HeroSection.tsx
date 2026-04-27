@@ -35,11 +35,12 @@ const HeroSection = () => {
   } as const;
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
+    hidden: { opacity: 0, y: 30, filter: "blur(10px)" },
     visible: {
       opacity: 1,
       y: 0,
-      transition: { type: "spring", stiffness: 100, damping: 10 },
+      filter: "blur(0px)",
+      transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] },
     },
   } as const;
 
@@ -67,56 +68,73 @@ const HeroSection = () => {
         className="container relative z-10 mx-auto max-w-4xl text-center"
       >
         {/* Badge superior */}
-        <motion.div 
-          variants={itemVariants}
-          className="mb-8 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-xs font-semibold text-white backdrop-blur-sm shadow-sm"
-        >
-          <Sparkles className="h-3.5 w-3.5" />
-          <span>{getSetting('hero_badge_text', 'Qualidade e Confiança em Angola')}</span>
-        </motion.div>
+        {(getSetting('show_hero_badge', 'true') === 'true') && (
+          <motion.div 
+            variants={itemVariants}
+            whileHover={{ scale: 1.05 }}
+            className="mb-8 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-xs font-semibold text-white backdrop-blur-sm shadow-sm"
+          >
+            <Sparkles className="h-3.5 w-3.5 animate-pulse" />
+            <span>{getSetting('hero_badge_text', 'Qualidade e Confiança em Angola')}</span>
+          </motion.div>
+        )}
 
         {/* Título Principal */}
         <motion.h1
           variants={itemVariants}
           className={`text-4xl font-extrabold leading-tight ${theme === 'dark' ? 'text-slate-100' : 'text-white'} sm:text-5xl md:text-6xl lg:text-7xl`}
         >
-          {getSetting('hero_title_text', 'Encontre soluções rápidas com')} <br />
-          <span className="bg-gradient-to-r from-accent via-white to-accent bg-clip-text text-transparent">
-            {getSetting('hero_title_highlight', 'profissionais qualificados')}
-          </span>
+          <motion.span
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+          >
+            {getSetting('hero_title_text', 'Encontre profissionais confiáveis')}
+          </motion.span>
+          <br />
+          <motion.span 
+            className="bg-gradient-to-r from-accent via-white to-accent bg-clip-text text-transparent"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 1, delay: 0.5, ease: "easeOut" }}
+          >
+            {getSetting('hero_title_highlight', '— rápido e sem complicação')}
+          </motion.span>
         </motion.h1>
 
         {/* Subtítulo */}
         <motion.p
           variants={itemVariants}
-          className={`mx-auto mt-6 max-w-2xl text-lg ${theme === 'dark' ? 'text-slate-300' : 'text-primary-foreground/80'} md:text-xl`}
+          className={`mx-auto mt-6 max-w-2xl text-lg ${theme === 'dark' ? 'text-slate-300' : 'text-primary-foreground/80'} md:text-xl font-medium tracking-tight`}
         >
-          {getSetting('hero_subtitle_text', 'Conecte-se com especialistas em tecnologia, design, marketing e muito mais.')}
+          {getSetting('hero_subtitle_text', 'Do eletricista ao designer, ligamos você a quem resolve, de forma rápida, segura e perto de si.')}
         </motion.p>
 
         {/* Barra de Busca (Glassmorphism) */}
-        <motion.form
-          variants={itemVariants}
-          onSubmit={handleSearch}
-          className="mx-auto mt-10 flex max-w-2xl overflow-hidden rounded-2xl bg-white/95 p-1.5 shadow-2xl backdrop-blur-md transition-all hover:shadow-primary/20 md:rounded-3xl"
-        >
-          <div className="flex flex-1 items-center gap-3 px-4 md:px-6">
-            <Search className="h-5 w-5 shrink-0 text-primary" />
-            <input
-              type="text"
-              placeholder="Que serviço procura hoje?"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="w-full bg-transparent py-4 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none md:text-lg"
-            />
-          </div>
-          <button
-            type="submit"
-            className="rounded-xl bg-gradient-hero px-6 py-3 text-sm font-bold text-white transition-all hover:scale-[1.02] active:scale-[0.98] md:rounded-2xl md:px-10 md:text-base"
+        {(getSetting('show_search_bar', 'true') === 'true') && (
+          <motion.form
+            variants={itemVariants}
+            onSubmit={handleSearch}
+            className="mx-auto mt-10 flex max-w-2xl overflow-hidden rounded-2xl bg-white/95 p-1.5 shadow-2xl backdrop-blur-md transition-all hover:shadow-primary/20 md:rounded-3xl"
           >
-            Buscar
-          </button>
-        </motion.form>
+            <div className="flex flex-1 items-center gap-3 px-4 md:px-6">
+              <Search className="h-5 w-5 shrink-0 text-primary" />
+              <input
+                type="text"
+                placeholder="Que serviço procura hoje?"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                className="w-full bg-transparent py-4 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none md:text-lg"
+              />
+            </div>
+            <button
+              type="submit"
+              className="rounded-xl bg-gradient-hero px-6 py-3 text-sm font-bold text-white transition-all hover:scale-[1.02] active:scale-[0.98] md:rounded-2xl md:px-10 md:text-base"
+            >
+              Buscar
+            </button>
+          </motion.form>
+        )}
 
         {/* Tags Populares */}
         <motion.div

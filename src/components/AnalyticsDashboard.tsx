@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../data/api';
+import { supabase, getSearchAnalytics, getSiteStats } from '../data/api';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { ArrowUpRight, ArrowDownRight, Clock, Star, MessageSquare, TrendingUp, DollarSign, Users, Eye, CheckCircle } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Clock, Star, MessageSquare, TrendingUp, DollarSign, Users, Eye, CheckCircle, Search, MapPin, Globe } from 'lucide-react';
 
 interface KPIMetric {
   id: string;
@@ -12,11 +12,36 @@ interface KPIMetric {
 
 export const AnalyticsDashboard: React.FC = () => {
   const [metrics, setMetrics] = useState<KPIMetric[]>([]);
+  const [siteStats, setSiteStats] = useState<any>(null);
+  const [searchStats, setSearchStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchMetrics();
+    fetchAllData();
   }, []);
+
+  const fetchAllData = async () => {
+    try {
+      setLoading(true);
+      await Promise.all([
+        fetchMetrics(),
+        fetchSiteStats(),
+        fetchSearchStats()
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchSiteStats = async () => {
+    const stats = await getSiteStats();
+    setSiteStats(stats);
+  };
+
+  const fetchSearchStats = async () => {
+    const stats = await getSearchAnalytics();
+    setSearchStats(stats);
+  };
 
   const fetchMetrics = async () => {
     try {
@@ -75,6 +100,36 @@ export const AnalyticsDashboard: React.FC = () => {
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Dashboard de Desempenho</h2>
           <p className="text-muted-foreground">Monitorização executiva de KPIs da plataforma.</p>
+        </div>
+      </div>
+
+      {/* PLATFORM VISITS OVERVIEW */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-6 flex flex-col gap-2 border-primary/20 bg-primary/5">
+          <div className="flex justify-between items-center">
+            <h3 className="tracking-tight text-sm font-bold uppercase text-primary">Visitas de Hoje</h3>
+            <Globe className="h-4 w-4 text-primary" />
+          </div>
+          <div className="text-3xl font-black">{siteStats?.daily_visits || 0}</div>
+          <p className="text-xs text-muted-foreground">acessos à plataforma nas últimas 24h</p>
+        </div>
+
+        <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-6 flex flex-col gap-2 border-blue-200 bg-blue-50/50">
+          <div className="flex justify-between items-center">
+            <h3 className="tracking-tight text-sm font-bold uppercase text-blue-600">Visitas do Mês</h3>
+            <TrendingUp className="h-4 w-4 text-blue-500" />
+          </div>
+          <div className="text-3xl font-black">{siteStats?.monthly_visits || 0}</div>
+          <p className="text-xs text-muted-foreground">total acumulado este mês</p>
+        </div>
+
+        <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-6 flex flex-col gap-2 border-emerald-200 bg-emerald-50/50">
+          <div className="flex justify-between items-center">
+            <h3 className="tracking-tight text-sm font-bold uppercase text-emerald-600">Visitas Totais</h3>
+            <CheckCircle className="h-4 w-4 text-emerald-500" />
+          </div>
+          <div className="text-3xl font-black">{siteStats?.total_visits || siteStats?.yearly_visits || 0}</div>
+          <p className="text-xs text-muted-foreground">desde o início do rastreamento</p>
         </div>
       </div>
 
@@ -178,6 +233,54 @@ export const AnalyticsDashboard: React.FC = () => {
                 />
               </BarChart>
             </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+
+      {/* SEARCH ANALYTICS SECTION */}
+      <div className="grid gap-4 md:grid-cols-3 mt-8">
+        {/* Palavras Mais Pesquisadas */}
+        <div className="rounded-xl border bg-card text-card-foreground shadow-sm flex flex-col">
+          <div className="p-4 border-b bg-muted/30">
+            <h3 className="font-bold text-sm tracking-tight flex items-center gap-2"><Search className="h-4 w-4 text-primary" /> Top 5 Palavras</h3>
+          </div>
+          <div className="p-4 space-y-3">
+            {searchStats?.topQueries?.length > 0 ? searchStats.topQueries.map((item: any, i: number) => (
+              <div key={i} className="flex justify-between items-center text-sm">
+                <span className="font-medium text-muted-foreground">#{i+1} {item.name}</span>
+                <span className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full">{item.count} buscas</span>
+              </div>
+            )) : <p className="text-xs text-muted-foreground text-center py-4">Sem dados de busca</p>}
+          </div>
+        </div>
+
+        {/* Categorias Mais Pesquisadas */}
+        <div className="rounded-xl border bg-card text-card-foreground shadow-sm flex flex-col">
+          <div className="p-4 border-b bg-muted/30">
+            <h3 className="font-bold text-sm tracking-tight flex items-center gap-2"><TrendingUp className="h-4 w-4 text-emerald-500" /> Categorias Populares</h3>
+          </div>
+          <div className="p-4 space-y-3">
+            {searchStats?.topCategories?.length > 0 ? searchStats.topCategories.map((item: any, i: number) => (
+              <div key={i} className="flex justify-between items-center text-sm">
+                <span className="font-medium text-muted-foreground">{item.name}</span>
+                <span className="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full">{item.count} vezes</span>
+              </div>
+            )) : <p className="text-xs text-muted-foreground text-center py-4">Sem dados de categorias</p>}
+          </div>
+        </div>
+
+        {/* Localizações Mais Requisitadas */}
+        <div className="rounded-xl border bg-card text-card-foreground shadow-sm flex flex-col">
+          <div className="p-4 border-b bg-muted/30">
+            <h3 className="font-bold text-sm tracking-tight flex items-center gap-2"><MapPin className="h-4 w-4 text-red-500" /> Localizações Populares</h3>
+          </div>
+          <div className="p-4 space-y-3">
+            {searchStats?.topLocations?.length > 0 ? searchStats.topLocations.map((item: any, i: number) => (
+              <div key={i} className="flex justify-between items-center text-sm">
+                <span className="font-medium text-muted-foreground">{item.name}</span>
+                <span className="bg-red-100 text-red-700 text-[10px] font-bold px-2 py-0.5 rounded-full">{item.count} req.</span>
+              </div>
+            )) : <p className="text-xs text-muted-foreground text-center py-4">Sem dados de localização</p>}
           </div>
         </div>
       </div>

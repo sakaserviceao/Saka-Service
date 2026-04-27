@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -30,11 +31,12 @@ import SubscriptionPlans from "./pages/SubscriptionPlans";
 import Imoveis from "./pages/Imoveis";
 import ImovelDetail from "./pages/ImovelDetail";
 import PropertySubmit from "./pages/PropertySubmit";
+import { recordPlatformVisit } from "./data/api";
 
 // Check for missing Supabase configuration
 const isConfigured = Boolean(
   import.meta.env.VITE_SUPABASE_URL && 
-  import.meta.env.VITE_SUPABASE_URL.startsWith('http') &&
+  import.meta.env.VITE_SUPABASE_URL?.startsWith('http') &&
   import.meta.env.VITE_SUPABASE_ANON_KEY
 );
 
@@ -51,6 +53,15 @@ const queryClient = new QueryClient({
 
 const App = () => {
   console.log("Saka Service: App Component rendering...", { isConfigured });
+
+  useEffect(() => {
+    // Registar visita à plataforma uma vez por sessão
+    const sessionVisited = sessionStorage.getItem('saka_visited');
+    if (!sessionVisited && isConfigured) {
+      recordPlatformVisit();
+      sessionStorage.setItem('saka_visited', 'true');
+    }
+  }, []);
 
   if (!isConfigured) {
     console.warn("Saka Service: Supabase not configured. Showing ConfigError screen.");

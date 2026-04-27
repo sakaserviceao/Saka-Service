@@ -28,7 +28,7 @@ import {
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
 import { Button } from "@/components/ui/button";
-import { Check, X, ExternalLink, Shield, ShieldCheck, Users, FileText, ArrowLeft, Search, AlertCircle, Star, Pause, RotateCcw, Settings, Plus, Trash2, Mail, BarChart3, TrendingUp, Home, Calendar, Eye, LayoutGrid, Save, Image as ImageIcon, CreditCard, Receipt, Clock, CheckCircle, Sparkles, Bell, Megaphone, Info, FileCode, Target } from "lucide-react";
+import { Check, X, ExternalLink, Shield, ShieldCheck, Users, FileText, ArrowLeft, Search, AlertCircle, Star, Pause, RotateCcw, Settings, Plus, Trash2, Mail, BarChart3, TrendingUp, Home, Calendar, Eye, LayoutGrid, Save, Image as ImageIcon, CreditCard, Receipt, Clock, CheckCircle, Sparkles, Bell, Megaphone, Info, FileCode, Target, Monitor, Zap } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -92,6 +92,7 @@ const AdminVerifications = () => {
     queryKey: ['adminList'],
     queryFn: getAdmins,
   });
+
 
   // Check if current user is in the admin list
   const isAdmin = adminList.some((admin: any) => admin.email === user?.email) || 
@@ -935,6 +936,33 @@ function PlatformManagementPanel({ settings, categories }: { settings: any, cate
     }
   };
 
+  const handleUpdateCategoryProfessions = async (id: string, professionsString: string) => {
+    try {
+      setLoading(true);
+      const professionsArray = professionsString.split(',').map(p => p.trim()).filter(Boolean);
+      await updateCategory(id, { professions_preview: professionsArray });
+      toast.success("Profissões da categoria atualizadas.");
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao atualizar profissões da categoria.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateCategoryName = async (id: string, newName: string) => {
+    try {
+      setLoading(true);
+      await updateCategory(id, { name: newName });
+      toast.success("Nome da categoria atualizado.");
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao atualizar nome da categoria.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (Object.keys(settings).length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-muted-foreground animate-pulse">
@@ -979,6 +1007,54 @@ function PlatformManagementPanel({ settings, categories }: { settings: any, cate
           >
             <Save className="h-4 w-4" /> Salvar Alterações
           </Button>
+        </div>
+      </div>
+
+      {/* Hero Content Management Section */}
+      <div className="bg-card border-2 border-primary/20 rounded-2xl p-6 shadow-md bg-primary/5">
+        <h3 className="text-lg font-black mb-6 flex items-center gap-2 text-primary uppercase tracking-tight">
+          <Monitor className="h-6 w-6" /> Gestão de Conteúdo Principal (Hero)
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <label className="text-xs font-bold uppercase text-muted-foreground">Texto do Badge (Superior)</label>
+            <input 
+              type="text" 
+              placeholder="Qualidade e Confiança em Angola"
+              defaultValue={settings.hero_badge_text || "Qualidade e Confiança em Angola"} 
+              className="w-full h-11 px-4 rounded-xl border bg-background"
+              onBlur={(e) => handleUpdateSetting('hero_badge_text', e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs font-bold uppercase text-muted-foreground">Título Principal (Parte 1)</label>
+            <input 
+              type="text" 
+              placeholder="Encontre profissionais confiáveis"
+              defaultValue={settings.hero_title_text || "Encontre profissionais confiáveis"} 
+              className="w-full h-11 px-4 rounded-xl border bg-background"
+              onBlur={(e) => handleUpdateSetting('hero_title_text', e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs font-bold uppercase text-muted-foreground">Destaque do Título (Parte 2)</label>
+            <input 
+              type="text" 
+              placeholder="— rápido e sem complicação"
+              defaultValue={settings.hero_title_highlight || "— rápido e sem complicação"} 
+              className="w-full h-11 px-4 rounded-xl border bg-background"
+              onBlur={(e) => handleUpdateSetting('hero_title_highlight', e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs font-bold uppercase text-muted-foreground">Subtítulo / Descrição</label>
+            <textarea 
+              placeholder="Do eletricista ao designer..."
+              defaultValue={settings.hero_subtitle_text || "Do eletricista ao designer, ligamos você a quem resolve, de forma rápida, segura e perto de si."} 
+              className="w-full h-24 p-4 rounded-xl border bg-background resize-none"
+              onBlur={(e) => handleUpdateSetting('hero_subtitle_text', e.target.value)}
+            />
+          </div>
         </div>
       </div>
 
@@ -1146,6 +1222,46 @@ function PlatformManagementPanel({ settings, categories }: { settings: any, cate
         </div>
       </div>
 
+      {/* Platform Feature Management Section */}
+      <div className="bg-card border-2 border-primary/20 rounded-2xl p-6 shadow-md bg-primary/5">
+        <h3 className="text-lg font-black mb-6 flex items-center gap-2 text-primary uppercase tracking-tight">
+          <Sparkles className="h-6 w-6" /> Gestão de Visibilidade da Plataforma
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[
+            { key: 'show_hero_badge', label: 'Badge Superior (Hero)', icon: Megaphone },
+            { key: 'show_search_bar', label: 'Barra de Pesquisa Global', icon: Search },
+            { key: 'show_stats_section', label: 'Secção de Estatísticas', icon: BarChart3 },
+            { key: 'show_categories_preview', label: 'Categorias em Destaque', icon: LayoutGrid },
+            { key: 'show_top_professionals', label: 'Profissionais em Destaque', icon: Star },
+            {key: 'show_imoveis', label: 'Secção Saka Imóveis', icon: Home },
+            { key: 'show_dynamic_cta', label: 'Chamada para Ação (CTA)', icon: Zap },
+            { key: 'show_footer_socials', label: 'Redes Sociais no Rodapé', icon: Users },
+          ].map((item) => (
+            <div key={item.key} className="flex items-center justify-between p-4 bg-background rounded-xl border-2 border-primary/10 hover:border-primary/30 transition-all shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg border border-primary/20">
+                  <item.icon className="h-5 w-5 text-primary" />
+                </div>
+                <span className="text-sm font-bold text-foreground">{item.label}</span>
+              </div>
+              <div 
+                className={`w-14 h-7 rounded-full p-1 cursor-pointer transition-colors duration-300 ease-in-out ${settings[item.key] === 'true' ? 'bg-primary shadow-inner' : 'bg-muted border border-border'}`}
+                onClick={() => handleUpdateSetting(item.key, settings[item.key] === 'true' ? 'false' : 'true')}
+              >
+                <div className={`w-5 h-5 rounded-full bg-white shadow-md transform transition-transform duration-300 ease-in-out ${settings[item.key] === 'true' ? 'translate-x-7' : 'translate-x-0'}`} />
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-6 p-4 bg-amber-50 rounded-xl border border-amber-100 flex items-start gap-3">
+          <Info className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+          <p className="text-xs text-amber-800 leading-relaxed">
+            <strong>Dica:</strong> Estas opções permitem ocultar secções inteiras da página inicial para manutenção ou simplificação da interface. As alterações são aplicadas em tempo real para todos os utilizadores.
+          </p>
+        </div>
+      </div>
+
       {/* Company Links Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="bg-card border rounded-2xl p-6 shadow-sm">
@@ -1233,6 +1349,48 @@ function PlatformManagementPanel({ settings, categories }: { settings: any, cate
                 onBlur={(e) => handleUpdateSetting('banner_pre_cta_link', e.target.value)}
               />
             </div>
+          </div>
+        </div>
+
+        {/* Feature Management Section */}
+        <div className="bg-card border rounded-2xl p-6 shadow-sm border-l-4 border-l-amber-500">
+          <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
+            <Settings className="h-5 w-5 text-amber-500" /> Gestão de Visibilidade da Plataforma
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[
+              { key: 'show_hero_badge', label: 'Badge Superior (Hero)', desc: 'Exibe o texto de confiança no topo.' },
+              { key: 'show_search_bar', label: 'Barra de Pesquisa', desc: 'Exibe a pesquisa na página inicial.' },
+              { key: 'show_stats_section', label: 'Barra de Estatísticas', desc: 'Exibe os números da plataforma.' },
+              { key: 'show_categories_preview', label: 'Secção de Categorias', desc: 'Exibe as categorias na Home.' },
+              { key: 'show_top_professionals', label: 'Profissionais em Destaque', desc: 'Exibe os perfis recomendados.' },
+              { key: 'show_footer_socials', label: 'Redes Sociais (Rodapé)', desc: 'Exibe ícones sociais no fundo.' },
+            ].map((feature) => (
+              <div key={feature.key} className="p-4 rounded-xl bg-secondary/20 border border-border flex flex-col justify-between gap-3">
+                <div className="space-y-1">
+                  <p className="font-bold text-sm">{feature.label}</p>
+                  <p className="text-[10px] text-muted-foreground">{feature.desc}</p>
+                </div>
+                <div className="flex gap-1 bg-background p-1 rounded-lg border w-fit">
+                  <Button 
+                    size="sm" 
+                    variant={settings[feature.key] === 'true' || settings[feature.key] === undefined ? 'default' : 'ghost'}
+                    onClick={() => handleUpdateSetting(feature.key, 'true')}
+                    className="rounded-md h-7 text-[10px] px-2"
+                  >
+                    Ativado
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant={settings[feature.key] === 'false' ? 'destructive' : 'ghost'}
+                    onClick={() => handleUpdateSetting(feature.key, 'false')}
+                    className="rounded-md h-7 text-[10px] px-2"
+                  >
+                    Desativado
+                  </Button>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -1518,12 +1676,13 @@ function PlatformManagementPanel({ settings, categories }: { settings: any, cate
         <EmailTemplateManagement />
       </div>
 
-      {/* Categories Banners Section */}
-      <div className="bg-card border rounded-2xl shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b bg-muted/30">
-          <h3 className="font-bold flex items-center gap-2">
-            <LayoutGrid className="h-5 w-5 text-primary" /> Banners por Categoria
+      {/* Categories Management Section */}
+      <div className="bg-card border-2 border-primary/20 rounded-2xl shadow-md overflow-hidden bg-primary/5">
+        <div className="px-6 py-6 border-b bg-primary/10">
+          <h3 className="text-xl font-black flex items-center gap-2 text-primary uppercase tracking-tight">
+            <LayoutGrid className="h-6 w-6" /> Gestão de Categorias e Profissionais
           </h3>
+          <p className="text-sm text-muted-foreground mt-1">Edite as denominações, exemplos de profissões e banners visuais de cada categoria.</p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 divide-x divide-y">
           {categories.map((cat: any) => (
@@ -1533,6 +1692,26 @@ function PlatformManagementPanel({ settings, categories }: { settings: any, cate
                 <h4 className="font-bold">{cat.name}</h4>
               </div>
               <div className="space-y-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase text-muted-foreground">Nome da Categoria</label>
+                  <input 
+                    type="text" 
+                    placeholder="Nome da categoria..."
+                    defaultValue={cat.name || ""} 
+                    className="w-full h-9 px-3 text-xs rounded-lg border bg-background focus:ring-1 focus:ring-primary"
+                    onBlur={(e) => handleUpdateCategoryName(cat.id, e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase text-muted-foreground">Profissões (Separadas por vírgula)</label>
+                  <input 
+                    type="text" 
+                    placeholder="Pedreiro, Pintor, ..."
+                    defaultValue={(cat.professions_preview || []).join(', ')} 
+                    className="w-full h-9 px-3 text-xs rounded-lg border bg-background focus:ring-1 focus:ring-primary"
+                    onBlur={(e) => handleUpdateCategoryProfessions(cat.id, e.target.value)}
+                  />
+                </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold uppercase text-muted-foreground">URL do Banner</label>
                   <input 

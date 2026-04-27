@@ -211,6 +211,7 @@ export const getCategoryById = async (id: string) => {
   return data;
 };
 
+
 export const createProfessionalProfile = async (profileData: any) => {
   // Usamos upsert para evitar erros de "duplicate key" e garantir visibilidade
   const { data, error } = await supabase
@@ -702,15 +703,85 @@ export const getSiteStats = async () => {
     if (error) {
       if (error.code === 'PGRST116') {
         console.warn('Saka Service Analytics: site_stats "global" not found. Returning defaults.');
-        return { daily_visits: 0, monthly_visits: 0, yearly_visits: 0 };
+        return { daily_visits: 0, monthly_visits: 0, yearly_visits: 0, total_visits: 0 };
       }
       console.error('Saka Service Analytics: Error fetching site stats:', error.message);
-      return { daily_visits: 0, monthly_visits: 0, yearly_visits: 0 };
+      return { daily_visits: 0, monthly_visits: 0, yearly_visits: 0, total_visits: 0 };
     }
     return data;
   } catch (err) {
     console.error('Saka Service Analytics: Fatal error fetching stats:', err);
-    return { daily_visits: 0, monthly_visits: 0, yearly_visits: 0 };
+    return { daily_visits: 0, monthly_visits: 0, yearly_visits: 0, total_visits: 0 };
+  }
+};
+
+export const recordPlatformVisit = async () => {
+  try {
+    const { error } = await supabase.rpc('record_site_visit');
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.warn('Saka Service Analytics: Error recording site visit:', err);
+    return false;
+  }
+};
+
+export const logSearch = async (query: string, categoryId?: string, location?: string) => {
+  try {
+    const { error } = await supabase.rpc('record_search', {
+      query_text: query,
+      cat_id: categoryId || null,
+      loc_text: location || null
+    });
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.warn('Saka Service Analytics: Error logging search:', err);
+    return false;
+  }
+};
+
+export const getSearchAnalytics = async () => {
+  try {
+    // Buscar Top 5 Palavras
+    const { data: topQueries } = await supabase
+      .from('search_logs')
+      .select('query')
+      .not('query', 'is', null)
+      .not('query', 'eq', '');
+    
+    // Buscar Top Categorias (contar via query ou processar aqui para simplificar)
+    const { data: topCategories } = await supabase
+      .from('search_logs')
+      .select('category_id')
+      .not('category_id', 'is', null);
+
+    // Buscar Top Localizações
+    const { data: topLocations } = await supabase
+      .from('search_logs')
+      .select('location_text')
+      .not('location_text', 'is', null);
+
+    const processStats = (items: any[], key: string) => {
+      const counts: Record<string, number> = {};
+      items?.forEach(item => {
+        const val = item[key];
+        if (val) counts[val] = (counts[val] || 0) + 1;
+      });
+      return Object.entries(counts)
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5);
+    };
+
+    return {
+      topQueries: processStats(topQueries || [], 'query'),
+      topCategories: processStats(topCategories || [], 'category_id'),
+      topLocations: processStats(topLocations || [], 'location_text')
+    };
+  } catch (err) {
+    console.error('Error fetching search analytics:', err);
+    return { topQueries: [], topCategories: [], topLocations: [] };
   }
 };
 

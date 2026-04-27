@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Menu, X, Search, LogOut, Sun, Moon, Headphones } from "lucide-react";
+import { Menu, X, Search, LogOut, Sun, Moon, Headphones, CreditCard, User, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
@@ -30,9 +30,16 @@ const Navbar = () => {
             />
           </div>
           <div className="flex flex-col">
-            <span className="text-xl font-bold text-foreground leading-none">
+            <motion.span 
+              className="text-xl font-bold text-foreground leading-none"
+              whileHover={{ 
+                scale: 1.05,
+                color: "var(--primary)",
+                transition: { duration: 0.2 }
+              }}
+            >
               {getSetting('brand_name', 'Sakaservice')}
-            </span>
+            </motion.span>
             <div className="flex md:hidden items-center gap-3 mt-1">
               {!user ? (
                 <>
@@ -65,6 +72,12 @@ const Navbar = () => {
           <Link to="/search" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
             <Search className="h-4 w-4" />
           </Link>
+          <button 
+            onClick={() => document.getElementById('footer')?.scrollIntoView({ behavior: 'smooth' })}
+            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Contactos
+          </button>
 
           <Button variant="ghost" size="icon" onClick={toggleTheme} className="rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary/50">
             {theme === "light" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
@@ -84,31 +97,41 @@ const Navbar = () => {
                   Painel Admin
                 </Link>
               )}
-              <span className="text-sm font-medium text-primary">{displayName}</span>
               {isProfessional ? (
                 <>
                   <Button 
                     size="sm" 
                     variant="ghost" 
-                    className="text-primary hover:bg-primary/5 gap-2" 
+                    className="text-primary hover:bg-primary/5 flex flex-col h-auto py-1 px-2 gap-0" 
                     onClick={() => setSupportOpen(true)}
                   >
-                    <Headphones className="h-4 w-4" /> Suporte
+                    <Headphones className="h-4 w-4" />
+                    <span className="text-[10px] leading-tight">Suporte</span>
                   </Button>
-                  <Button size="sm" variant="ghost" className="text-primary hover:bg-primary/5" asChild>
-                    <Link to="/planos">Planos</Link>
+                  <Button size="sm" variant="ghost" className="text-primary hover:bg-primary/5 flex flex-col h-auto py-1 px-2 gap-0" asChild>
+                    <Link to="/planos">
+                      <CreditCard className="h-4 w-4" />
+                      <span className="text-[10px] leading-tight">Planos</span>
+                    </Link>
                   </Button>
-                  <Button size="sm" variant="outline" className="border-primary text-primary hover:bg-primary/5" asChild>
-                    <Link to="/perfil-editar">Editar Perfil</Link>
+                  <Button size="sm" variant="outline" className="border-primary text-primary hover:bg-primary/5 font-bold flex flex-col h-auto py-1 px-2 gap-0" asChild>
+                    <Link to="/perfil-editar">
+                      <User className="h-4 w-4" />
+                      <span className="text-[10px] leading-tight">{displayName} | Editar Perfil</span>
+                    </Link>
                   </Button>
                 </>
               ) : (
-                <Button size="sm" className={`bg-gradient-hero ${theme === 'dark' ? 'text-slate-100' : 'text-primary-foreground'}`} asChild>
-                  <Link to="/tornar-se-pro">Tornar-me Pro</Link>
+                <Button size="sm" className={`bg-gradient-hero ${theme === 'dark' ? 'text-slate-100' : 'text-primary-foreground'} font-bold flex flex-col h-auto py-1 px-2 gap-0`} asChild>
+                  <Link to="/tornar-se-pro">
+                    <Star className="h-4 w-4" />
+                    <span className="text-[10px] leading-tight">{displayName} | Profissional</span>
+                  </Link>
                 </Button>
               )}
-              <Button variant="outline" size="sm" onClick={signOut} className="gap-2">
-                <LogOut className="h-4 w-4" /> Sair
+              <Button variant="outline" size="sm" onClick={signOut} className="flex flex-col h-auto py-1 px-2 gap-0">
+                <LogOut className="h-4 w-4" />
+                <span className="text-[10px] leading-tight">Sair</span>
               </Button>
             </div>
           ) : (
@@ -151,43 +174,64 @@ const Navbar = () => {
             className="overflow-hidden border-t border-border md:hidden"
           >
             <div className="container flex flex-col gap-3 py-4">
+              <button 
+                onClick={() => {
+                  document.getElementById('footer')?.scrollIntoView({ behavior: 'smooth' });
+                  setIsOpen(false);
+                }}
+                className="text-left text-sm font-medium text-muted-foreground transition-colors hover:text-foreground py-2"
+              >
+                Contactos
+              </button>
               {/* Removidos links redundantes que agora estão no cabeçalho */}
               <div className="flex flex-col gap-2 pt-2">
                 {user ? (
                   <>
                     {['franciscobeneditomucamba@gmail.com', 'sakaservice.ao@gmail.com', 'podosk2010@hotmail.com', 'francisco.mucamba@gmail.com'].includes(user.email || '') && (
-                      <Link to="/admin/verifications" className="text-sm font-bold text-center text-primary mb-2 bg-primary/5 p-2 rounded-lg" onClick={() => setIsOpen(false)}>
-                        Painel de Administração
-                      </Link>
+                      <Button size="sm" variant="outline" className="w-full border-primary text-primary mb-2" asChild>
+                        <Link to="/admin/verifications" onClick={() => setIsOpen(false)}>
+                          Painel de Administração
+                        </Link>
+                      </Button>
                     )}
-                    <span className="text-sm font-medium text-center text-primary mb-2">{displayName}</span>
                     {isProfessional ? (
                       <>
                         <Button 
                           size="sm" 
-                          variant="ghost" 
-                          className="w-full text-primary hover:bg-primary/5 mb-2 gap-2 justify-start" 
+                          variant="outline" 
+                          className="w-full border-primary text-primary mb-2 flex flex-col h-auto py-2 gap-1 justify-center" 
                           onClick={() => {
                             setSupportOpen(true);
                             setIsOpen(false);
                           }}
                         >
-                          <Headphones className="h-4 w-4" /> Suporte
+                          <Headphones className="h-4 w-4" />
+                          <span className="text-[10px] leading-tight">Suporte</span>
                         </Button>
-                        <Button size="sm" variant="outline" className="w-full border-primary text-primary mb-2" asChild>
-                          <Link to="/planos" onClick={() => setIsOpen(false)}>Planos de Subscrição</Link>
+                        <Button size="sm" variant="outline" className="w-full border-primary text-primary mb-2 flex flex-col h-auto py-2 gap-1 justify-center" asChild>
+                          <Link to="/planos" onClick={() => setIsOpen(false)}>
+                            <CreditCard className="h-4 w-4" />
+                            <span className="text-[10px] leading-tight">Planos de Subscrição</span>
+                          </Link>
                         </Button>
-                        <Button size="sm" variant="outline" className="w-full border-primary text-primary" asChild>
-                          <Link to="/perfil-editar" onClick={() => setIsOpen(false)}>Editar meu perfil</Link>
+                        <Button size="sm" variant="outline" className="w-full border-primary text-primary hover:bg-primary/5 font-bold flex flex-col h-auto py-2 gap-1 justify-center" asChild>
+                          <Link to="/perfil-editar" onClick={() => setIsOpen(false)}>
+                            <User className="h-4 w-4" />
+                            <span className="text-[10px] leading-tight">{displayName} | Editar Perfil</span>
+                          </Link>
                         </Button>
                       </>
                     ) : (
-                      <Button size="sm" className={`w-full bg-gradient-hero ${theme === 'dark' ? 'text-slate-100' : 'text-primary-foreground'}`} asChild>
-                        <Link to="/tornar-se-pro" onClick={() => setIsOpen(false)}>Tornar-me Pro</Link>
+                      <Button size="sm" className="w-full bg-gradient-hero text-white font-bold flex flex-col h-auto py-2 gap-1 justify-center" asChild>
+                        <Link to="/tornar-se-pro" onClick={() => setIsOpen(false)}>
+                          <Star className="h-4 w-4" />
+                          <span className="text-[10px] leading-tight">{displayName} | Tornar-me Profissional</span>
+                        </Link>
                       </Button>
                     )}
-                    <Button variant="outline" size="sm" className="w-full gap-2" onClick={() => { signOut(); setIsOpen(false); }}>
-                      <LogOut className="h-4 w-4" /> Sair
+                    <Button variant="outline" size="sm" className="w-full border-primary text-primary flex flex-col h-auto py-2 gap-1 justify-center" onClick={() => { signOut(); setIsOpen(false); }}>
+                      <LogOut className="h-4 w-4" />
+                      <span className="text-[10px] leading-tight">Sair</span>
                     </Button>
                   </>
                 ) : (

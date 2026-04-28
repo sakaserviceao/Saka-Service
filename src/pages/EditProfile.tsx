@@ -441,9 +441,11 @@ const EditProfile = () => {
                   <h2 className="text-xl font-semibold border-b pb-2">Informação Básica (Pública)</h2>
 
                   <div className="space-y-2 pb-4 flex items-center gap-4">
-                    {existingAvatar && !avatarFile && (
-                      <img src={existingAvatar} alt="Current" className="w-16 h-16 rounded-full object-cover border" />
-                    )}
+                    <img 
+                      src={existingAvatar || "https://zldaauprystajzxfypmc.supabase.co/storage/v1/object/public/uploads/Logo%20Oku%20Saka%20e%20Sakaservice.png"} 
+                      alt="Current" 
+                      className="w-16 h-16 rounded-full object-cover border bg-white" 
+                    />
                     <div className="flex-1">
                       <Label htmlFor="avatar" className="flex items-center gap-2"><UploadCloud className="h-4 w-4" /> Alterar Foto de Perfil</Label>
                       <Input id="avatar" type="file" accept="image/*" onChange={(e) => setAvatarFile(e.target.files?.[0] || null)} />
@@ -692,7 +694,7 @@ const EditProfile = () => {
                   <Save className="h-5 w-5 mr-2" /> {loading ? "A Atualizar..." : "Guardar Edições"}
                 </Button>
 
-                {(missingDocs || verificationStatus === 'pending_review' || verificationStatus === 'rejeitado') && (
+                {((missingDocs && settings.require_professional_verification !== 'false') || verificationStatus === 'pending_review' || verificationStatus === 'rejeitado') && (
                   <div className="mt-8 rounded-2xl border border-primary/20 bg-primary/5 p-6 flex flex-col md:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
                     <div className="flex items-center gap-3">
                       <ShieldCheck className={`h-10 w-10 ${verificationStatus === "ativo" ? "text-green-500" : "text-orange-500 hover:animate-pulse"}`} />
@@ -711,14 +713,14 @@ const EditProfile = () => {
                             ? "O seu perfil está verificado e transmite confiança total aos clientes."
                             : verificationStatus === "rejeitado"
                               ? "Os seus documentos foram rejeitados. Por favor, submeta novamente documentos válidos."
-                              : missingDocs
+                              : missingDocs && settings.require_professional_verification !== 'false'
                                 ? (settings.msg_verification_pending || "Faltam carregar os seus documentos para obter o selo de Verificado")
                                 : "Os seus documentos estão a ser analisados manualmente pela nossa equipa."
                           }
                         </p>
                       </div>
                     </div>
-                    {verificationStatus === 'pending_review' && !missingDocs ? (
+                    {verificationStatus === 'pending_review' && (!missingDocs || settings.require_professional_verification === 'false') ? (
                       <Button className="bg-muted text-muted-foreground font-bold whitespace-nowrap cursor-not-allowed" disabled>
                         Aguarde...
                       </Button>

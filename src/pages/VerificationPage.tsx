@@ -6,14 +6,19 @@ import { DocumentUpload } from "@/components/DocumentUpload";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { CheckCircle2, ShieldCheck, AlertCircle, Loader2 } from "lucide-react";
+import { CheckCircle2, ShieldCheck, AlertCircle, Loader2, ArrowLeft } from "lucide-react";
 import Navbar from "@/components/Navbar";
+import { useSettings } from "@/hooks/useSettings";
+import { Link } from "react-router-dom";
 
 const VerificationPage = () => {
   const { user } = useAuth();
+  const { getSetting } = useSettings();
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+
+  const isVerificationRequired = getSetting('require_professional_verification', 'true') === 'true';
   const [userProfile, setUserProfile] = useState<any>(null);
   const [rejectionReason, setRejectionReason] = useState<string | null>(null);
   const [idNumber, setIdNumber] = useState("");
@@ -129,7 +134,18 @@ const VerificationPage = () => {
         </div>
 
         <div className="bg-card border rounded-2xl p-8 shadow-sm text-left">
-          {step === 1 && (
+          {!isVerificationRequired ? (
+            <div className="text-center py-6 space-y-4">
+              <div className="h-16 w-16 bg-green-50 rounded-full flex items-center justify-center mx-auto border border-green-100">
+                <CheckCircle2 className="h-8 w-8 text-green-500" />
+              </div>
+              <h2 className="text-xl font-bold">Verificação Opcional</h2>
+              <p className="text-muted-foreground">De momento, a verificação por documentos não é obrigatória. O seu perfil já está ativo e visível para os clientes.</p>
+              <Button asChild className="mt-4 gap-2">
+                <Link to="/perfil-editar"><ArrowLeft className="h-4 w-4" /> Voltar ao Painel</Link>
+              </Button>
+            </div>
+          ) : step === 1 && (
             <div className="space-y-4">
               <div className="space-y-2">
                 <label className="text-sm font-bold">Número do BI</label>

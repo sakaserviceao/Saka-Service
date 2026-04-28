@@ -365,17 +365,11 @@ const ProfessionalProfile = () => {
           className="rounded-2xl border border-border bg-card p-6 shadow-card md:p-8"
         >
           <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-center">
-            {pro.avatar ? (
-              <img
-                src={pro.avatar}
-                alt={pro.name}
-                className="h-20 w-20 rounded-full object-cover ring-4 ring-primary/20 md:h-24 md:w-24"
-              />
-            ) : (
-              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/20 ring-4 ring-primary/20 md:h-24 md:w-24">
-                <span className="text-2xl font-bold text-primary">{pro.name?.charAt(0)}</span>
-              </div>
-            )}
+            <img
+              src={pro.avatar}
+              alt={pro.name}
+              className="h-20 w-20 rounded-full object-cover ring-4 ring-primary/20 md:h-24 md:w-24 bg-white"
+            />
             
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">

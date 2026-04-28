@@ -78,7 +78,7 @@ const mapProfessional = (pro: any): Professional => {
       presentation: Number((cat_presentation / structuredCount).toFixed(1)),
       technical: Number((cat_technical / structuredCount).toFixed(1)),
     } : undefined,
-    avatar: pro.avatar || "",
+    avatar: pro.avatar || "https://zldaauprystajzxfypmc.supabase.co/storage/v1/object/public/uploads/Logo%20Oku%20Saka%20e%20Sakaservice.png",
     category: pro.category || "other",
     secondary_category_1: pro.secondary_category_1 || "",
     secondary_category_2: pro.secondary_category_2 || "",

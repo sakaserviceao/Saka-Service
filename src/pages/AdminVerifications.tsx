@@ -737,7 +737,7 @@ function ProfessionalManagementPanel({ allPros, onExportLog }: { allPros: any[],
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="h-8 w-8 rounded-full overflow-hidden border">
-                          <img src={pro.avatar || "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100"} alt="" className="h-full w-full object-cover" />
+                          <img src={pro.avatar || "https://zldaauprystajzxfypmc.supabase.co/storage/v1/object/public/uploads/Logo%20Oku%20Saka%20e%20Sakaservice.png"} alt="" className="h-full w-full object-cover" />
                         </div>
                         <span className="font-bold">{pro.name}</span>
                       </div>
@@ -1234,9 +1234,10 @@ function PlatformManagementPanel({ settings, categories }: { settings: any, cate
             { key: 'show_stats_section', label: 'Secção de Estatísticas', icon: BarChart3 },
             { key: 'show_categories_preview', label: 'Categorias em Destaque', icon: LayoutGrid },
             { key: 'show_top_professionals', label: 'Profissionais em Destaque', icon: Star },
-            {key: 'show_imoveis', label: 'Secção Saka Imóveis', icon: Home },
+            { key: 'show_imoveis', label: 'Secção Saka Imóveis', icon: Home },
             { key: 'show_dynamic_cta', label: 'Chamada para Ação (CTA)', icon: Zap },
             { key: 'show_footer_socials', label: 'Redes Sociais no Rodapé', icon: Users },
+            { key: 'require_professional_verification', label: 'Exigir BI/Certificado/Vídeo', icon: ShieldCheck },
           ].map((item) => (
             <div key={item.key} className="flex items-center justify-between p-4 bg-background rounded-xl border-2 border-primary/10 hover:border-primary/30 transition-all shadow-sm">
               <div className="flex items-center gap-3">
@@ -1365,6 +1366,7 @@ function PlatformManagementPanel({ settings, categories }: { settings: any, cate
               { key: 'show_categories_preview', label: 'Secção de Categorias', desc: 'Exibe as categorias na Home.' },
               { key: 'show_top_professionals', label: 'Profissionais em Destaque', desc: 'Exibe os perfis recomendados.' },
               { key: 'show_footer_socials', label: 'Redes Sociais (Rodapé)', desc: 'Exibe ícones sociais no fundo.' },
+              { key: 'require_professional_verification', label: 'Verificação Obrigatória', desc: 'Exige BI, Certificado e Vídeo para novos pros.' },
             ].map((feature) => (
               <div key={feature.key} className="p-4 rounded-xl bg-secondary/20 border border-border flex flex-col justify-between gap-3">
                 <div className="space-y-1">
@@ -1822,7 +1824,7 @@ function AnalyticsPanel() {
                   }`}>
                     {index + 1}
                   </div>
-                  <img src={pro.avatar} className="h-10 w-10 rounded-full object-cover border" alt={pro.name} />
+                  <img src={pro.avatar || "https://zldaauprystajzxfypmc.supabase.co/storage/v1/object/public/uploads/Logo%20Oku%20Saka%20e%20Sakaservice.png"} className="h-10 w-10 rounded-full object-cover border bg-white" alt={pro.name} />
                   <div>
                     <h4 className="font-bold text-sm leading-none mb-1">{pro.name}</h4>
                     <p className="text-xs text-muted-foreground">{pro.title}</p>
@@ -2352,7 +2354,7 @@ function VerificationItem({ pro, mutation, featuredMutation, deleteMutation, can
     <div className="flex flex-col lg:flex-row gap-8">
       <div className="flex-1 space-y-4">
         <div className="flex items-center gap-4">
-          <img src={pro.avatar || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=face"} alt={pro.name} className="h-16 w-16 rounded-full object-cover" />
+          <img src={pro.avatar || "https://zldaauprystajzxfypmc.supabase.co/storage/v1/object/public/uploads/Logo%20Oku%20Saka%20e%20Sakaservice.png"} alt={pro.name} className="h-16 w-16 rounded-full object-cover bg-white" />
           <div>
             <h2 className="text-xl font-bold flex items-center gap-2">
               {pro.name}
@@ -2695,7 +2697,7 @@ function SubscriptionItem({ sub }: { sub: any }) {
         {/* Info Profissional */}
         <div className="flex items-center gap-4 flex-1">
           <div className="h-12 w-12 rounded-full overflow-hidden border bg-muted shrink-0">
-            <img src={pro?.avatar || ""} className="h-full w-full object-cover" alt={pro?.name || "Profissional"} />
+            <img src={pro?.avatar || "https://zldaauprystajzxfypmc.supabase.co/storage/v1/object/public/uploads/Logo%20Oku%20Saka%20e%20Sakaservice.png"} className="h-full w-full object-cover bg-white" alt={pro?.name || "Profissional"} />
           </div>
           <div className="flex-1 min-w-0">
             <h4 className="font-bold truncate">{pro?.name || "Nome não disponível"}</h4>

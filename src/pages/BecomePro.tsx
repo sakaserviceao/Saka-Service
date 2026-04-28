@@ -9,14 +9,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { Trash2, Plus, UploadCloud, Check, ChevronRight, ShieldCheck, FileText } from "lucide-react";
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
+import { useSettings } from "@/hooks/useSettings";
 
 const BecomePro = () => {
   const { user, isLoading, isProfessional, refreshProfile } = useAuth();
+  const { getSetting } = useSettings();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1);
   const [categories, setCategories] = useState<any[]>([]);
   const [hasExistingProfile, setHasExistingProfile] = useState(false);
+
+  const isVerificationRequired = getSetting('require_professional_verification', 'true') === 'true';
 
   const [formData, setFormData] = useState({
     name: "",
@@ -109,8 +113,66 @@ const BecomePro = () => {
       if (!formData.name || !formData.title || !formData.category || !formData.description || !formData.location) {
         return toast.error("Por favor, preencha todos os campos obrigatórios do perfil.");
       }
+      
+      if (!isVerificationRequired) {
+        // Se a verificação não for necessária, submete logo no passo 1
+        handleSubmitDirectly();
+        return;
+      }
+      
       setStep(2);
       window.scrollTo(0, 0);
+    }
+  };
+
+  const handleSubmitDirectly = async () => {
+    setLoading(true);
+    try {
+      // 1. Upload do Avatar
+      let uploadedAvatarUrl = "";
+      if (avatarFile) {
+        toast.info("A carregar foto de perfil...");
+        const url = await uploadImage(avatarFile);
+        if (url) uploadedAvatarUrl = url;
+      }
+
+      // 2. Criar/Atualizar o Perfil Profissional (Diretamente como ativo/pendente sem docs)
+      await createProfessionalProfile({
+        id: user.id,
+        ...formData,
+        avatar: uploadedAvatarUrl || (hasExistingProfile ? undefined : ""),
+        verification_status: 'ativo' // Se não exige docs, assume-se que fica ativo
+      });
+
+      // 3. Upload das imagens de portfolio
+      const validPortfolios = [];
+      for (const p of portfolios) {
+        if (p.title && p.imageFile) {
+          toast.info(`A carregar portfolio: ${p.title}...`);
+          const pUrl = await uploadImage(p.imageFile);
+          if (pUrl) {
+            validPortfolios.push({
+              title: p.title,
+              description: p.description,
+              image: pUrl,
+              professional_id: user.id
+            });
+          }
+        }
+      }
+
+      if (validPortfolios.length > 0) {
+        await addPortfolios(validPortfolios);
+      }
+      
+      await refreshProfile();
+      toast.success("Perfil profissional criado com sucesso!");
+      navigate("/planos");
+    } catch (error: any) {
+      console.error("Erro ao submeter perfil direto:", error);
+      toast.error(error?.message || "Erro ao processar o registo.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -219,11 +281,20 @@ const BecomePro = () => {
                   <Plus className="h-5 w-5 text-primary" /> Informação Profissional
                 </h2>
                 
-                <div className="space-y-2 pb-4">
-                  <Label htmlFor="avatar" className="flex items-center gap-2 cursor-pointer hover:text-primary transition-colors">
-                    <UploadCloud className="h-5 w-5" /> Foto de Perfil Profissional
-                  </Label>
-                  <Input id="avatar" type="file" accept="image/*" onChange={(e) => setAvatarFile(e.target.files?.[0] || null)} className="cursor-pointer" />
+                <div className="flex items-center gap-4 pb-4">
+                  <div className="h-16 w-16 rounded-full overflow-hidden border-2 border-primary/10 bg-white">
+                    <img 
+                      src={avatarFile ? URL.createObjectURL(avatarFile) : "https://zldaauprystajzxfypmc.supabase.co/storage/v1/object/public/uploads/Logo%20Oku%20Saka%20e%20Sakaservice.png"} 
+                      alt="Avatar Preview" 
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                  <div className="flex-1 space-y-2">
+                    <Label htmlFor="avatar" className="flex items-center gap-2 cursor-pointer hover:text-primary transition-colors">
+                      <UploadCloud className="h-5 w-5" /> Foto de Perfil Profissional
+                    </Label>
+                    <Input id="avatar" type="file" accept="image/*" onChange={(e) => setAvatarFile(e.target.files?.[0] || null)} className="cursor-pointer" />
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -305,8 +376,9 @@ const BecomePro = () => {
                 </div>
               </div>
 
-              <Button onClick={nextStep} className="w-full h-14 text-lg gap-2 bg-gradient-hero">
-                Continuar para Verificação <ChevronRight className="h-5 w-5" />
+              <Button onClick={nextStep} className="w-full h-14 text-lg gap-2 bg-gradient-hero" disabled={loading}>
+                {loading ? "A processar..." : (isVerificationRequired ? "Continuar para Verificação" : "Finalizar Registo")}
+                {!loading && <ChevronRight className="h-5 w-5" />}
               </Button>
             </div>
           ) : (

@@ -96,6 +96,13 @@ const SubscriptionPlans = () => {
     const plan = plans.find(p => p.id === selectedPlan);
     if (!plan) return;
 
+    const isProofRequired = settings.require_payment_proof === 'true';
+
+    if (paymentMethod === "transfer" && isProofRequired && !proofFile) {
+      toast.error("Por favor, carregue o comprovativo de transferência.");
+      return;
+    }
+
     if (paymentMethod === "transfer" && proofFile) {
       // Validate PDF limit: 204 KB = 208,896 bytes
       if (proofFile.size > 204 * 1024) {
@@ -310,8 +317,11 @@ const SubscriptionPlans = () => {
                             accept="application/pdf"
                             className="bg-background cursor-pointer h-12 file:mr-4 file:h-full file:border-0 file:bg-muted file:px-4 file:text-sm file:font-medium hover:file:bg-primary/10"
                             onChange={(e) => setProofFile(e.target.files?.[0] || null)}
-                            required
+                            required={settings.require_payment_proof === 'true'}
                           />
+                          {settings.require_payment_proof !== 'true' && (
+                            <p className="text-[10px] text-primary mt-2 font-medium">Opcional: Pode enviar o comprovativo agora ou via WhatsApp depois.</p>
+                          )}
                         </div>
                       </div>
                     </div>

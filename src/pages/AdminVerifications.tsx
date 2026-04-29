@@ -1,9 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { 
-  getPendingVerifications, 
-  getAllProfessionals, 
-  adminUpdateVerificationStatus, 
-  adminUpdateFeaturedStatus, 
+import {
+  getPendingVerifications,
+  getAllProfessionals,
+  adminUpdateVerificationStatus,
+  adminUpdateFeaturedStatus,
   adminRejectVerification,
   deleteProfessional,
   supabase,
@@ -23,12 +23,13 @@ import {
   logExportAction,
   getEmailTemplates,
   updateEmailTemplate,
-  uploadImage
+  uploadImage,
+  getFreshSignedUrl
 } from "@/data/api";
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
 import { Button } from "@/components/ui/button";
-import { Check, X, ExternalLink, Shield, ShieldCheck, Users, FileText, ArrowLeft, Search, AlertCircle, Star, Pause, RotateCcw, Settings, Plus, Trash2, Mail, BarChart3, TrendingUp, Home, Calendar, Eye, LayoutGrid, Save, Image as ImageIcon, CreditCard, Receipt, Clock, CheckCircle, Sparkles, Bell, Megaphone, Info, FileCode, Target, Monitor, Zap } from "lucide-react";
+import { Check, X, ExternalLink, Shield, ShieldCheck, Users, FileText, ArrowLeft, Search, AlertCircle, Star, Pause, RotateCcw, Settings, Plus, Trash2, Mail, BarChart3, TrendingUp, Home, Calendar, Eye, LayoutGrid, Save, Image as ImageIcon, CreditCard, Receipt, Clock, CheckCircle, Sparkles, Bell, Megaphone, Info, FileCode, Target, Monitor, Zap, ChevronDown, ArrowDownAZ, Play, Video } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -63,6 +64,10 @@ const AdminVerifications = () => {
   const [viewMode, setViewMode] = useState<'pending' | 'all' | 'settings' | 'analytics' | 'platform' | 'subscriptions' | 'professionalManagement' | 'properties' | 'notifications'>('pending');
   const [newAdminEmail, setNewAdminEmail] = useState("");
   const [newManagerEmail, setNewManagerEmail] = useState("");
+  const [expandedPending, setExpandedPending] = useState(false);
+  const [expandedAll, setExpandedAll] = useState(false);
+  const [proSearch, setProSearch] = useState("");
+  const [proStatusFilter, setProStatusFilter] = useState("all");
   const location = useLocation();
 
   // Parse URL parameters for direct navigation/actions
@@ -95,10 +100,10 @@ const AdminVerifications = () => {
 
 
   // Check if current user is in the admin list
-  const isAdmin = adminList.some((admin: any) => admin.email === user?.email) || 
-                  user?.email === 'franciscobeneditomucamba@gmail.com' || 
-                  user?.email === 'francisco.mucamba@gmail.com' || 
-                  user?.email === 'sakaservice.ao@gmail.com';
+  const isAdmin = adminList.some((admin: any) => admin.email === user?.email) ||
+    user?.email === 'franciscobeneditomucamba@gmail.com' ||
+    user?.email === 'francisco.mucamba@gmail.com' ||
+    user?.email === 'sakaservice.ao@gmail.com';
 
   const { data: settings = {}, isLoading: isLoadingSettings } = useQuery({
     queryKey: ['siteSettings'],
@@ -109,7 +114,7 @@ const AdminVerifications = () => {
     queryKey: ['categories'],
     queryFn: getCategories,
   });
-  
+
   const { data: pendingSubs = [], isLoading: isLoadingPendingSubs } = useQuery({
     queryKey: ['pendingSubscriptions'],
     queryFn: getPendingSubscriptions,
@@ -120,19 +125,42 @@ const AdminVerifications = () => {
     queryFn: getAllSubscriptions,
   });
 
+  const filteredAndSortedPros = useMemo(() => {
+    let result = [...allPros];
+
+    // Filter by Search
+    if (proSearch) {
+      const q = proSearch.toLowerCase();
+      result = result.filter(p =>
+        (p.name || "").toLowerCase().includes(q) ||
+        (p.email || "").toLowerCase().includes(q)
+      );
+    }
+
+    // Filter by Status
+    if (proStatusFilter !== 'all') {
+      result = result.filter(p => p.verification_status === proStatusFilter);
+    }
+
+    // Sort A-Z
+    result.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+
+    return result;
+  }, [allPros, proSearch, proStatusFilter]);
+
   const managerList = (settings.manager_emails || "").split(',').filter(Boolean);
-  const isManager = managerList.includes(user?.email || "") || 
-                    user?.email === 'podosk2010@hotmail.com';
+  const isManager = managerList.includes(user?.email || "") ||
+    user?.email === 'podosk2010@hotmail.com';
 
   const isAuthorized = isAdmin || isManager;
 
   const canAccess = (tab: string) => {
     if (isAdmin) return true;
     if (!isManager) return false;
-    
+
     const perms = (settings.manager_permissions || "verifications,properties").split(',');
-    
-    switch(tab) {
+
+    switch (tab) {
       case 'pending':
       case 'all':
         return perms.includes('verifications');
@@ -167,7 +195,7 @@ const AdminVerifications = () => {
         .from('professionals')
         .select('*')
         .or(`name.ilike.%${searchQuery}%,email.ilike.%${searchQuery}%`);
-      
+
       if (error) throw error;
       setSearchResults(data || []);
       if (data?.length === 0) toast.error("Nenhum profissional encontrado.");
@@ -179,7 +207,7 @@ const AdminVerifications = () => {
   };
 
   const mutation = useMutation({
-    mutationFn: ({ id, status }: { id: string, status: 'ativo' | 'suspenso' | 'removido' }) => 
+    mutationFn: ({ id, status }: { id: string, status: 'ativo' | 'suspenso' | 'removido' }) =>
       adminUpdateVerificationStatus(id, status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pendingVerifications'] });
@@ -192,7 +220,7 @@ const AdminVerifications = () => {
   });
 
   const featuredMutation = useMutation({
-    mutationFn: ({ id, featured }: { id: string, featured: boolean }) => 
+    mutationFn: ({ id, featured }: { id: string, featured: boolean }) =>
       adminUpdateFeaturedStatus(id, featured),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pendingVerifications'] });
@@ -203,25 +231,25 @@ const AdminVerifications = () => {
       toast.error(error.message || "Erro ao atualizar destaque.");
     }
   });
-  
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteProfessional(id),
     onSuccess: (_, deletedId) => {
       // Remover instantaneamente da cache local para feedback imediato
-      queryClient.setQueryData(['allProfessionals'], (old: any[] | undefined) => 
+      queryClient.setQueryData(['allProfessionals'], (old: any[] | undefined) =>
         old ? old.filter(p => p.id !== deletedId) : []
       );
-      queryClient.setQueryData(['pendingVerifications'], (old: any[] | undefined) => 
+      queryClient.setQueryData(['pendingVerifications'], (old: any[] | undefined) =>
         old ? old.filter(p => p.id !== deletedId) : []
       );
-      
+
       // Limpar resultados de pesquisa se existirem
       setSearchResults(prev => prev.filter(p => p.id !== deletedId));
-      
+
       // Re-validar para garantir consistência
       queryClient.invalidateQueries({ queryKey: ['pendingVerifications'] });
       queryClient.invalidateQueries({ queryKey: ['allProfessionals'] });
-      
+
       toast.success("Perfil eliminado permanentemente!");
     },
     onError: (error: any) => {
@@ -269,9 +297,9 @@ const AdminVerifications = () => {
         {/* Manual Search Bar */}
         <div className="mb-8 flex flex-col sm:flex-row gap-4">
           <div className="flex-1">
-            <input 
-              type="text" 
-              placeholder="Pesquisar por nome ou email (ex: Okusaka)" 
+            <input
+              type="text"
+              placeholder="Pesquisar por nome ou email (ex: Okusaka)"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -300,10 +328,10 @@ const AdminVerifications = () => {
             </div>
             <div className="grid gap-6">
               {searchResults.map((pro: any) => (
-                <VerificationItem 
-                  key={pro.id} 
-                  pro={pro} 
-                  mutation={mutation} 
+                <VerificationItem
+                  key={pro.id}
+                  pro={pro}
+                  mutation={mutation}
                   featuredMutation={featuredMutation}
                   deleteMutation={deleteMutation}
                   canManage={isAuthorized}
@@ -317,8 +345,8 @@ const AdminVerifications = () => {
         {/* View Mode Selector */}
         <div className="flex gap-2 mb-6 overflow-x-auto pb-4 scrollbar-none whitespace-nowrap snap-x">
           {canAccess('pending') && (
-            <Button 
-              variant={viewMode === 'pending' ? 'default' : 'outline'} 
+            <Button
+              variant={viewMode === 'pending' ? 'default' : 'outline'}
               onClick={() => setViewMode('pending')}
               className="rounded-full"
             >
@@ -326,8 +354,8 @@ const AdminVerifications = () => {
             </Button>
           )}
           {canAccess('all') && (
-            <Button 
-              variant={viewMode === 'all' ? 'default' : 'outline'} 
+            <Button
+              variant={viewMode === 'all' ? 'default' : 'outline'}
               onClick={() => setViewMode('all')}
               className="rounded-full"
             >
@@ -336,15 +364,15 @@ const AdminVerifications = () => {
           )}
           {isAdmin && (
             <>
-              <Button 
-                variant={viewMode === 'settings' ? 'default' : 'outline'} 
+              <Button
+                variant={viewMode === 'settings' ? 'default' : 'outline'}
                 onClick={() => setViewMode('settings')}
                 className="rounded-full flex items-center gap-2"
               >
                 <Settings className="h-4 w-4" /> Configurações
               </Button>
-              <Button 
-                variant={viewMode === 'platform' ? 'default' : 'outline'} 
+              <Button
+                variant={viewMode === 'platform' ? 'default' : 'outline'}
                 onClick={() => setViewMode('platform')}
                 className="rounded-full flex items-center gap-2 font-bold bg-primary/5 border-primary/20 text-primary hover:bg-primary/10"
               >
@@ -353,18 +381,18 @@ const AdminVerifications = () => {
             </>
           )}
           {canAccess('subscriptions') && (
-            <Button 
-              variant={viewMode === 'subscriptions' ? 'default' : 'outline'} 
+            <Button
+              variant={viewMode === 'subscriptions' ? 'default' : 'outline'}
               onClick={() => setViewMode('subscriptions')}
               className={`rounded-full flex items-center gap-2 ${pendingSubs.length > 0 ? "border-amber-500 text-amber-600 bg-amber-50" : ""}`}
             >
-              <CreditCard className="h-4 w-4" /> Pagamentos 
+              <CreditCard className="h-4 w-4" /> Pagamentos
               {pendingSubs.length > 0 && <span className="bg-amber-500 text-white text-[10px] px-1.5 py-0.5 rounded-full ml-1">{pendingSubs.length}</span>}
             </Button>
           )}
           {isAdmin && (
-            <Button 
-              variant={viewMode === 'professionalManagement' ? 'default' : 'outline'} 
+            <Button
+              variant={viewMode === 'professionalManagement' ? 'default' : 'outline'}
               onClick={() => setViewMode('professionalManagement')}
               className={`rounded-full flex items-center gap-2 border-primary text-primary`}
             >
@@ -372,8 +400,8 @@ const AdminVerifications = () => {
             </Button>
           )}
           {canAccess('analytics') && (
-            <Button 
-              variant={viewMode === 'analytics' ? 'default' : 'outline'} 
+            <Button
+              variant={viewMode === 'analytics' ? 'default' : 'outline'}
               onClick={() => setViewMode('analytics')}
               className="rounded-full flex items-center gap-2"
             >
@@ -381,8 +409,8 @@ const AdminVerifications = () => {
             </Button>
           )}
           {canAccess('properties') && (
-            <Button 
-              variant={viewMode === 'properties' ? 'default' : 'outline'} 
+            <Button
+              variant={viewMode === 'properties' ? 'default' : 'outline'}
               onClick={() => setViewMode('properties')}
               className="rounded-full flex items-center gap-2 border-primary/20 text-primary hover:bg-primary/5"
             >
@@ -390,8 +418,8 @@ const AdminVerifications = () => {
             </Button>
           )}
           {canAccess('notifications') && (
-            <Button 
-              variant={viewMode === 'notifications' ? 'default' : 'outline'} 
+            <Button
+              variant={viewMode === 'notifications' ? 'default' : 'outline'}
               onClick={() => setViewMode('notifications')}
               className={`rounded-full flex items-center gap-2 ${isAdmin ? "border-amber-500 text-amber-600 bg-amber-50 shadow-sm" : ""}`}
             >
@@ -402,67 +430,132 @@ const AdminVerifications = () => {
 
         {/* Main Content Section */}
         {viewMode === 'notifications' ? (
-          <NotificationsManagementPanel 
+          <NotificationsManagementPanel
             initialTargetUserId={queryParams.get('replyTo')}
             initialTitle={queryParams.get('notifTitle')}
           />
         ) : viewMode === 'pending' ? (
-          <>
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <ShieldCheck className="h-5 w-5 text-primary" /> Perfis que Aguardam Verificação
-            </h2>
-            {isLoadingPending ? (
-              <div className="flex justify-center py-20">A carregar veríficacões pendentes...</div>
-            ) : pending.length === 0 ? (
-              <div className="rounded-2xl border border-dashed p-20 text-center">
-                <Check className="mx-auto h-12 w-12 text-muted-foreground opacity-20 mb-4" />
-                <h3 className="text-lg font-medium text-muted-foreground">Não há pedidos de verificação pendentes.</h3>
-              </div>
-            ) : (
-              <div className="grid gap-6">
-                {pending.map((pro: any) => (
-                  <VerificationItem 
-                    key={pro.id} 
-                    pro={pro} 
-                    mutation={mutation} 
-                    featuredMutation={featuredMutation}
-                    deleteMutation={deleteMutation}
-                    canManage={isAuthorized}
-                  />
-                ))}
-              </div>
-            )}
-          </>
+          <div className="space-y-6">
+            <div className="bg-card border rounded-2xl overflow-hidden shadow-sm border-l-4 border-l-primary">
+              <button
+                onClick={() => setExpandedPending(!expandedPending)}
+                className="w-full flex items-center justify-between p-5 hover:bg-secondary/10 transition-colors text-left"
+              >
+                <h2 className="text-xl font-bold flex items-center gap-3">
+                  <ShieldCheck className="h-6 w-6 text-primary" /> Perfis que Aguardam Verificação ({pending.length})
+                </h2>
+                <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform duration-300 ${expandedPending ? 'rotate-180' : ''}`} />
+              </button>
+
+              {expandedPending && (
+                <div className="p-6 pt-0 border-t animate-in fade-in slide-in-from-top-2">
+                  <div className="mt-6">
+                    {isLoadingPending ? (
+                      <div className="flex justify-center py-20">A carregar veríficacões pendentes...</div>
+                    ) : pending.length === 0 ? (
+                      <div className="rounded-2xl border border-dashed p-20 text-center">
+                        <Check className="mx-auto h-12 w-12 text-muted-foreground opacity-20 mb-4" />
+                        <h3 className="text-lg font-medium text-muted-foreground">Não há pedidos de verificação pendentes.</h3>
+                      </div>
+                    ) : (
+                      <div className="grid gap-6">
+                        {pending.map((pro: any) => (
+                          <VerificationItem
+                            key={pro.id}
+                            pro={pro}
+                            mutation={mutation}
+                            featuredMutation={featuredMutation}
+                            deleteMutation={deleteMutation}
+                            canManage={isAuthorized}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         ) : viewMode === 'all' ? (
-          <>
-            <h2 className="text-xl font-bold mb-4">Todos os Profissionais na Plataforma</h2>
-            {isLoadingAll ? (
-              <div className="flex justify-center py-20">A carregar todos os perfis...</div>
-            ) : allPros.length === 0 ? (
-              <div className="rounded-2xl border border-dashed p-20 text-center">
-                <Search className="mx-auto h-12 w-12 text-muted-foreground opacity-20 mb-4" />
-                <h3 className="text-lg font-medium text-muted-foreground">Nenhum profissional registado.</h3>
-              </div>
-            ) : (
-              <div className="grid gap-6">
-                {allPros.map((pro: any) => (
-                  <VerificationItem 
-                    key={pro.id} 
-                    pro={pro} 
-                    mutation={mutation} 
-                    featuredMutation={featuredMutation}
-                    deleteMutation={deleteMutation}
-                    canManage={isAuthorized}
-                  />
-                ))}
-              </div>
-            )}
-          </>
+          <div className="space-y-6">
+            <div className="bg-card border rounded-2xl overflow-hidden shadow-sm border-l-4 border-l-slate-400">
+              <button
+                onClick={() => setExpandedAll(!expandedAll)}
+                className="w-full flex items-center justify-between p-5 hover:bg-secondary/10 transition-colors text-left"
+              >
+                <h2 className="text-xl font-bold flex items-center gap-3">
+                  <Users className="h-6 w-6 text-slate-500" /> Todos os Profissionais ({filteredAndSortedPros.length})
+                </h2>
+                <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform duration-300 ${expandedAll ? 'rotate-180' : ''}`} />
+              </button>
+
+              {expandedAll && (
+                <div className="p-6 pt-0 border-t animate-in fade-in slide-in-from-top-2">
+                  <div className="mt-6">
+                    {isLoadingAll ? (
+                      <div className="flex justify-center py-20">A carregar todos os perfis...</div>
+                    ) : allPros.length === 0 ? (
+                      <div className="rounded-2xl border border-dashed p-20 text-center">
+                        <Search className="mx-auto h-12 w-12 text-muted-foreground opacity-20 mb-4" />
+                        <h3 className="text-lg font-medium text-muted-foreground">Nenhum profissional registado.</h3>
+                      </div>
+                    ) : (
+                      <div className="grid gap-6">
+                        <div className="flex flex-col md:flex-row gap-4 mb-2 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                          <div className="relative flex-1">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <input
+                              type="text"
+                              placeholder="Pesquisar por nome ou e-mail..."
+                              value={proSearch}
+                              onChange={(e) => setProSearch(e.target.value)}
+                              className="w-full h-10 pl-10 pr-4 rounded-lg border bg-white outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm"
+                            />
+                          </div>
+                          <select
+                            value={proStatusFilter}
+                            onChange={(e) => setProStatusFilter(e.target.value)}
+                            className="h-10 px-4 rounded-lg border bg-white outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm font-medium min-w-[200px]"
+                          >
+                            <option value="all">Todos os Estados</option>
+                            <option value="ativo">Ativos / Verified</option>
+                            <option value="pending_review">Aguardando Verificação</option>
+                            <option value="suspenso">Suspensos</option>
+                            <option value="incompleto">Incompletos</option>
+                          </select>
+                          <div className="flex items-center gap-2 px-3 py-1 bg-white rounded-lg border text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                            <ArrowDownAZ className="h-4 w-4 text-primary" /> AZ
+                          </div>
+                        </div>
+
+                        {filteredAndSortedPros.length === 0 ? (
+                          <div className="py-20 text-center border-2 border-dashed rounded-2xl">
+                            <p className="text-muted-foreground">Nenhum profissional encontrado com estes filtros.</p>
+                          </div>
+                        ) : (
+                          filteredAndSortedPros.map((pro: any) => (
+                            <VerificationItem
+                              key={pro.id}
+                              pro={pro}
+                              mutation={mutation}
+                              featuredMutation={featuredMutation}
+                              deleteMutation={deleteMutation}
+                              canManage={isAuthorized}
+                            />
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         ) : viewMode === 'settings' ? (
           isAdmin ? (
-            <SettingsPanel 
-              adminList={adminList} 
-              newEmail={newAdminEmail} 
+            <SettingsPanel
+              adminList={adminList}
+              newEmail={newAdminEmail}
               setNewEmail={setNewAdminEmail}
               managerList={managerList}
               newManagerEmail={newManagerEmail}
@@ -493,7 +586,7 @@ const AdminVerifications = () => {
               onAddManager={() => {
                 if (!newManagerEmail.includes('@')) return toast.error("E-mail inválido");
                 if (managerList.includes(newManagerEmail)) return toast.error("Este e-mail já é um gestor operacional");
-                
+
                 const newList = [...managerList, newManagerEmail].join(',');
                 updateSiteSetting('manager_emails', newList)
                   .then(() => {
@@ -525,19 +618,19 @@ const AdminVerifications = () => {
         ) : viewMode === 'analytics' ? (
           <AnalyticsDashboard />
         ) : viewMode === 'subscriptions' ? (
-          <SubscriptionManagementPanel 
-            pendingSubs={pendingSubs} 
-            allSubs={allSubs} 
-            loading={isLoadingPendingSubs || isLoadingAllSubs} 
+          <SubscriptionManagementPanel
+            pendingSubs={pendingSubs}
+            allSubs={allSubs}
+            loading={isLoadingPendingSubs || isLoadingAllSubs}
           />
         ) : viewMode === 'professionalManagement' ? (
           isAdmin ? (
-            <ProfessionalManagementPanel 
-              allPros={allPros} 
+            <ProfessionalManagementPanel
+              allPros={allPros}
               onExportLog={(format, count, filters) => logExportAction(user?.email || "", format, count, filters)}
             />
           ) : (
-             <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="flex flex-col items-center justify-center py-20 text-center">
               <Shield className="h-12 w-12 text-destructive/20 mb-4" />
               <h3 className="text-lg font-bold">Acesso Restrito</h3>
               <p className="text-muted-foreground">Esta secção é exclusiva para administradores.</p>
@@ -575,7 +668,7 @@ function ProfessionalManagementPanel({ allPros, onExportLog }: { allPros: any[],
       const matchProfession = filters.profession === "all" || pro.title === filters.profession || pro.category === filters.profession;
       const matchLocation = filters.location === "all" || pro.location?.toLowerCase().includes(filters.location.toLowerCase());
       const matchStatus = filters.status === "all" || pro.verification_status === filters.status;
-      
+
       let matchDate = true;
       if (filters.date !== "all" && pro.created_at) {
         const proDate = new Date(pro.created_at);
@@ -663,7 +756,7 @@ function ProfessionalManagementPanel({ allPros, onExportLog }: { allPros: any[],
       <div className="bg-card border rounded-2xl p-6 shadow-sm grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="space-y-2">
           <label className="text-[10px] font-bold uppercase text-muted-foreground">Profissão</label>
-          <select 
+          <select
             className="w-full h-10 px-3 rounded-lg border bg-background text-sm"
             value={filters.profession}
             onChange={(e) => setFilters(prev => ({ ...prev, profession: e.target.value }))}
@@ -674,7 +767,7 @@ function ProfessionalManagementPanel({ allPros, onExportLog }: { allPros: any[],
         </div>
         <div className="space-y-2">
           <label className="text-[10px] font-bold uppercase text-muted-foreground">Localização</label>
-          <select 
+          <select
             className="w-full h-10 px-3 rounded-lg border bg-background text-sm"
             value={filters.location}
             onChange={(e) => setFilters(prev => ({ ...prev, location: e.target.value }))}
@@ -685,7 +778,7 @@ function ProfessionalManagementPanel({ allPros, onExportLog }: { allPros: any[],
         </div>
         <div className="space-y-2">
           <label className="text-[10px] font-bold uppercase text-muted-foreground">Estado</label>
-          <select 
+          <select
             className="w-full h-10 px-3 rounded-lg border bg-background text-sm"
             value={filters.status}
             onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
@@ -698,7 +791,7 @@ function ProfessionalManagementPanel({ allPros, onExportLog }: { allPros: any[],
         </div>
         <div className="space-y-2">
           <label className="text-[10px] font-bold uppercase text-muted-foreground">Data de Registo</label>
-          <select 
+          <select
             className="w-full h-10 px-3 rounded-lg border bg-background text-sm"
             value={filters.date}
             onChange={(e) => setFilters(prev => ({ ...prev, date: e.target.value }))}
@@ -750,10 +843,9 @@ function ProfessionalManagementPanel({ allPros, onExportLog }: { allPros: any[],
                       <span className="text-[10px] text-muted-foreground">{pro.email}</span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                        pro.verification_status === 'ativo' ? 'bg-green-100 text-green-700' :
-                        pro.verification_status === 'suspenso' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'
-                      }`}>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${pro.verification_status === 'ativo' ? 'bg-green-100 text-green-700' :
+                          pro.verification_status === 'suspenso' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'
+                        }`}>
                         {pro.verification_status}
                       </span>
                     </td>
@@ -827,9 +919,9 @@ function EmailTemplateItem({ template }: { template: any }) {
               <CardDescription className="text-xs font-mono uppercase tracking-widest text-primary/60">ID: {template.id}</CardDescription>
             </div>
           </div>
-          <Button 
+          <Button
             variant={isEditing ? "ghost" : "outline"}
-            size="sm" 
+            size="sm"
             onClick={() => setIsEditing(!isEditing)}
             className="font-bold flex items-center gap-2 border-primary/20"
           >
@@ -837,34 +929,34 @@ function EmailTemplateItem({ template }: { template: any }) {
           </Button>
         </div>
       </CardHeader>
-      
+
       {isEditing ? (
         <CardContent className="space-y-6 pt-6 bg-primary/5 shadow-inner">
           <div className="space-y-2">
             <Label className="text-xs font-black uppercase text-primary tracking-tighter">Assunto do E-mail</Label>
-            <Input 
-              value={subject} 
-              onChange={(e) => setSubject(e.target.value)} 
+            <Input
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
               className="h-12 text-lg font-medium border-primary/20"
             />
           </div>
           <div className="space-y-2">
             <Label className="text-xs font-black uppercase text-primary tracking-tighter">Corpo do E-mail (HTML permitido)</Label>
-            <Textarea 
-              value={body} 
-              onChange={(e) => setBody(e.target.value)} 
+            <Textarea
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
               className="min-h-[300px] font-mono text-sm leading-relaxed border-primary/20 bg-white"
             />
             <div className="flex items-start gap-2 p-3 bg-amber-50 rounded-lg border border-amber-100 mt-2">
-               <Info className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
-               <p className="text-[10px] text-amber-800 leading-tight">
+              <Info className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+              <p className="text-[10px] text-amber-800 leading-tight">
                 <strong>Tags Dinâmicas:</strong> Use <code>{"{{name}}"}</code>, <code>{"{{id}}"}</code> ou <code>{"{{status}}"}</code> conforme o e-mail para injetar dados reais do utilizador.
-               </p>
+              </p>
             </div>
           </div>
           <div className="flex justify-end pt-2">
-            <Button 
-              className="font-black gap-2 px-8 py-6 rounded-xl shadow-hero" 
+            <Button
+              className="font-black gap-2 px-8 py-6 rounded-xl shadow-hero"
               onClick={() => updateMutation.mutate({ subject, body })}
               disabled={updateMutation.isPending}
             >
@@ -874,18 +966,18 @@ function EmailTemplateItem({ template }: { template: any }) {
         </CardContent>
       ) : (
         <CardContent className="pt-6">
-           <div className="rounded-xl bg-muted/30 p-5 border border-dashed space-y-3">
-              <div className="pb-3 border-b border-muted">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase">Assunto Atual</span>
-                <p className="font-bold text-sm text-foreground mt-1">{template.subject}</p>
-              </div>
-              <div>
-                <span className="text-[10px] font-bold text-muted-foreground uppercase">Pré-visualização do Conteúdo</span>
-                <p className="text-xs text-muted-foreground mt-1 line-clamp-3 leading-relaxed">
-                  {template.body.replace(/<[^>]*>?/gm, '')}
-                </p>
-              </div>
-           </div>
+          <div className="rounded-xl bg-muted/30 p-5 border border-dashed space-y-3">
+            <div className="pb-3 border-b border-muted">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase">Assunto Atual</span>
+              <p className="font-bold text-sm text-foreground mt-1">{template.subject}</p>
+            </div>
+            <div>
+              <span className="text-[10px] font-bold text-muted-foreground uppercase">Pré-visualização do Conteúdo</span>
+              <p className="text-xs text-muted-foreground mt-1 line-clamp-3 leading-relaxed">
+                {template.body.replace(/<[^>]*>?/gm, '')}
+              </p>
+            </div>
+          </div>
         </CardContent>
       )}
     </Card>
@@ -896,6 +988,24 @@ function EmailTemplateItem({ template }: { template: any }) {
 function PlatformManagementPanel({ settings, categories }: { settings: any, categories: any[] }) {
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    hero: false,
+    prices: false,
+    banks: false,
+    storage: false,
+    visibility: false,
+    imoveis: false,
+    links: false,
+    banners: false,
+    categories: false,
+    identity: false,
+    footer: false,
+    emails: false
+  });
+
+  const toggleSection = (section: string) => {
+    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
 
   const handleUpdateSetting = async (key: string, value: string) => {
     try {
@@ -973,791 +1083,880 @@ function PlatformManagementPanel({ settings, categories }: { settings: any, cate
   }
 
   return (
-    <div key={settings.brand_name || 'management-panel'} className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div key={settings.brand_name || 'management-panel'} className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
       {/* Header with Actions */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-primary/5 p-6 rounded-2xl border border-primary/10">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-primary/5 p-6 rounded-2xl border border-primary/10 mb-8">
         <div>
           <h3 className="text-xl font-bold flex items-center gap-2">
             <Settings className="h-6 w-6 text-primary" /> Configurações da Plataforma
           </h3>
-          <p className="text-sm text-muted-foreground mt-1">Configure métricas, banners globais e publicidade por categoria.</p>
+          <p className="text-sm text-muted-foreground mt-1">Gestão centralizada de conteúdos, preços, visibilidade e categorias.</p>
         </div>
         <div className="flex flex-wrap gap-3">
-          <Button 
-            variant="outline" 
-            asChild 
-            className="bg-background border-primary/20 hover:bg-primary/5"
+          <Button
+            variant="outline"
+            asChild
+            className="bg-background border-primary/20 hover:bg-primary/5 h-10"
           >
-            <a 
-              href="https://supabase.com/dashboard/project/zldaauprystajzxfypmc/storage/files" 
-              target="_blank" 
+            <a
+              href="https://supabase.com/dashboard/project/zldaauprystajzxfypmc/storage/files"
+              target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2"
             >
               <ImageIcon className="h-4 w-4" /> Media / Storage
             </a>
           </Button>
-          <Button 
+          <Button
             onClick={() => {
-              toast.success("Todas as alterações pendentes foram sincronizadas com sucesso!");
+              toast.success("Sincronização iniciada...");
               queryClient.invalidateQueries({ queryKey: ['siteSettings'] });
               queryClient.invalidateQueries({ queryKey: ['categories'] });
-            }} 
-            className="gap-2 shadow-md hover:shadow-lg transition-all"
+            }}
+            className="gap-2 shadow-md hover:shadow-lg transition-all h-10"
           >
-            <Save className="h-4 w-4" /> Salvar Alterações
+            <Save className="h-4 w-4" /> Salvar Tudo
           </Button>
         </div>
       </div>
 
-      {/* Hero Content Management Section */}
-      <div className="bg-card border-2 border-primary/20 rounded-2xl p-6 shadow-md bg-primary/5">
-        <h3 className="text-lg font-black mb-6 flex items-center gap-2 text-primary uppercase tracking-tight">
-          <Monitor className="h-6 w-6" /> Gestão de Conteúdo Principal (Hero)
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-2">
-            <label className="text-xs font-bold uppercase text-muted-foreground">Texto do Badge (Superior)</label>
-            <input 
-              type="text" 
-              placeholder="Qualidade e Confiança em Angola"
-              defaultValue={settings.hero_badge_text || "Qualidade e Confiança em Angola"} 
-              className="w-full h-11 px-4 rounded-xl border bg-background"
-              onBlur={(e) => handleUpdateSetting('hero_badge_text', e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-xs font-bold uppercase text-muted-foreground">Título Principal (Parte 1)</label>
-            <input 
-              type="text" 
-              placeholder="Encontre profissionais confiáveis"
-              defaultValue={settings.hero_title_text || "Encontre profissionais confiáveis"} 
-              className="w-full h-11 px-4 rounded-xl border bg-background"
-              onBlur={(e) => handleUpdateSetting('hero_title_text', e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-xs font-bold uppercase text-muted-foreground">Destaque do Título (Parte 2)</label>
-            <input 
-              type="text" 
-              placeholder="— rápido e sem complicação"
-              defaultValue={settings.hero_title_highlight || "— rápido e sem complicação"} 
-              className="w-full h-11 px-4 rounded-xl border bg-background"
-              onBlur={(e) => handleUpdateSetting('hero_title_highlight', e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-xs font-bold uppercase text-muted-foreground">Subtítulo / Descrição</label>
-            <textarea 
-              placeholder="Do eletricista ao designer..."
-              defaultValue={settings.hero_subtitle_text || "Do eletricista ao designer, ligamos você a quem resolve, de forma rápida, segura e perto de si."} 
-              className="w-full h-24 p-4 rounded-xl border bg-background resize-none"
-              onBlur={(e) => handleUpdateSetting('hero_subtitle_text', e.target.value)}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Subscription Prices Section */}
-      <div className="bg-gradient-to-br from-primary/10 to-accent/5 border border-primary/20 rounded-2xl p-6 shadow-sm">
-        <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
-          <CreditCard className="h-5 w-5 text-primary" /> Preços de Assinatura (Akz)
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="space-y-2">
-            <label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
-              Plano Trimestral (Valor Numérico)
-            </label>
-            <div className="relative">
-              <input 
-                type="number" 
-                placeholder="6500"
-                defaultValue={settings.price_trimestral || "6500"} 
-                className="w-full h-11 px-4 rounded-xl border bg-background font-bold text-lg"
-                onBlur={(e) => handleUpdateSetting('price_trimestral', e.target.value)}
-              />
-              <span className="absolute right-4 top-2.5 text-muted-foreground font-medium">Kz</span>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
-              Plano Semestral (Valor Numérico)
-            </label>
-            <div className="relative">
-              <input 
-                type="number" 
-                placeholder="12000"
-                defaultValue={settings.price_semestral || "12000"} 
-                className="w-full h-11 px-4 rounded-xl border bg-background font-bold text-lg"
-                onBlur={(e) => handleUpdateSetting('price_semestral', e.target.value)}
-              />
-              <span className="absolute right-4 top-2.5 text-muted-foreground font-medium">Kz</span>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
-              Plano Anual (Valor Numérico)
-            </label>
-            <div className="relative">
-              <input 
-                type="number" 
-                placeholder="22000"
-                defaultValue={settings.price_anual || "22000"} 
-                className="w-full h-11 px-4 rounded-xl border bg-background font-bold text-lg"
-                onBlur={(e) => handleUpdateSetting('price_anual', e.target.value)}
-              />
-              <span className="absolute right-4 top-2.5 text-muted-foreground font-medium">Kz</span>
-            </div>
-          </div>
-        </div>
-        <p className="text-[10px] text-muted-foreground mt-4 mb-8">
-          * Estes valores serão exibidos automaticamente na página de seleção de planos para novos profissionais.
-        </p>
-
-        <h3 className="text-lg font-bold mb-6 flex items-center gap-2 pt-6 border-t border-primary/10">
-          <Receipt className="h-5 w-5 text-primary" /> Coordenadas Bancárias e Contactos
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div className="space-y-2">
-            <label className="text-xs font-bold uppercase text-muted-foreground">Nome do Banco</label>
-            <input 
-              type="text" 
-              placeholder="Ex: BAI"
-              defaultValue={settings.bank_name || "BAI"} 
-              className="w-full h-11 px-4 rounded-xl border bg-background"
-              onBlur={(e) => handleUpdateSetting('bank_name', e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-xs font-bold uppercase text-muted-foreground">IBAN</label>
-            <input 
-              type="text" 
-              placeholder="AO06..."
-              defaultValue={settings.bank_iban || "AO06 0040 0000 1234 5678 9012 3"} 
-              className="w-full h-11 px-4 rounded-xl border bg-background"
-              onBlur={(e) => handleUpdateSetting('bank_iban', e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-xs font-bold uppercase text-muted-foreground">Titular da Conta</label>
-            <input 
-              type="text" 
-              placeholder="Nome da Entidade"
-              defaultValue={settings.bank_holder || "Saka Service Lda."} 
-              className="w-full h-11 px-4 rounded-xl border bg-background"
-              onBlur={(e) => handleUpdateSetting('bank_holder', e.target.value)}
-            />
-          </div>
-          <div className="space-y-2 lg:col-start-1">
-            <label className="text-xs font-bold uppercase text-muted-foreground">Nome do Banco 2 (Alternativo)</label>
-            <input 
-              type="text" 
-              placeholder="Ex: BFA"
-              defaultValue={settings.bank2_name || ""} 
-              className="w-full h-11 px-4 rounded-xl border bg-background"
-              onBlur={(e) => handleUpdateSetting('bank2_name', e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-xs font-bold uppercase text-muted-foreground">IBAN 2</label>
-            <input 
-              type="text" 
-              placeholder="AO06..."
-              defaultValue={settings.bank2_iban || ""} 
-              className="w-full h-11 px-4 rounded-xl border bg-background"
-              onBlur={(e) => handleUpdateSetting('bank2_iban', e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-xs font-bold uppercase text-muted-foreground">Titular da Conta 2</label>
-            <input 
-              type="text" 
-              placeholder="Nome da Entidade 2"
-              defaultValue={settings.bank2_holder || ""} 
-              className="w-full h-11 px-4 rounded-xl border bg-background"
-              onBlur={(e) => handleUpdateSetting('bank2_holder', e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-xs font-bold uppercase text-muted-foreground">Número MCX Express</label>
-            <input 
-              type="text" 
-              placeholder="9XXXXXXXX"
-              defaultValue={settings.mcx_express_phone || "923 000 000"} 
-              className="w-full h-11 px-4 rounded-xl border bg-background font-mono"
-              onBlur={(e) => handleUpdateSetting('mcx_express_phone', e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-xs font-bold uppercase text-muted-foreground">WhatsApp para Comprovativos</label>
-            <input 
-              type="text" 
-              placeholder="+244..."
-              defaultValue={settings.payment_proof_whatsapp || "923 000 000"} 
-              className="w-full h-11 px-4 rounded-xl border bg-background font-mono"
-              onBlur={(e) => handleUpdateSetting('payment_proof_whatsapp', e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-xs font-bold uppercase text-muted-foreground">E-mail de Suporte</label>
-            <input 
-              type="email" 
-              placeholder="pagamentos@sakaser.com"
-              defaultValue={settings.payment_proof_email || "pagamentos@sakaserv.com"} 
-              className="w-full h-11 px-4 rounded-xl border bg-background"
-              onBlur={(e) => handleUpdateSetting('payment_proof_email', e.target.value)}
-            />
-          </div>
-          <div className="space-y-2 md:col-span-2 lg:col-span-3">
-            <label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-2">
-              Mensagem de Sucesso (Comprovativo)
-            </label>
-            <textarea 
-              placeholder="O seu perfil será ativado assim que validarmos a transferência..."
-              defaultValue={settings.payment_success_message || "Recebemos o seu comprovativo. O seu perfil será ativado assim que validarmos a transferência. Se tiver pressa, envie o comprovativo para o WhatsApp."} 
-              className="w-full min-h-[100px] p-4 rounded-xl border bg-background resize-y"
-              onBlur={(e) => handleUpdateSetting('payment_success_message', e.target.value)}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Platform Feature Management Section */}
-      <div className="bg-card border-2 border-primary/20 rounded-2xl p-6 shadow-md bg-primary/5">
-        <h3 className="text-lg font-black mb-6 flex items-center gap-2 text-primary uppercase tracking-tight">
-          <Sparkles className="h-6 w-6" /> Gestão de Visibilidade da Plataforma
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[
-            { key: 'show_hero_badge', label: 'Badge Superior (Hero)', icon: Megaphone },
-            { key: 'show_search_bar', label: 'Barra de Pesquisa Global', icon: Search },
-            { key: 'show_stats_section', label: 'Secção de Estatísticas', icon: BarChart3 },
-            { key: 'show_categories_preview', label: 'Categorias em Destaque', icon: LayoutGrid },
-            { key: 'show_top_professionals', label: 'Profissionais em Destaque', icon: Star },
-            { key: 'show_imoveis', label: 'Secção Saka Imóveis', icon: Home },
-            { key: 'show_dynamic_cta', label: 'Chamada para Ação (CTA)', icon: Zap },
-            { key: 'show_footer_socials', label: 'Redes Sociais no Rodapé', icon: Users },
-            { key: 'require_professional_verification', label: 'Exigir BI/Certificado/Vídeo', icon: ShieldCheck },
-          ].map((item) => (
-            <div key={item.key} className="flex items-center justify-between p-4 bg-background rounded-xl border-2 border-primary/10 hover:border-primary/30 transition-all shadow-sm">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-lg border border-primary/20">
-                  <item.icon className="h-5 w-5 text-primary" />
-                </div>
-                <span className="text-sm font-bold text-foreground">{item.label}</span>
-              </div>
-              <div 
-                className={`w-14 h-7 rounded-full p-1 cursor-pointer transition-colors duration-300 ease-in-out ${settings[item.key] === 'true' ? 'bg-primary shadow-inner' : 'bg-muted border border-border'}`}
-                onClick={() => handleUpdateSetting(item.key, settings[item.key] === 'true' ? 'false' : 'true')}
-              >
-                <div className={`w-5 h-5 rounded-full bg-white shadow-md transform transition-transform duration-300 ease-in-out ${settings[item.key] === 'true' ? 'translate-x-7' : 'translate-x-0'}`} />
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="mt-6 p-4 bg-amber-50 rounded-xl border border-amber-100 flex items-start gap-3">
-          <Info className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
-          <p className="text-xs text-amber-800 leading-relaxed">
-            <strong>Dica:</strong> Estas opções permitem ocultar secções inteiras da página inicial para manutenção ou simplificação da interface. As alterações são aplicadas em tempo real para todos os utilizadores.
-          </p>
-        </div>
-      </div>
-
-      {/* Company Links Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="bg-card border rounded-2xl p-6 shadow-sm">
-          <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
-            <LayoutGrid className="h-5 w-5 text-primary" /> Empresa & Links Dinâmicos
+      {/* 1. Hero Management */}
+      <div className="bg-card border rounded-2xl overflow-hidden shadow-sm">
+        <button
+          onClick={() => toggleSection('hero')}
+          className="w-full flex items-center justify-between p-5 hover:bg-secondary/10 transition-colors text-left"
+        >
+          <h3 className="text-lg font-bold flex items-center gap-3">
+            <Monitor className="h-5 w-5 text-primary" /> Conteúdo do Hero (Início)
           </h3>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase text-muted-foreground">Sobre Nós (Link/URL)</label>
-              <input 
-                type="text" 
-                placeholder="/about-us"
-                defaultValue={settings.url_about_us || "/about-us"} 
-                className="w-full h-11 px-4 rounded-xl border bg-background"
-                onBlur={(e) => handleUpdateSetting('url_about_us', e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase text-muted-foreground">Política de Privacidade (Link/URL)</label>
-              <input 
-                type="text" 
-                placeholder="/privacy-policy"
-                defaultValue={settings.url_privacy_policy || "/privacy-policy"} 
-                className="w-full h-11 px-4 rounded-xl border bg-background"
-                onBlur={(e) => handleUpdateSetting('url_privacy_policy', e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase text-muted-foreground">Termos de Serviço (Link/URL)</label>
-              <input 
-                type="text" 
-                placeholder="/terms-of-service"
-                defaultValue={settings.url_terms_of_service || "/terms-of-service"} 
-                className="w-full h-11 px-4 rounded-xl border bg-background"
-                onBlur={(e) => handleUpdateSetting('url_terms_of_service', e.target.value)}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Global Banners Section */}
-        <div className="bg-card border rounded-2xl p-6 shadow-sm">
-          <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
-            <ImageIcon className="h-5 w-5 text-primary" /> Banners Globais
-          </h3>
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase text-muted-foreground">Banner Topo (URL Imagem)</label>
-              <input 
-                type="text" 
-                placeholder="https://exemplo.com/banner.png"
-                defaultValue={settings.banner_topo_url || ""} 
-                className="w-full h-11 px-4 rounded-xl border bg-background"
-                onBlur={(e) => handleUpdateSetting('banner_topo_url', e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase text-muted-foreground">Banner Topo (Link de Redirecionamento)</label>
-              <input 
-                type="text" 
-                placeholder="https://saka-service.com/pagina"
-                defaultValue={settings.banner_topo_link || ""} 
-                className="w-full h-11 px-4 rounded-xl border bg-background border-primary/20"
-                onBlur={(e) => handleUpdateSetting('banner_topo_link', e.target.value)}
-              />
-            </div>
-            <hr className="opacity-50" />
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase text-muted-foreground">Banner Pré-CTA (URL Imagem)</label>
-              <input 
-                type="text" 
-                placeholder="https://exemplo.com/banner2.png"
-                defaultValue={settings.banner_pre_cta_url || ""} 
-                className="w-full h-11 px-4 rounded-xl border bg-background"
-                onBlur={(e) => handleUpdateSetting('banner_pre_cta_url', e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase text-muted-foreground">Banner Pré-CTA (Link de Redirecionamento)</label>
-              <input 
-                type="text" 
-                placeholder="https://saka-service.com/pagina"
-                defaultValue={settings.banner_pre_cta_link || ""} 
-                className="w-full h-11 px-4 rounded-xl border bg-background border-primary/20"
-                onBlur={(e) => handleUpdateSetting('banner_pre_cta_link', e.target.value)}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Feature Management Section */}
-        <div className="bg-card border rounded-2xl p-6 shadow-sm border-l-4 border-l-amber-500">
-          <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
-            <Settings className="h-5 w-5 text-amber-500" /> Gestão de Visibilidade da Plataforma
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[
-              { key: 'show_hero_badge', label: 'Badge Superior (Hero)', desc: 'Exibe o texto de confiança no topo.' },
-              { key: 'show_search_bar', label: 'Barra de Pesquisa', desc: 'Exibe a pesquisa na página inicial.' },
-              { key: 'show_stats_section', label: 'Barra de Estatísticas', desc: 'Exibe os números da plataforma.' },
-              { key: 'show_categories_preview', label: 'Secção de Categorias', desc: 'Exibe as categorias na Home.' },
-              { key: 'show_top_professionals', label: 'Profissionais em Destaque', desc: 'Exibe os perfis recomendados.' },
-              { key: 'show_footer_socials', label: 'Redes Sociais (Rodapé)', desc: 'Exibe ícones sociais no fundo.' },
-              { key: 'require_professional_verification', label: 'Verificação Obrigatória', desc: 'Exige BI, Certificado e Vídeo para novos pros.' },
-            ].map((feature) => (
-              <div key={feature.key} className="p-4 rounded-xl bg-secondary/20 border border-border flex flex-col justify-between gap-3">
-                <div className="space-y-1">
-                  <p className="font-bold text-sm">{feature.label}</p>
-                  <p className="text-[10px] text-muted-foreground">{feature.desc}</p>
-                </div>
-                <div className="flex gap-1 bg-background p-1 rounded-lg border w-fit">
-                  <Button 
-                    size="sm" 
-                    variant={settings[feature.key] === 'true' || settings[feature.key] === undefined ? 'default' : 'ghost'}
-                    onClick={() => handleUpdateSetting(feature.key, 'true')}
-                    className="rounded-md h-7 text-[10px] px-2"
-                  >
-                    Ativado
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant={settings[feature.key] === 'false' ? 'destructive' : 'ghost'}
-                    onClick={() => handleUpdateSetting(feature.key, 'false')}
-                    className="rounded-md h-7 text-[10px] px-2"
-                  >
-                    Desativado
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Gestão Saka Imóveis (Home) Section */}
-        <div className="bg-card border rounded-2xl p-6 shadow-sm border-l-4 border-l-primary">
-          <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
-            <Home className="h-5 w-5 text-primary" /> Gestão Saka Imóveis (Home)
-          </h3>
-          <div className="space-y-6">
-            <div className="flex items-center justify-between p-4 rounded-xl bg-primary/5 border border-primary/10">
-              <div className="space-y-1">
-                <p className="font-bold">Exibir Secção de Imóveis</p>
-                <p className="text-xs text-muted-foreground">Ativa ou desativa a vizualização no Início.</p>
-              </div>
-              <div className="flex gap-1 bg-background p-1 rounded-lg border">
-                <Button 
-                  size="sm" 
-                  variant={settings.show_imoveis === 'true' ? 'default' : 'ghost'}
-                  onClick={() => handleUpdateSetting('show_imoveis', 'true')}
-                  className="rounded-md h-8 text-xs px-3"
-                >
-                  Ativado
-                </Button>
-                <Button 
-                  size="sm" 
-                  variant={settings.show_imoveis !== 'true' ? 'destructive' : 'ghost'}
-                  onClick={() => handleUpdateSetting('show_imoveis', 'false')}
-                  className="rounded-md h-8 text-xs px-3"
-                >
-                  Desativado
-                </Button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform duration-300 ${expandedSections.hero ? 'rotate-180' : ''}`} />
+        </button>
+        {expandedSections.hero && (
+          <div className="p-6 pt-0 border-t animate-in fade-in slide-in-from-top-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
               <div className="space-y-2">
-                <label className="text-xs font-bold uppercase text-muted-foreground">Badge Texto (Ex: NOVIDADE)</label>
-                <input 
-                  type="text" 
-                  defaultValue={settings.imoveis_badge || "NOVIDADE"} 
+                <label className="text-xs font-bold uppercase text-muted-foreground">Badge Texto</label>
+                <input
+                  type="text"
+                  defaultValue={settings.hero_badge_text || "Qualidade e Confiança em Angola"}
                   className="w-full h-11 px-4 rounded-xl border bg-background"
-                  onBlur={(e) => handleUpdateSetting('imoveis_badge', e.target.value)}
+                  onBlur={(e) => handleUpdateSetting('hero_badge_text', e.target.value)}
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-bold uppercase text-muted-foreground">Texto do Botão</label>
-                <input 
-                  type="text" 
-                  defaultValue={settings.imoveis_button_text || "Ver imóveis disponíveis"} 
-                  className="w-full h-11 px-4 rounded-xl border bg-background"
-                  onBlur={(e) => handleUpdateSetting('imoveis_button_text', e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase text-muted-foreground">Título Principal</label>
-              <input 
-                type="text" 
-                defaultValue={settings.imoveis_title || "Procura casa para arrendar?"} 
-                className="w-full h-11 px-4 rounded-xl border bg-background font-bold"
-                onBlur={(e) => handleUpdateSetting('imoveis_title', e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase text-muted-foreground">Descrição / Subtítulo</label>
-              <textarea 
-                rows={3}
-                defaultValue={settings.imoveis_description || "Explore imóveis disponíveis em Luanda, com informação clara e contacto direto com proprietários ou agentes verificados."} 
-                className="w-full p-4 rounded-xl border bg-background resize-none text-sm"
-                onBlur={(e) => handleUpdateSetting('imoveis_description', e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-4 pt-6 border-t mt-6">
-              <label className="text-xs font-bold uppercase text-primary font-black">Consulte o Preçário (URL do Preçário)</label>
-              <input 
-                type="text" 
-                placeholder="https://exemplo.com/precario-imoveis.pdf"
-                defaultValue={settings.imoveis_pricing_url || ""} 
-                className="w-full h-11 px-4 rounded-xl border border-primary/30 bg-primary/5 font-medium text-primary focus:ring-1 focus:ring-primary shadow-sm"
-                onBlur={(e) => handleUpdateSetting('imoveis_pricing_url', e.target.value)}
-              />
-              <p className="text-[10px] text-muted-foreground">URL para o documento PDF ou página que descreve os preços para anunciar. Se preenchido, o botão "Consulte o Preçário" aparecerá na página de anunciar imóvel.</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Hero Texts Section */}
-        <div className="bg-card border rounded-2xl p-6 shadow-sm">
-          <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" /> Textos de Destaque (Hero)
-          </h3>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase text-muted-foreground">Badge Superior (Pequeno)</label>
-              <input 
-                type="text" 
-                defaultValue={settings.hero_badge_text || "Qualidade e Confiança em Angola"} 
-                className="w-full h-11 px-4 rounded-xl border bg-background"
-                onBlur={(e) => handleUpdateSetting('hero_badge_text', e.target.value)}
-              />
-            </div>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase text-muted-foreground">Título Principal (Texto Branco)</label>
-                <input 
-                  type="text" 
-                  defaultValue={settings.hero_title_text || "Encontre soluções rápidas com"} 
+                <label className="text-xs font-bold uppercase text-muted-foreground">Título Principal</label>
+                <input
+                  type="text"
+                  defaultValue={settings.hero_title_text || "Encontre profissionais confiáveis"}
                   className="w-full h-11 px-4 rounded-xl border bg-background"
                   onBlur={(e) => handleUpdateSetting('hero_title_text', e.target.value)}
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-bold uppercase text-muted-foreground">Texto em Destaque (Com Gradiente)</label>
-                <input 
-                  type="text" 
-                  defaultValue={settings.hero_title_highlight || "profissionais qualificados"} 
-                  className="w-full h-11 px-4 rounded-xl border bg-background font-bold text-amber-600"
+                <label className="text-xs font-bold uppercase text-muted-foreground">Título Destaque</label>
+                <input
+                  type="text"
+                  defaultValue={settings.hero_title_highlight || "— rápido e sem complicação"}
+                  className="w-full h-11 px-4 rounded-xl border bg-background"
                   onBlur={(e) => handleUpdateSetting('hero_title_highlight', e.target.value)}
                 />
               </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase text-muted-foreground">Subtítulo / Descrição</label>
-              <textarea 
-                rows={3}
-                defaultValue={settings.hero_subtitle_text || "Conecte-se com especialistas em tecnologia, design, marketing e muito mais."} 
-                className="w-full p-4 rounded-xl border bg-background resize-none"
-                onBlur={(e) => handleUpdateSetting('hero_subtitle_text', e.target.value)}
-              />
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase text-muted-foreground">Subtítulo</label>
+                <textarea
+                  rows={2}
+                  defaultValue={settings.hero_subtitle_text || ""}
+                  className="w-full p-4 rounded-xl border bg-background resize-none"
+                  onBlur={(e) => handleUpdateSetting('hero_subtitle_text', e.target.value)}
+                />
+              </div>
             </div>
           </div>
-        </div>
+        )}
+      </div>
 
-        {/* Brand Identity / Navbar Section */}
-        <div className="bg-card border rounded-2xl p-6 shadow-sm">
-          <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
-            <Shield className="h-5 w-5 text-primary" /> Identidade & Navbar
+      {/* 2. Subscription Prices */}
+      <div className="bg-card border rounded-2xl overflow-hidden shadow-sm">
+        <button
+          onClick={() => toggleSection('prices')}
+          className="w-full flex items-center justify-between p-5 hover:bg-secondary/10 transition-colors text-left"
+        >
+          <h3 className="text-lg font-bold flex items-center gap-3">
+            <CreditCard className="h-5 w-5 text-primary" /> Preços & Planos de Assinatura
           </h3>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase text-muted-foreground">Nome da Marca (Display Name)</label>
-              <input 
-                type="text" 
-                defaultValue={settings.brand_name || "Sakaservice"} 
-                className="w-full h-11 px-4 rounded-xl border bg-background"
-                onBlur={(e) => handleUpdateSetting('brand_name', e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase text-muted-foreground">URL do Logótipo (Navbar/Footer)</label>
-              <input 
-                type="text" 
-                placeholder="https://exemplo.com/logo.png"
-                defaultValue={settings.logo_url || ""} 
-                className="w-full h-11 px-4 rounded-xl border bg-background"
-                onBlur={(e) => handleUpdateSetting('logo_url', e.target.value)}
-              />
-              <p className="text-[10px] text-muted-foreground">Recomendado: Fundo transparente (PNG/SVG) e formato horizontal.</p>
+          <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform duration-300 ${expandedSections.prices ? 'rotate-180' : ''}`} />
+        </button>
+        {expandedSections.prices && (
+          <div className="p-6 pt-0 border-t animate-in fade-in slide-in-from-top-2">
+            <div className="space-y-8 mt-6">
+              {/* Header Section */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-6 border-b">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase text-muted-foreground">Título Principal da Página</label>
+                  <input
+                    type="text"
+                    defaultValue={settings.pricing_title || "Ative o seu Perfil Profissional"}
+                    className="w-full h-11 px-4 rounded-xl border bg-background font-bold"
+                    onBlur={(e) => handleUpdateSetting('pricing_title', e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase text-muted-foreground">Subtítulo da Página</label>
+                  <input
+                    type="text"
+                    defaultValue={settings.pricing_subtitle || "Escolha o melhor plano para o seu negócio."}
+                    className="w-full h-11 px-4 rounded-xl border bg-background"
+                    onBlur={(e) => handleUpdateSetting('pricing_subtitle', e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Individual Plans */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Trimestral */}
+                <div className="space-y-4 p-4 rounded-2xl border bg-muted/5">
+                  <h4 className="font-bold text-primary flex items-center gap-2">
+                    Plano Trimestral
+                  </h4>
+                  <div className="space-y-3">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase text-muted-foreground">Preço (Numérico)</label>
+                      <input
+                        type="number"
+                        defaultValue={settings.price_trimestral || "5000"}
+                        className="w-full h-9 px-3 rounded-lg border bg-background font-bold"
+                        onBlur={(e) => handleUpdateSetting('price_trimestral', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase text-muted-foreground">Descrição Curta</label>
+                      <textarea
+                        rows={2}
+                        defaultValue={settings.pricing_trimestral_desc || "Para profissionais que querem validar resultados a curto prazo."}
+                        className="w-full p-2 text-xs rounded-lg border bg-background resize-none"
+                        onBlur={(e) => handleUpdateSetting('pricing_trimestral_desc', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase text-muted-foreground">Funcionalidades (Uma por linha)</label>
+                      <textarea
+                        rows={4}
+                        defaultValue={settings.pricing_trimestral_features || "Perfil visível publicamente\nAparecer em resultados de busca\nLink direto para WhatsApp\nEstatísticas de visualização"}
+                        className="w-full p-2 text-xs rounded-lg border bg-background font-mono"
+                        onBlur={(e) => handleUpdateSetting('pricing_trimestral_features', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase text-muted-foreground">Badge / Selo</label>
+                      <input
+                        type="text"
+                        defaultValue={settings.pricing_trimestral_badge || "Mais Popular"}
+                        className="w-full h-9 px-3 text-xs rounded-lg border bg-background"
+                        onBlur={(e) => handleUpdateSetting('pricing_trimestral_badge', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Semestral */}
+                <div className="space-y-4 p-4 rounded-2xl border bg-primary/5 border-primary/20">
+                  <h4 className="font-bold text-primary flex items-center gap-2">
+                    Plano Semestral
+                  </h4>
+                  <div className="space-y-3">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase text-muted-foreground">Preço (Numérico)</label>
+                      <input
+                        type="number"
+                        defaultValue={settings.price_semestral || "9000"}
+                        className="w-full h-9 px-3 rounded-lg border bg-background font-bold"
+                        onBlur={(e) => handleUpdateSetting('price_semestral', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase text-muted-foreground">Descrição Curta</label>
+                      <textarea
+                        rows={2}
+                        defaultValue={settings.pricing_semestral_desc || "A melhor escolha para profissionais estabelecidos. Excelente custo-benefício."}
+                        className="w-full p-2 text-xs rounded-lg border bg-background resize-none"
+                        onBlur={(e) => handleUpdateSetting('pricing_semestral_desc', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase text-muted-foreground">Funcionalidades (Uma por linha)</label>
+                      <textarea
+                        rows={4}
+                        defaultValue={settings.pricing_semestral_features || "Todas as funcionalidades do trimestral\nPrioridade em buscas selecionadas\nSelo de profissional ativo\nSuporte prioritário"}
+                        className="w-full p-2 text-xs rounded-lg border bg-background font-mono"
+                        onBlur={(e) => handleUpdateSetting('pricing_semestral_features', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase text-muted-foreground">Badge / Selo</label>
+                      <input
+                        type="text"
+                        defaultValue={settings.pricing_semestral_badge || ""}
+                        className="w-full h-9 px-3 text-xs rounded-lg border bg-background"
+                        onBlur={(e) => handleUpdateSetting('pricing_semestral_badge', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Anual */}
+                <div className="space-y-4 p-4 rounded-2xl border bg-muted/5">
+                  <h4 className="font-bold text-primary flex items-center gap-2">
+                    Plano Anual
+                  </h4>
+                  <div className="space-y-3">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase text-muted-foreground">Preço (Numérico)</label>
+                      <input
+                        type="number"
+                        defaultValue={settings.price_anual || "17000"}
+                        className="w-full h-9 px-3 rounded-lg border bg-background font-bold"
+                        onBlur={(e) => handleUpdateSetting('price_anual', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase text-muted-foreground">Descrição Curta</label>
+                      <textarea
+                        rows={2}
+                        defaultValue={settings.pricing_anual_desc || "Visibilidade o ano inteiro. A maior poupança."}
+                        className="w-full p-2 text-xs rounded-lg border bg-background resize-none"
+                        onBlur={(e) => handleUpdateSetting('pricing_anual_desc', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase text-muted-foreground">Funcionalidades (Uma por linha)</label>
+                      <textarea
+                        rows={4}
+                        defaultValue={settings.pricing_anual_features || "Todas as funcionalidades do semestral\nPrioridade máxima em buscas\nDestaque garantido nas listas\nSelo Premium"}
+                        className="w-full p-2 text-xs rounded-lg border bg-background font-mono"
+                        onBlur={(e) => handleUpdateSetting('pricing_anual_features', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase text-muted-foreground">Badge / Selo</label>
+                      <input
+                        type="text"
+                        defaultValue={settings.pricing_anual_badge || ""}
+                        className="w-full h-9 px-3 text-xs rounded-lg border bg-background"
+                        onBlur={(e) => handleUpdateSetting('pricing_anual_badge', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
-      {/* Rodapé & Redes Sociais Section */}
-      <div className="bg-card border rounded-2xl p-6 shadow-sm">
-        <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
-          <Mail className="h-5 w-5 text-primary" /> Rodapé & Conectividade
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase text-muted-foreground">Descrição Principal do Rodapé</label>
-              <textarea 
-                rows={3}
-                defaultValue={settings.footer_description || "O marketplace moderno que conecta profissionais e clientes."} 
-                className="w-full p-4 rounded-xl border bg-background resize-none"
-                onBlur={(e) => handleUpdateSetting('footer_description', e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase text-muted-foreground">Email de Contacto Público</label>
-              <input 
-                type="email" 
-                defaultValue={settings.contact_email || "contato@sakaservice.com"} 
-                className="w-full h-11 px-4 rounded-xl border bg-background"
-                onBlur={(e) => handleUpdateSetting('contact_email', e.target.value)}
-              />
-            </div>
-          </div>
-          
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase text-muted-foreground">Link do Instagram</label>
-              <input 
-                type="text" 
-                placeholder="https://instagram.com/sakaservice"
-                defaultValue={settings.social_instagram || "#"} 
-                className="w-full h-11 px-4 rounded-xl border bg-background"
-                onBlur={(e) => handleUpdateSetting('social_instagram', e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase text-muted-foreground">Link do LinkedIn</label>
-              <input 
-                type="text" 
-                placeholder="https://linkedin.com/company/sakaservice"
-                defaultValue={settings.social_linkedin || "#"} 
-                className="w-full h-11 px-4 rounded-xl border bg-background"
-                onBlur={(e) => handleUpdateSetting('social_linkedin', e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase text-muted-foreground">Link do Twitter / X</label>
-              <input 
-                type="text" 
-                placeholder="https://twitter.com/sakaservice"
-                defaultValue={settings.social_twitter || "#"} 
-                className="w-full h-11 px-4 rounded-xl border bg-background"
-                onBlur={(e) => handleUpdateSetting('social_twitter', e.target.value)}
-              />
-            </div>
-          </div>
+      {/* 3. Bank Info & Payment Contacts */}
+      <div className="bg-card border rounded-2xl overflow-hidden shadow-sm">
+        <button
+          onClick={() => toggleSection('banks')}
+          className="w-full flex items-center justify-between p-5 hover:bg-secondary/10 transition-colors text-left"
+        >
+          <h3 className="text-lg font-bold flex items-center gap-3">
+            <Receipt className="h-5 w-5 text-primary" /> Coordenadas Bancárias & Pagamentos
+          </h3>
+          <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform duration-300 ${expandedSections.banks ? 'rotate-180' : ''}`} />
+        </button>
+        {expandedSections.banks && (
+          <div className="p-6 pt-0 border-t animate-in fade-in slide-in-from-top-2">
+            <div className="space-y-8 mt-6">
+              {/* Bank 1 */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-4 rounded-xl bg-primary/5 border border-primary/10">
+                <div className="md:col-span-3 pb-2 border-b">
+                  <h4 className="text-sm font-black uppercase text-primary">Banco Principal (1)</h4>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase text-muted-foreground">Nome do Banco</label>
+                  <input
+                    type="text"
+                    defaultValue={settings.bank_name || "BAI"}
+                    className="w-full h-11 px-4 rounded-xl border bg-background font-bold"
+                    onBlur={(e) => handleUpdateSetting('bank_name', e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase text-muted-foreground">IBAN</label>
+                  <input
+                    type="text"
+                    defaultValue={settings.bank_iban || ""}
+                    className="w-full h-11 px-4 rounded-xl border bg-background font-mono text-sm"
+                    onBlur={(e) => handleUpdateSetting('bank_iban', e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase text-muted-foreground">Titular da Conta</label>
+                  <input
+                    type="text"
+                    defaultValue={settings.bank_holder || ""}
+                    className="w-full h-11 px-4 rounded-xl border bg-background"
+                    onBlur={(e) => handleUpdateSetting('bank_holder', e.target.value)}
+                  />
+                </div>
+              </div>
 
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase text-muted-foreground">Link do Facebook</label>
-              <input 
-                type="text" 
-                placeholder="https://facebook.com/sakaservice"
-                defaultValue={settings.social_facebook || "#"} 
-                className="w-full h-11 px-4 rounded-xl border bg-background"
-                onBlur={(e) => handleUpdateSetting('social_facebook', e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase text-muted-foreground">Link do TikTok</label>
-              <input 
-                type="text" 
-                placeholder="https://tiktok.com/@sakaservice"
-                defaultValue={settings.social_tiktok || "#"} 
-                className="w-full h-11 px-4 rounded-xl border bg-background"
-                onBlur={(e) => handleUpdateSetting('social_tiktok', e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase text-muted-foreground">Terminal de WhatsApp</label>
-              <input 
-                type="text" 
-                placeholder="+244 900 000 000"
-                defaultValue={settings.contact_whatsapp || ""} 
-                className="w-full h-11 px-4 rounded-xl border bg-background"
-                onBlur={(e) => handleUpdateSetting('contact_whatsapp', e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase text-muted-foreground">Telefone Central</label>
-              <input 
-                type="text" 
-                placeholder="+244 900 000 000"
-                defaultValue={settings.contact_phone || ""} 
-                className="w-full h-11 px-4 rounded-xl border bg-background"
-                onBlur={(e) => handleUpdateSetting('contact_phone', e.target.value)}
-              />
+              {/* Bank 2 */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-4 rounded-xl bg-secondary/5 border border-secondary/10">
+                <div className="md:col-span-3 pb-2 border-b">
+                  <h4 className="text-sm font-black uppercase text-muted-foreground">Banco Alternativo (2)</h4>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase text-muted-foreground">Nome do Banco 2</label>
+                  <input
+                    type="text"
+                    defaultValue={settings.bank_name_2 || ""}
+                    className="w-full h-11 px-4 rounded-xl border bg-background"
+                    onBlur={(e) => handleUpdateSetting('bank_name_2', e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase text-muted-foreground">IBAN 2</label>
+                  <input
+                    type="text"
+                    defaultValue={settings.bank_iban_2 || ""}
+                    className="w-full h-11 px-4 rounded-xl border bg-background font-mono text-sm"
+                    onBlur={(e) => handleUpdateSetting('bank_iban_2', e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase text-muted-foreground">Titular da Conta 2</label>
+                  <input
+                    type="text"
+                    defaultValue={settings.bank_holder_2 || ""}
+                    className="w-full h-11 px-4 rounded-xl border bg-background"
+                    onBlur={(e) => handleUpdateSetting('bank_holder_2', e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Other Payment Methods & Support */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase text-muted-foreground">Número MCX Express</label>
+                  <input
+                    type="text"
+                    defaultValue={settings.mcx_express_number || ""}
+                    className="w-full h-11 px-4 rounded-xl border bg-background font-bold text-primary"
+                    onBlur={(e) => handleUpdateSetting('mcx_express_number', e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase text-muted-foreground">WhatsApp para Comprovativos</label>
+                  <input
+                    type="text"
+                    defaultValue={settings.whatsapp_proofs || "951849304"}
+                    className="w-full h-11 px-4 rounded-xl border bg-background font-bold text-green-600"
+                    onBlur={(e) => handleUpdateSetting('whatsapp_proofs', e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase text-muted-foreground">E-mail de Suporte (Pagamentos)</label>
+                  <input
+                    type="email"
+                    defaultValue={settings.support_email || "sakaservice.ao@gmail.com"}
+                    className="w-full h-11 px-4 rounded-xl border bg-background"
+                    onBlur={(e) => handleUpdateSetting('support_email', e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase text-muted-foreground">Mensagem de Sucesso (Pós-Envio)</label>
+                  <textarea
+                    rows={3}
+                    defaultValue={settings.payment_success_message || "Recebemos o seu comprovativo. O seu perfil será ativado assim que validarmos a transferência. Se tiver pressa, envie o comprovativo para o WhatsApp."}
+                    className="w-full p-4 rounded-xl border bg-background resize-none text-sm leading-tight"
+                    onBlur={(e) => handleUpdateSetting('payment_success_message', e.target.value)}
+                  />
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
-      {/* Email Templates Section */}
-      <div className="bg-card border-2 border-primary/20 rounded-2xl p-6 shadow-md bg-primary/5">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h3 className="text-xl font-black flex items-center gap-2 text-primary uppercase tracking-tight">
-              <Mail className="h-6 w-6" /> Gestão de Modelos de E-mail
+      {/* 4. Storage Shortcuts */}
+      <div className="bg-card border rounded-2xl overflow-hidden shadow-sm">
+        <button
+          onClick={() => toggleSection('storage')}
+          className="w-full flex items-center justify-between p-5 hover:bg-secondary/10 transition-colors text-left"
+        >
+          <h3 className="text-lg font-bold flex items-center gap-3">
+            <ImageIcon className="h-5 w-5 text-primary" /> Atalhos de Storage
+          </h3>
+          <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform duration-300 ${expandedSections.storage ? 'rotate-180' : ''}`} />
+        </button>
+        {expandedSections.storage && (
+          <div className="p-6 pt-0 border-t animate-in fade-in slide-in-from-top-2">
+            <div className="flex flex-wrap gap-3 mt-6">
+              <Button variant="default" size="sm" asChild className="bg-orange-600 border-orange-100 text-white hover:bg-orange-700 shadow-md">
+                <a href="https://supabase.com/dashboard/project/zldaauprystajzxfypmc/storage/buckets/uploads" target="_blank" rel="noopener noreferrer">
+                  <Video className="h-4 w-4 mr-2" /> Vídeos/Fotos Portfólio
+                </a>
+              </Button>
+              <Button variant="default" size="sm" asChild className="bg-purple-600 border-purple-100 text-white hover:bg-purple-700 shadow-md">
+                <a href="https://supabase.com/dashboard/project/zldaauprystajzxfypmc/storage/buckets/professional-documents" target="_blank" rel="noopener noreferrer">
+                  <Video className="h-4 w-4 mr-2" /> Vídeos de Atividade
+                </a>
+              </Button>
+              <Button variant="outline" size="sm" asChild className="bg-background border-blue-100 text-blue-700 hover:bg-blue-50">
+                <a href="https://supabase.com/dashboard/project/zldaauprystajzxfypmc/storage/buckets/professional-documents" target="_blank" rel="noopener noreferrer">
+                  <Shield className="h-4 w-4 mr-2" /> Documentos BI/Cert
+                </a>
+              </Button>
+              <Button variant="outline" size="sm" asChild className="bg-background border-amber-100 text-amber-700 hover:bg-amber-50">
+                <a href="https://supabase.com/dashboard/project/zldaauprystajzxfypmc/storage/buckets/uploads" target="_blank" rel="noopener noreferrer">
+                  <ImageIcon className="h-4 w-4 mr-2" /> Fotos de Perfil
+                </a>
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 5. Visibility Management */}
+      <div className="bg-card border rounded-2xl overflow-hidden shadow-sm border-l-4 border-l-primary">
+        <button
+          onClick={() => toggleSection('visibility')}
+          className="w-full flex items-center justify-between p-5 hover:bg-secondary/10 transition-colors text-left"
+        >
+          <h3 className="text-lg font-bold flex items-center gap-3">
+            <Zap className="h-5 w-5 text-primary" /> Visibilidade & Funcionalidades
+          </h3>
+          <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform duration-300 ${expandedSections.visibility ? 'rotate-180' : ''}`} />
+        </button>
+        {expandedSections.visibility && (
+          <div className="p-6 pt-0 border-t animate-in fade-in slide-in-from-top-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+              {[
+                { label: "Modo de Manutenção (Site Bloqueado)", key: "maintenance_mode" },
+                { label: "Exibir Destaques na Home", key: "show_featured_home" },
+                { label: "Obrigar Comprovativo de Pagamento", key: "require_payment_proof" },
+                { label: "Obrigar BI / Identidade", key: "require_bi_verification" },
+                { label: "Obrigar Certificado Profissional", key: "require_certificate_verification" },
+                { label: "Obrigar Vídeo de Identidade", key: "require_video_verification" }
+              ].map((f) => (
+                <div key={f.key} className="flex items-center justify-between p-4 rounded-xl border bg-background hover:border-primary/30 transition-colors">
+                  <div className="flex flex-col">
+                    <span className="text-sm font-bold">{f.label}</span>
+                    <span className="text-[10px] text-muted-foreground uppercase">{f.key}</span>
+                  </div>
+                  <div className="flex gap-1 bg-secondary/20 p-1 rounded-lg">
+                    <Button
+                      size="sm"
+                      variant={settings[f.key] === 'true' ? 'default' : 'ghost'}
+                      onClick={() => handleUpdateSetting(f.key, 'true')}
+                      className="h-8 text-xs px-4"
+                    >
+                      Ativar
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={settings[f.key] !== 'true' ? 'destructive' : 'ghost'}
+                      onClick={() => handleUpdateSetting(f.key, 'false')}
+                      className="h-8 text-xs px-4"
+                    >
+                      Desativar
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 6. Saka Imóveis */}
+      <div className="bg-card border rounded-2xl overflow-hidden shadow-sm border-l-4 border-l-primary">
+        <button
+          onClick={() => toggleSection('imoveis')}
+          className="w-full flex items-center justify-between p-5 hover:bg-secondary/10 transition-colors text-left"
+        >
+          <h3 className="text-lg font-bold flex items-center gap-3">
+            <Home className="h-5 w-5 text-primary" /> Gestão Saka Imóveis
+          </h3>
+          <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform duration-300 ${expandedSections.imoveis ? 'rotate-180' : ''}`} />
+        </button>
+        {expandedSections.imoveis && (
+          <div className="p-6 pt-0 border-t animate-in fade-in slide-in-from-top-2">
+            <div className="space-y-6 mt-6">
+              <div className="flex items-center justify-between p-4 rounded-xl bg-primary/5 border border-primary/10">
+                <span className="font-bold">Exibir Secção de Imóveis na Home</span>
+                <Button
+                  size="sm"
+                  variant={settings.show_imoveis === 'true' ? 'default' : 'destructive'}
+                  onClick={() => handleUpdateSetting('show_imoveis', settings.show_imoveis === 'true' ? 'false' : 'true')}
+                >
+                  {settings.show_imoveis === 'true' ? 'Ativado' : 'Desativado'}
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase text-muted-foreground">Badge Texto (Ex: NOVIDADE)</label>
+                  <input
+                    type="text"
+                    defaultValue={settings.imoveis_badge || "NOVIDADE"}
+                    className="w-full h-11 px-4 rounded-xl border bg-background"
+                    onBlur={(e) => handleUpdateSetting('imoveis_badge', e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase text-muted-foreground">Texto do Botão</label>
+                  <input
+                    type="text"
+                    defaultValue={settings.imoveis_button_text || "Ver imóveis"}
+                    className="w-full h-11 px-4 rounded-xl border bg-background"
+                    onBlur={(e) => handleUpdateSetting('imoveis_button_text', e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase text-muted-foreground">Título Principal</label>
+                <input
+                  type="text"
+                  defaultValue={settings.imoveis_title || ""}
+                  className="w-full h-11 px-4 rounded-xl border bg-background font-bold"
+                  onBlur={(e) => handleUpdateSetting('imoveis_title', e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase text-muted-foreground">Descrição / Subtítulo</label>
+                <textarea
+                  rows={2}
+                  defaultValue={settings.imoveis_description || ""}
+                  className="w-full p-4 rounded-xl border bg-background resize-none"
+                  onBlur={(e) => handleUpdateSetting('imoveis_description', e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2 pt-4 border-t">
+                <label className="text-xs font-bold uppercase text-primary font-black">URL do Preçário (PDF ou Link)</label>
+                <input
+                  type="text"
+                  placeholder="https://..."
+                  defaultValue={settings.imoveis_pricing_url || ""}
+                  className="w-full h-11 px-4 rounded-xl border border-primary/20 bg-primary/5"
+                  onBlur={(e) => handleUpdateSetting('imoveis_pricing_url', e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 7. Identity & Branding */}
+      <div className="bg-card border rounded-2xl overflow-hidden shadow-sm">
+        <button
+          onClick={() => toggleSection('identity')}
+          className="w-full flex items-center justify-between p-5 hover:bg-secondary/10 transition-colors text-left"
+        >
+          <h3 className="text-lg font-bold flex items-center gap-3">
+            <Shield className="h-5 w-5 text-primary" /> Identidade da Marca
+          </h3>
+          <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform duration-300 ${expandedSections.identity ? 'rotate-180' : ''}`} />
+        </button>
+        {expandedSections.identity && (
+          <div className="p-6 pt-0 border-t animate-in fade-in slide-in-from-top-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase text-muted-foreground">Nome da Marca</label>
+                <input
+                  type="text"
+                  defaultValue={settings.brand_name || "Sakaservice"}
+                  className="w-full h-11 px-4 rounded-xl border bg-background font-bold"
+                  onBlur={(e) => handleUpdateSetting('brand_name', e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase text-muted-foreground">URL do Logótipo</label>
+                <input
+                  type="text"
+                  defaultValue={settings.logo_url || ""}
+                  className="w-full h-11 px-4 rounded-xl border bg-background"
+                  onBlur={(e) => handleUpdateSetting('logo_url', e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 8. Global Banners & Promotion */}
+      <div className="bg-card border rounded-2xl overflow-hidden shadow-sm border-l-4 border-l-amber-500">
+        <button
+          onClick={() => toggleSection('banners')}
+          className="w-full flex items-center justify-between p-5 hover:bg-secondary/10 transition-colors text-left"
+        >
+          <h3 className="text-lg font-bold flex items-center gap-3">
+            <Megaphone className="h-5 w-5 text-amber-500" /> Banners Globais & Publicidade
+          </h3>
+          <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform duration-300 ${expandedSections.banners ? 'rotate-180' : ''}`} />
+        </button>
+        {expandedSections.banners && (
+          <div className="p-6 pt-0 border-t animate-in fade-in slide-in-from-top-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-6">
+              {/* Top Banner */}
+              <div className="space-y-4 p-4 rounded-xl bg-amber-50/50 border border-amber-100">
+                <h4 className="text-sm font-black uppercase text-amber-700 flex items-center gap-2">
+                  <ExternalLink className="h-4 w-4" /> Banner Topo (Global)
+                </h4>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase text-muted-foreground">URL da Imagem / GIF</label>
+                  <input
+                    type="text"
+                    defaultValue={settings.global_banner_top_url || "https://zldaauprystajzxfypmc.supabase.co/storage/v1/object/public/uploads/Portal%20Profissional%20(5).gif"}
+                    className="w-full h-11 px-4 rounded-xl border bg-background"
+                    onBlur={(e) => handleUpdateSetting('global_banner_top_url', e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase text-muted-foreground">Link de Redirecionamento</label>
+                  <input
+                    type="text"
+                    defaultValue={settings.global_banner_top_link || "https://saka-service.com/pagina"}
+                    className="w-full h-11 px-4 rounded-xl border bg-background"
+                    onBlur={(e) => handleUpdateSetting('global_banner_top_link', e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Pre-CTA Banner */}
+              <div className="space-y-4 p-4 rounded-xl bg-blue-50/50 border border-blue-100">
+                <h4 className="text-sm font-black uppercase text-blue-700 flex items-center gap-2">
+                  <Sparkles className="h-4 w-4" /> Banner Pré-CTA
+                </h4>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase text-muted-foreground">URL da Imagem / GIF</label>
+                  <input
+                    type="text"
+                    defaultValue={settings.global_banner_cta_url || "https://zldaauprystajzxfypmc.supabase.co/storage/v1/object/public/uploads/Portal%20Profissional%20(5).gif"}
+                    className="w-full h-11 px-4 rounded-xl border bg-background"
+                    onBlur={(e) => handleUpdateSetting('global_banner_cta_url', e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase text-muted-foreground">Link de Redirecionamento</label>
+                  <input
+                    type="text"
+                    defaultValue={settings.global_banner_cta_link || ""}
+                    className="w-full h-11 px-4 rounded-xl border bg-background"
+                    onBlur={(e) => handleUpdateSetting('global_banner_cta_link', e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 9. Footer & Socials */}
+      <div className="bg-card border rounded-2xl overflow-hidden shadow-sm">
+        <button
+          onClick={() => toggleSection('footer')}
+          className="w-full flex items-center justify-between p-5 hover:bg-secondary/10 transition-colors text-left"
+        >
+          <h3 className="text-lg font-bold flex items-center gap-3">
+            <Mail className="h-5 w-5 text-primary" /> Rodapé & Contactos
+          </h3>
+          <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform duration-300 ${expandedSections.footer ? 'rotate-180' : ''}`} />
+        </button>
+        {expandedSections.footer && (
+          <div className="p-6 pt-0 border-t animate-in fade-in slide-in-from-top-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+              <div className="space-y-2 md:col-span-2">
+                <label className="text-xs font-bold uppercase text-muted-foreground">Descrição Principal do Rodapé</label>
+                <textarea
+                  rows={2}
+                  defaultValue={settings.footer_description || ""}
+                  className="w-full p-4 rounded-xl border bg-background resize-none"
+                  onBlur={(e) => handleUpdateSetting('footer_description', e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase text-muted-foreground">Email de Contacto Público</label>
+                <input
+                  type="email"
+                  defaultValue={settings.contact_email || ""}
+                  className="w-full h-11 px-4 rounded-xl border bg-background"
+                  onBlur={(e) => handleUpdateSetting('contact_email', e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase text-muted-foreground">WhatsApp Central</label>
+                <input
+                  type="text"
+                  defaultValue={settings.contact_whatsapp || ""}
+                  className="w-full h-11 px-4 rounded-xl border bg-background"
+                  onBlur={(e) => handleUpdateSetting('contact_whatsapp', e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase text-muted-foreground">Telefone Central</label>
+                <input
+                  type="text"
+                  defaultValue={settings.contact_phone || ""}
+                  className="w-full h-11 px-4 rounded-xl border bg-background"
+                  onBlur={(e) => handleUpdateSetting('contact_phone', e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase text-muted-foreground">Instagram (URL)</label>
+                <input
+                  type="text"
+                  defaultValue={settings.social_instagram || ""}
+                  className="w-full h-11 px-4 rounded-xl border bg-background"
+                  onBlur={(e) => handleUpdateSetting('social_instagram', e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase text-muted-foreground">Facebook (URL)</label>
+                <input
+                  type="text"
+                  defaultValue={settings.social_facebook || ""}
+                  className="w-full h-11 px-4 rounded-xl border bg-background"
+                  onBlur={(e) => handleUpdateSetting('social_facebook', e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase text-muted-foreground">LinkedIn (URL)</label>
+                <input
+                  type="text"
+                  defaultValue={settings.social_linkedin || ""}
+                  className="w-full h-11 px-4 rounded-xl border bg-background"
+                  onBlur={(e) => handleUpdateSetting('social_linkedin', e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase text-muted-foreground">Twitter / X (URL)</label>
+                <input
+                  type="text"
+                  defaultValue={settings.social_twitter || ""}
+                  className="w-full h-11 px-4 rounded-xl border bg-background"
+                  onBlur={(e) => handleUpdateSetting('social_twitter', e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase text-muted-foreground">TikTok (URL)</label>
+                <input
+                  type="text"
+                  defaultValue={settings.social_tiktok || ""}
+                  className="w-full h-11 px-4 rounded-xl border bg-background"
+                  onBlur={(e) => handleUpdateSetting('social_tiktok', e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 9. Emails & Categorias */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        {/* Emails */}
+        <div className="bg-card border-2 border-primary/20 rounded-2xl overflow-hidden shadow-md bg-primary/5">
+          <button
+            onClick={() => toggleSection('emails')}
+            className="w-full flex items-center justify-between p-5 hover:bg-primary/5 transition-colors text-left"
+          >
+            <h3 className="text-lg font-black flex items-center gap-2 text-primary uppercase">
+              <Mail className="h-5 w-5" /> Modelos de E-mail
             </h3>
-            <p className="text-sm text-muted-foreground mt-1">Configure o assunto e o corpo das comunicações automáticas da plataforma.</p>
-          </div>
-        </div>
-        
-        <EmailTemplateManagement />
-      </div>
-
-      {/* Categories Management Section */}
-      <div className="bg-card border-2 border-primary/20 rounded-2xl shadow-md overflow-hidden bg-primary/5">
-        <div className="px-6 py-6 border-b bg-primary/10">
-          <h3 className="text-xl font-black flex items-center gap-2 text-primary uppercase tracking-tight">
-            <LayoutGrid className="h-6 w-6" /> Gestão de Categorias e Profissionais
-          </h3>
-          <p className="text-sm text-muted-foreground mt-1">Edite as denominações, exemplos de profissões e banners visuais de cada categoria.</p>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 divide-x divide-y">
-          {categories.map((cat: any) => (
-            <div key={cat.id} className="p-6 space-y-4 hover:bg-muted/5 transition-colors">
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">{cat.icon}</span>
-                <h4 className="font-bold">{cat.name}</h4>
-              </div>
-              <div className="space-y-3">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase text-muted-foreground">Nome da Categoria</label>
-                  <input 
-                    type="text" 
-                    placeholder="Nome da categoria..."
-                    defaultValue={cat.name || ""} 
-                    className="w-full h-9 px-3 text-xs rounded-lg border bg-background focus:ring-1 focus:ring-primary"
-                    onBlur={(e) => handleUpdateCategoryName(cat.id, e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase text-muted-foreground">Profissões (Separadas por vírgula)</label>
-                  <input 
-                    type="text" 
-                    placeholder="Pedreiro, Pintor, ..."
-                    defaultValue={(cat.professions_preview || []).join(', ')} 
-                    className="w-full h-9 px-3 text-xs rounded-lg border bg-background focus:ring-1 focus:ring-primary"
-                    onBlur={(e) => handleUpdateCategoryProfessions(cat.id, e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase text-muted-foreground">URL do Banner</label>
-                  <input 
-                    type="text" 
-                    placeholder="URL da imagem..."
-                    defaultValue={cat.banner_url || ""} 
-                    className="w-full h-9 px-3 text-xs rounded-lg border bg-background focus:ring-1 focus:ring-primary"
-                    onBlur={(e) => handleUpdateCategoryBanner(cat.id, e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase text-primary font-black">Link do Banner (Redirecionamento)</label>
-                  <input 
-                    type="text" 
-                    placeholder="https://..."
-                    defaultValue={cat.banner_link || ""} 
-                    className="w-full h-9 px-3 text-xs rounded-lg border border-primary/30 bg-background focus:ring-1 focus:ring-primary shadow-sm"
-                    onBlur={(e) => handleUpdateCategoryLink(cat.id, e.target.value)}
-                  />
-                </div>
-              </div>
-              {cat.banner_url && (
-                <div className="relative h-12 w-full rounded-md overflow-hidden bg-muted">
-                  <img src={cat.banner_url} alt={cat.name} className="h-full w-full object-cover opacity-50" />
-                  <div className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-muted-foreground">Preview Ativo</div>
-                </div>
-              )}
+            <ChevronDown className={`h-5 w-5 text-primary transition-transform duration-300 ${expandedSections.emails ? 'rotate-180' : ''}`} />
+          </button>
+          {expandedSections.emails && (
+            <div className="p-5 pt-0 border-t border-primary/10 animate-in fade-in slide-in-from-top-2">
+              <EmailTemplateManagement />
             </div>
-          ))}
+          )}
+        </div>
+
+        {/* Categorias */}
+        <div className="bg-card border-2 border-primary/20 rounded-2xl overflow-hidden shadow-md bg-primary/5">
+          <button
+            onClick={() => toggleSection('categories')}
+            className="w-full flex items-center justify-between p-5 hover:bg-primary/5 transition-colors text-left"
+          >
+            <h3 className="text-lg font-black flex items-center gap-2 text-primary uppercase">
+              <LayoutGrid className="h-5 w-5" /> Gestão de Categorias
+            </h3>
+            <ChevronDown className={`h-5 w-5 text-primary transition-transform duration-300 ${expandedSections.categories ? 'rotate-180' : ''}`} />
+          </button>
+          {expandedSections.categories && (
+            <div className="p-5 pt-0 border-t border-primary/10 animate-in fade-in slide-in-from-top-2">
+              <div className="grid grid-cols-1 gap-6 mt-6">
+                {categories.map((cat: any) => (
+                  <div key={cat.id} className="p-5 rounded-2xl border bg-background space-y-4 shadow-sm">
+                    <div className="flex items-center justify-between border-b pb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl">{cat.icon}</span>
+                        <span className="font-bold">{cat.name}</span>
+                      </div>
+                      <span className="text-[10px] text-muted-foreground uppercase font-mono">ID: {cat.id}</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold uppercase text-muted-foreground">Nome da Categoria</label>
+                        <input
+                          type="text"
+                          defaultValue={cat.name}
+                          className="w-full h-9 px-3 text-sm rounded-lg border bg-background"
+                          onBlur={(e) => handleUpdateCategoryName(cat.id, e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold uppercase text-muted-foreground">Profissões (Separadas por vírgula)</label>
+                        <input
+                          type="text"
+                          defaultValue={(cat.professions_preview || []).join(', ')}
+                          className="w-full h-9 px-3 text-sm rounded-lg border bg-background"
+                          onBlur={(e) => handleUpdateCategoryProfessions(cat.id, e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold uppercase text-muted-foreground">URL do Banner</label>
+                        <input
+                          type="text"
+                          defaultValue={cat.banner_url || ""}
+                          className="w-full h-9 px-3 text-sm rounded-lg border bg-background"
+                          onBlur={(e) => handleUpdateCategoryBanner(cat.id, e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold uppercase text-primary font-black">Link do Banner (Redirect)</label>
+                        <input
+                          type="text"
+                          defaultValue={cat.banner_link || ""}
+                          className="w-full h-9 px-3 text-sm rounded-lg border border-primary/20 bg-primary/5"
+                          onBlur={(e) => handleUpdateCategoryLink(cat.id, e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Footer Save Button */}
-      <div className="flex justify-end pt-8 border-t border-border/50">
-        <Button 
+      {/* Footer Save Button - Floating style */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <Button
           size="lg"
           onClick={() => {
-            toast.success("Sincronização completa! Todas as alterações estão online.");
+            toast.success("Tudo guardado!");
             queryClient.invalidateQueries({ queryKey: ['siteSettings'] });
-            queryClient.invalidateQueries({ queryKey: ['categories'] });
-          }} 
-          className="gap-2 px-8 shadow-hero hover:scale-[1.02] transition-all"
+          }}
+          className="gap-2 px-8 shadow-2xl hover:scale-105 transition-all rounded-full h-14 bg-primary"
         >
-          <Save className="h-5 w-5" /> Finalizar e Salvar Tudo
+          <Save className="h-5 w-5" /> Guardar Alterações
         </Button>
       </div>
     </div>
@@ -1805,7 +2004,7 @@ function AnalyticsPanel() {
       <div className="bg-card border rounded-2xl shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b bg-muted/30 flex items-center justify-between">
           <h3 className="font-bold flex items-center gap-2">
-            <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" /> 
+            <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
             Ranking: Top 10 Perfis Mais Visitados
           </h3>
           <span className="text-xs text-muted-foreground uppercase tracking-widest font-bold">Total de Visitas</span>
@@ -1817,11 +2016,10 @@ function AnalyticsPanel() {
             topProfiles.map((pro: any, index: number) => (
               <div key={pro.id} className="flex items-center justify-between p-4 px-6 hover:bg-muted/5 transition-colors">
                 <div className="flex items-center gap-4">
-                  <div className={`h-8 w-8 rounded-full flex items-center justify-center font-bold text-sm ${
-                    index === 0 ? 'bg-yellow-500 text-white' : 
-                    index === 1 ? 'bg-slate-300 text-slate-700' : 
-                    index === 2 ? 'bg-amber-600/20 text-amber-700' : 'bg-muted text-muted-foreground'
-                  }`}>
+                  <div className={`h-8 w-8 rounded-full flex items-center justify-center font-bold text-sm ${index === 0 ? 'bg-yellow-500 text-white' :
+                      index === 1 ? 'bg-slate-300 text-slate-700' :
+                        index === 2 ? 'bg-amber-600/20 text-amber-700' : 'bg-muted text-muted-foreground'
+                    }`}>
                     {index + 1}
                   </div>
                   <img src={pro.avatar || "https://zldaauprystajzxfypmc.supabase.co/storage/v1/object/public/uploads/Logo%20Oku%20Saka%20e%20Sakaservice.png"} className="h-10 w-10 rounded-full object-cover border bg-white" alt={pro.name} />
@@ -1849,7 +2047,7 @@ function AnalyticsPanel() {
 }
 
 // Settings Panel Component
-function SettingsPanel({ 
+function SettingsPanel({
   adminList, newEmail, setNewEmail, onAdd, onRemove,
   managerList, newManagerEmail, setNewManagerEmail, onAddManager, onRemoveManager,
   settings, onUpdateSetting
@@ -1880,6 +2078,19 @@ function SettingsPanel({
     setTermsEmail(settings.terms_service_email || "termos@sakaservice.com");
   }, [settings]);
 
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    admins: false,
+    managers: false,
+    permissions: false,
+    lifecycle: false,
+    team: false,
+    content: false
+  });
+
+  const toggleSection = (section: string) => {
+    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
+
   const managerPermissions = (settings.manager_permissions || "verifications,properties").split(',');
   const notifDuration = settings.notification_duration_days || "3";
 
@@ -1903,423 +2114,393 @@ function SettingsPanel({
   ];
 
   return (
-  <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-      {/* Administrators Management */}
-      <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          <ShieldCheck className="h-6 w-6 text-primary" />
-          <h2 className="text-xl font-bold">Administradores</h2>
-        </div>
-        
-        <div className="bg-card border rounded-2xl p-6 shadow-sm">
-          <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-            <Plus className="h-5 w-5 text-primary" /> Conceder Admin
-          </h3>
-          <div className="space-y-4">
-            <div className="relative">
-              <Mail className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
-              <input 
-                type="email" 
-                placeholder="email@exemplo.com" 
-                value={newEmail}
-                onChange={(e) => setNewEmail(e.target.value)}
-                className="w-full h-11 pl-10 pr-4 rounded-xl border bg-background outline-none focus:ring-2 focus:ring-primary/20"
-              />
-            </div>
-            <Button onClick={onAdd} className="w-full h-11 font-bold">
-              Guardar Administrador
-            </Button>
-          </div>
-        </div>
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
-        <div className="bg-card border rounded-2xl shadow-sm overflow-hidden">
-          <div className="divide-y">
-            {adminList.map((admin: any) => (
-              <div key={admin.email} className="flex items-center justify-between p-4 px-6 hover:bg-muted/10 transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-                    {admin.email[0].toUpperCase()}
-                  </div>
-                  <p className="font-medium">{admin.email}</p>
-                </div>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="text-destructive hover:bg-destructive/10"
-                  onClick={() => onRemove(admin.email)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
+      {/* 1. Administradores */}
+      <div className="bg-card border rounded-2xl overflow-hidden shadow-sm">
+        <button
+          onClick={() => toggleSection('admins')}
+          className="w-full flex items-center justify-between p-5 hover:bg-secondary/10 transition-colors text-left"
+        >
+          <div className="flex items-center gap-3 text-primary font-bold">
+            <ShieldCheck className="h-6 w-6" />
+            <span className="text-lg">Administradores do Sistema</span>
           </div>
-        </div>
+          <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform duration-300 ${expandedSections.admins ? 'rotate-180' : ''}`} />
+        </button>
+        {expandedSections.admins && (
+          <div className="p-6 pt-0 border-t animate-in fade-in slide-in-from-top-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-6">
+              <div className="bg-muted/10 border rounded-2xl p-6">
+                <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                  <Plus className="h-5 w-5 text-primary" /> Conceder Acesso Admin
+                </h3>
+                <div className="space-y-4">
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+                    <input
+                      type="email"
+                      placeholder="email@exemplo.com"
+                      value={newEmail}
+                      onChange={(e) => setNewEmail(e.target.value)}
+                      className="w-full h-11 pl-10 pr-4 rounded-xl border bg-background outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+                  <Button onClick={onAdd} className="w-full h-11 font-bold">
+                    Guardar Administrador
+                  </Button>
+                </div>
+              </div>
+              <div className="border rounded-2xl shadow-sm overflow-hidden bg-background">
+                <div className="p-4 border-b bg-muted/5 font-bold text-xs uppercase tracking-widest text-muted-foreground">Admins Atuais</div>
+                <div className="divide-y max-h-[300px] overflow-y-auto">
+                  {adminList.map((admin: any) => (
+                    <div key={admin.email} className="flex items-center justify-between p-4 px-6 hover:bg-muted/10 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                          {admin.email[0].toUpperCase()}
+                        </div>
+                        <p className="font-medium text-sm">{admin.email}</p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive hover:bg-destructive/10"
+                        onClick={() => onRemove(admin.email)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Gestores Management */}
-      <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          <Users className="h-6 w-6 text-emerald-500" />
-          <h2 className="text-xl font-bold">Gestores Operacionais</h2>
-        </div>
-        
-        <div className="bg-card border rounded-2xl p-6 shadow-sm">
-          <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-            <Plus className="h-5 w-5 text-emerald-500" /> Adicionar Gestor
-          </h3>
-          <div className="space-y-4">
-            <div className="relative">
-              <Mail className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
-              <input 
-                type="email" 
-                placeholder="manager@exemplo.com" 
-                value={newManagerEmail}
-                onChange={(e) => setNewManagerEmail(e.target.value)}
-                className="w-full h-11 pl-10 pr-4 rounded-xl border bg-background outline-none focus:ring-2 focus:ring-primary/20"
-              />
-            </div>
-            <Button onClick={onAddManager} className="w-full h-11 font-bold bg-emerald-600 hover:bg-emerald-700">
-              Conceder Função de Gestor
-            </Button>
+      {/* 2. Gestores Operacionais */}
+      <div className="bg-card border rounded-2xl overflow-hidden shadow-sm">
+        <button
+          onClick={() => toggleSection('managers')}
+          className="w-full flex items-center justify-between p-5 hover:bg-secondary/10 transition-colors text-left"
+        >
+          <div className="flex items-center gap-3 text-emerald-600 font-bold">
+            <Users className="h-6 w-6" />
+            <span className="text-lg">Gestores Operacionais</span>
           </div>
-        </div>
-
-        <div className="bg-card border rounded-2xl shadow-sm overflow-hidden">
-          <div className="divide-y">
-            {managerList.map((email: string) => (
-              <div key={email} className="flex items-center justify-between p-4 px-6 hover:bg-muted/10 transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold">
-                    {email[0].toUpperCase()}
+          <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform duration-300 ${expandedSections.managers ? 'rotate-180' : ''}`} />
+        </button>
+        {expandedSections.managers && (
+          <div className="p-6 pt-0 border-t animate-in fade-in slide-in-from-top-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-6">
+              <div className="bg-emerald-50/20 border-emerald-100 border rounded-2xl p-6">
+                <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                  <Plus className="h-5 w-5 text-emerald-500" /> Adicionar Novo Gestor
+                </h3>
+                <div className="space-y-4">
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+                    <input
+                      type="email"
+                      placeholder="manager@exemplo.com"
+                      value={newManagerEmail}
+                      onChange={(e) => setNewManagerEmail(e.target.value)}
+                      className="w-full h-11 pl-10 pr-4 rounded-xl border bg-background"
+                    />
                   </div>
-                  <p className="font-medium text-sm">{email}</p>
+                  <Button onClick={onAddManager} className="w-full h-11 font-bold bg-emerald-600 hover:bg-emerald-700">
+                    Conceder Função de Gestor
+                  </Button>
                 </div>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="text-destructive hover:bg-destructive/10"
-                  onClick={() => onRemoveManager(email)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
               </div>
-            ))}
-            {managerList.length === 0 && (
-              <div className="p-8 text-center text-muted-foreground text-sm">
-                Nenhum gestor operacional configurado.
+              <div className="border rounded-2xl shadow-sm overflow-hidden bg-background">
+                <div className="p-4 border-b bg-emerald-50/10 font-bold text-xs uppercase tracking-widest text-emerald-600">Gestores Ativos</div>
+                <div className="divide-y max-h-[300px] overflow-y-auto">
+                  {managerList.map((email: string) => (
+                    <div key={email} className="flex items-center justify-between p-4 px-6 hover:bg-muted/10 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold">
+                          {email[0].toUpperCase()}
+                        </div>
+                        <p className="font-medium text-sm">{email}</p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive hover:bg-destructive/10"
+                        onClick={() => onRemoveManager(email)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  {managerList.length === 0 && (
+                    <div className="p-8 text-center text-muted-foreground text-sm">Nenhum gestor configurado.</div>
+                  )}
+                </div>
               </div>
-            )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
-    </div>
 
-    {/* Advanced Permissions & Duration Settings */}
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-8 border-t">
-      <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          <Shield className="h-6 w-6 text-amber-500" />
-          <h2 className="text-xl font-bold">Permissões dos Gestores</h2>
-        </div>
-        <div className="bg-card border rounded-2xl p-6 shadow-sm space-y-4">
-          <p className="text-sm text-muted-foreground mb-4">
-            Defina o que os Gestores Operacionais podem visualizar e gerir na plataforma.
-          </p>
-          <div className="grid grid-cols-1 gap-3">
-            {permissions.map(perm => (
-              <div 
-                key={perm.id} 
-                className="flex items-center justify-between p-3 rounded-xl border bg-secondary/10 hover:bg-secondary/20 transition-colors cursor-pointer"
-                onClick={() => togglePermission(perm.id)}
+      {/* 3. Permissões dos Gestores */}
+      <div className="bg-card border rounded-2xl overflow-hidden shadow-sm">
+        <button
+          onClick={() => toggleSection('permissions')}
+          className="w-full flex items-center justify-between p-5 hover:bg-secondary/10 transition-colors text-left"
+        >
+          <div className="flex items-center gap-3 text-amber-600 font-bold">
+            <Shield className="h-6 w-6" />
+            <span className="text-lg">Permissões dos Gestores</span>
+          </div>
+          <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform duration-300 ${expandedSections.permissions ? 'rotate-180' : ''}`} />
+        </button>
+        {expandedSections.permissions && (
+          <div className="p-6 pt-0 border-t animate-in fade-in slide-in-from-top-2">
+            <div className="mt-6 space-y-4 max-w-2xl mx-auto">
+              <p className="text-sm text-muted-foreground mb-4 text-center">
+                Defina o nível de acesso para todos os Gestores Operacionais.
+              </p>
+              <div className="grid grid-cols-1 gap-3">
+                {permissions.map(perm => (
+                  <div
+                    key={perm.id}
+                    className="flex items-center justify-between p-4 rounded-xl border bg-secondary/5 hover:bg-secondary/10 transition-colors cursor-pointer"
+                    onClick={() => togglePermission(perm.id)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`h-5 w-5 rounded border flex items-center justify-center transition-colors ${managerPermissions.includes(perm.id) ? 'bg-primary border-primary text-white shadow-md' : 'border-muted-foreground'}`}>
+                        {managerPermissions.includes(perm.id) && <Check className="h-3 w-3" />}
+                      </div>
+                      <span className="text-sm font-bold">{perm.label}</span>
+                    </div>
+                    <Badge variant={managerPermissions.includes(perm.id) ? "default" : "outline"} className="px-3">
+                      {managerPermissions.includes(perm.id) ? "Ativo" : "Restrito"}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 4. Ciclo de Vida do Sistema */}
+      <div className="bg-card border rounded-2xl overflow-hidden shadow-sm">
+        <button
+          onClick={() => toggleSection('lifecycle')}
+          className="w-full flex items-center justify-between p-5 hover:bg-secondary/10 transition-colors text-left"
+        >
+          <div className="flex items-center gap-3 text-blue-600 font-bold">
+            <Clock className="h-6 w-6" />
+            <span className="text-lg">Ciclo de Vida do Sistema</span>
+          </div>
+          <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform duration-300 ${expandedSections.lifecycle ? 'rotate-180' : ''}`} />
+        </button>
+        {expandedSections.lifecycle && (
+          <div className="p-6 pt-0 border-t animate-in fade-in slide-in-from-top-2">
+            <div className="mt-6 max-w-md mx-auto space-y-6">
+              <div className="space-y-4 bg-blue-50/30 p-6 rounded-2xl border border-blue-100">
+                <Label className="text-sm font-black uppercase text-blue-800">Duração das Notificações (Dias)</Label>
+                <div className="flex items-center gap-4">
+                  <Input
+                    type="number"
+                    value={notifDuration}
+                    onChange={(e) => onUpdateSetting('notification_duration_days', e.target.value)}
+                    className="w-24 h-12 text-xl font-bold border-blue-200"
+                    min="1"
+                    max="30"
+                  />
+                  <div className="text-xs text-muted-foreground leading-relaxed">
+                    Auto-limpeza após este período. <br />
+                    <strong className="text-blue-700">Recomendado: 3 a 7 dias.</strong>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 p-4 bg-amber-50 rounded-xl border border-amber-100">
+                <Info className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+                <p className="text-[11px] text-amber-800 leading-tight">
+                  <strong>Importante:</strong> Esta alteração só se aplica a novas notificações. As existentes mantêm o seu ciclo original.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 5. Gestão da Equipa (About Us) */}
+      <div className="bg-card border rounded-2xl overflow-hidden shadow-sm">
+        <button
+          onClick={() => toggleSection('team')}
+          className="w-full flex items-center justify-between p-5 hover:bg-secondary/10 transition-colors text-left"
+        >
+          <div className="flex items-center gap-3 text-indigo-600 font-bold">
+            <Users className="h-6 w-6" />
+            <span className="text-lg">Gestão da Equipa (Quem Somos)</span>
+          </div>
+          <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform duration-300 ${expandedSections.team ? 'rotate-180' : ''}`} />
+        </button>
+        {expandedSections.team && (
+          <div className="p-6 pt-0 border-t animate-in fade-in slide-in-from-top-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
+              {teamMembers.map((member, index) => (
+                <Card key={index} className="relative overflow-hidden group border-muted shadow-none hover:border-primary/40 transition-all">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-2 right-2 z-10 text-destructive bg-white/80 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => {
+                      const updated = [...teamMembers];
+                      updated.splice(index, 1);
+                      setTeamMembers(updated);
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                  <div className="aspect-square bg-muted flex items-center justify-center overflow-hidden">
+                    {member.photo ? (
+                      <img src={member.photo} alt={member.name} className="h-full w-full object-cover transition-transform group-hover:scale-110 duration-500" />
+                    ) : (
+                      <ImageIcon className="h-10 w-10 text-muted-foreground/20" />
+                    )}
+                  </div>
+                  <CardContent className="p-4 space-y-3">
+                    <Input
+                      value={member.name}
+                      placeholder="Nome..."
+                      onChange={(e) => {
+                        const updated = [...teamMembers];
+                        updated[index].name = e.target.value;
+                        setTeamMembers(updated);
+                      }}
+                      className="h-8 text-sm font-bold"
+                    />
+                    <Input
+                      value={member.role}
+                      placeholder="Função..."
+                      onChange={(e) => {
+                        const updated = [...teamMembers];
+                        updated[index].role = e.target.value;
+                        setTeamMembers(updated);
+                      }}
+                      className="h-8 text-xs italic"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full text-[10px] h-7 gap-2"
+                      onClick={() => document.getElementById(`team-photo-${index}`)?.click()}
+                    >
+                      <ImageIcon className="h-3 w-3" /> Foto
+                    </Button>
+                    <input
+                      type="file" accept="image/*" className="hidden" id={`team-photo-${index}`}
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const url = await uploadImage(file);
+                          if (url) {
+                            const updated = [...teamMembers];
+                            updated[index].photo = url;
+                            setTeamMembers(updated);
+                            toast.success("Foto atualizada.");
+                          }
+                        }
+                      }}
+                    />
+                  </CardContent>
+                </Card>
+              ))}
+              <button
+                onClick={() => setTeamMembers([...teamMembers, { name: "", role: "", photo: "" }])}
+                className="flex flex-col items-center justify-center gap-3 border-2 border-dashed rounded-2xl p-8 hover:bg-secondary/5 hover:border-primary transition-all text-muted-foreground hover:text-primary min-h-[250px]"
               >
-                <div className="flex items-center gap-3">
-                  <div className={`h-4 w-4 rounded border flex items-center justify-center ${managerPermissions.includes(perm.id) ? 'bg-primary border-primary text-white' : 'border-muted-foreground'}`}>
-                    {managerPermissions.includes(perm.id) && <Check className="h-3 w-3" />}
-                  </div>
-                  <span className="text-sm font-medium">{perm.label}</span>
-                </div>
-                <Badge variant={managerPermissions.includes(perm.id) ? "default" : "outline"} className="text-[10px]">
-                  {managerPermissions.includes(perm.id) ? "Ativo" : "Restrito"}
-                </Badge>
-              </div>
-            ))}
+                <Plus className="h-8 w-8" />
+                <span className="text-sm font-bold">Adicionar Membro</span>
+              </button>
+            </div>
+            <div className="flex justify-end mt-8 pt-6 border-t">
+              <Button
+                onClick={() => onUpdateSetting('team_members_json', JSON.stringify(teamMembers))}
+                disabled={JSON.stringify(teamMembers) === settings.team_members_json}
+                className="h-12 px-10 bg-indigo-600 hover:bg-indigo-700 font-bold shadow-lg"
+              >
+                <Save className="h-4 w-4 mr-2" /> Guardar Equipa Completa
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
-      <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          <Clock className="h-6 w-6 text-blue-500" />
-          <h2 className="text-xl font-bold">Ciclo de Vida do Sistema</h2>
-        </div>
-        <div className="bg-card border rounded-2xl p-6 shadow-sm space-y-6">
-          <div className="space-y-3">
-            <Label className="text-sm font-bold">Duração das Notificações (Dias)</Label>
-            <div className="flex items-center gap-4">
-              <Input 
-                type="number" 
-                value={notifDuration}
-                onChange={(e) => onUpdateSetting('notification_duration_days', e.target.value)}
-                className="w-32 h-11 text-lg font-bold"
-                min="1"
-                max="30"
-              />
-              <p className="text-xs text-muted-foreground">
-                As notificações serão removidas automaticamente após este período. 
-                <br />(Recomendado: 3 a 7 dias)
+      {/* 6. Editor de Conteúdo Institucional */}
+      <div className="bg-card border rounded-2xl overflow-hidden shadow-sm">
+        <button
+          onClick={() => toggleSection('content')}
+          className="w-full flex items-center justify-between p-5 hover:bg-secondary/10 transition-colors text-left"
+        >
+          <div className="flex items-center gap-3 text-amber-600 font-bold">
+            <FileCode className="h-6 w-6" />
+            <span className="text-lg">Editor de Conteúdo Institucional</span>
+          </div>
+          <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform duration-300 ${expandedSections.content ? 'rotate-180' : ''}`} />
+        </button>
+        {expandedSections.content && (
+          <div className="p-6 pt-0 border-t animate-in fade-in slide-in-from-top-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+              {[
+                { title: "Nossa Missão", desc: "Sobre o Saka Service", val: aboutUs, set: setAboutUs, key: 'about_us_content', color: 'amber' },
+                { title: "Nossa Visão", desc: "O futuro da plataforma", val: vision, set: setVision, key: 'about_us_vision', color: 'emerald' },
+                { title: "Privacidade", desc: "Política de Dados", val: privacy, set: setPrivacy, email: privacyEmail, setEmail: setPrivacyEmail, emailKey: 'privacy_policy_email', key: 'privacy_policy_content', color: 'blue' },
+                { title: "Termos", desc: "Condições de Uso", val: terms, set: setTerms, email: termsEmail, setEmail: setTermsEmail, emailKey: 'terms_service_email', key: 'terms_service_content', color: 'slate' }
+              ].map((item) => (
+                <Card key={item.key} className={`border-${item.color}-200/50`}>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base font-bold">{item.title}</CardTitle>
+                    <CardDescription className="text-[10px] uppercase font-mono">{item.desc}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <Textarea
+                      value={item.val}
+                      onChange={(e) => item.set(e.target.value)}
+                      className="min-h-[200px] text-sm font-serif leading-relaxed"
+                    />
+                    {item.emailKey && (
+                      <div className="space-y-1.5">
+                        <Label className="text-[10px] uppercase font-bold text-muted-foreground">Email de Contacto</Label>
+                        <Input
+                          value={item.email}
+                          onChange={(e) => item.setEmail!(e.target.value)}
+                          className="h-9 text-xs"
+                        />
+                      </div>
+                    )}
+                    <Button
+                      onClick={async () => {
+                        await onUpdateSetting(item.key, item.val);
+                        if (item.emailKey) await onUpdateSetting(item.emailKey, item.email);
+                      }}
+                      disabled={item.val === settings[item.key] && (!item.emailKey || item.email === settings[item.emailKey])}
+                      className="w-full font-bold"
+                    >
+                      <Save className="h-4 w-4 mr-2" /> Guardar {item.title}
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+            <div className="mt-8 bg-amber-50 border border-amber-200 rounded-xl p-4 text-amber-800 text-xs flex items-start gap-3">
+              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+              <p className="leading-relaxed">
+                As alterações feitas nestes campos refletem-se instantaneamente nas páginas públicas correspondentes.
+                Pode usar parágrafos simples. A formatação rica (HTML) será renderizada se suportada pelas páginas.
               </p>
             </div>
           </div>
-          
-          <div className="p-4 rounded-xl bg-blue-50 border border-blue-100 flex items-start gap-3">
-            <Info className="h-5 w-5 text-blue-500 mt-0.5" />
-            <p className="text-xs text-blue-800 leading-relaxed">
-              <strong>Nota:</strong> Alterar a duração não afeta as notificações já enviadas, apenas as novas a partir de agora.
-            </p>
-          </div>
-        </div>
+        )}
       </div>
     </div>
-
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Users className="h-6 w-6 text-indigo-500" />
-        <h2 className="text-xl font-bold">Gestão da Equipa (About Us)</h2>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {teamMembers.map((member, index) => (
-          <Card key={index} className="relative overflow-hidden group">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="absolute top-2 right-2 z-10 text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
-              onClick={() => {
-                const updated = [...teamMembers];
-                updated.splice(index, 1);
-                setTeamMembers(updated);
-              }}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-            <div className="aspect-square bg-muted flex items-center justify-center overflow-hidden">
-              {member.photo ? (
-                <img src={member.photo} alt={member.name} className="h-full w-full object-cover" />
-              ) : (
-                <ImageIcon className="h-10 w-10 text-muted-foreground/30" />
-              )}
-            </div>
-            <CardContent className="p-4 space-y-3">
-              <Input 
-                value={member.name} 
-                placeholder="Nome do colaborador"
-                onChange={(e) => {
-                  const updated = [...teamMembers];
-                  updated[index].name = e.target.value;
-                  setTeamMembers(updated);
-                }}
-                className="h-8 text-sm font-bold"
-              />
-              <Input 
-                value={member.role} 
-                placeholder="Função (Ex: CEO)"
-                onChange={(e) => {
-                  const updated = [...teamMembers];
-                  updated[index].role = e.target.value;
-                  setTeamMembers(updated);
-                }}
-                className="h-8 text-xs"
-              />
-              <div className="flex gap-2">
-                <Input 
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  id={`team-photo-${index}`}
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      toast.info("A carregar foto...");
-                      try {
-                        const url = await uploadImage(file);
-                        if (url) {
-                          const updated = [...teamMembers];
-                          updated[index].photo = url;
-                          setTeamMembers(updated);
-                          toast.success("Foto carregada.");
-                        }
-                      } catch (err) {
-                        toast.error("Erro ao carregar imagem.");
-                      }
-                    }
-                  }}
-                />
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="w-full text-[10px] h-7"
-                  onClick={() => document.getElementById(`team-photo-${index}`)?.click()}
-                >
-                  <ImageIcon className="h-3 w-3 mr-1" /> Alterar Foto
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-        
-        <button 
-          onClick={() => setTeamMembers([...teamMembers, { name: "", role: "", photo: "" }])}
-          className="flex flex-col items-center justify-center gap-3 border-2 border-dashed rounded-2xl p-8 hover:bg-secondary/5 hover:border-primary/50 transition-all text-muted-foreground hover:text-primary"
-        >
-          <Plus className="h-8 w-8" />
-          <span className="text-sm font-medium">Adicionar Membro</span>
-        </button>
-      </div>
-
-      <div className="flex justify-end">
-        <Button 
-          onClick={() => onUpdateSetting('team_members_json', JSON.stringify(teamMembers))}
-          disabled={JSON.stringify(teamMembers) === settings.team_members_json}
-          className="h-12 px-10 bg-indigo-600 hover:bg-indigo-700 font-bold"
-        >
-          <Save className="h-4 w-4 mr-2" /> Guardar Toda a Equipa
-        </Button>
-      </div>
-    </div>
-
-    <hr className="border-muted my-10" />
-
-    {/* Content Editor Section */}
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <FileCode className="h-6 w-6 text-amber-500" />
-        <h2 className="text-xl font-bold">Editor de Conteúdo Institucional</h2>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-        <Card className="border-amber-200/50">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2"><Info className="h-4 w-4 text-amber-500" /> Nossa Missão</CardTitle>
-            <CardDescription className="text-xs">O propósito da plataforma.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Textarea 
-              value={aboutUs}
-              placeholder="Descreva a missão..."
-              onChange={(e) => setAboutUs(e.target.value)}
-              className="min-h-[200px] text-sm resize-none focus:ring-amber-500/20"
-            />
-            <Button 
-              onClick={() => onUpdateSetting('about_us_content', aboutUs)}
-              disabled={aboutUs === settings.about_us_content}
-              className="w-full h-10 font-bold bg-amber-600 hover:bg-amber-700"
-            >
-              <Save className="h-4 w-4 mr-2" /> Guardar Missão
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="border-emerald-200/50">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2"><Target className="h-4 w-4 text-emerald-500" /> Nossa Visão</CardTitle>
-            <CardDescription className="text-xs">Onde queremos chegar.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Textarea 
-              value={vision}
-              placeholder="Descreva a visão..."
-              onChange={(e) => setVision(e.target.value)}
-              className="min-h-[200px] text-sm resize-none focus:ring-emerald-500/20"
-            />
-            <Button 
-              onClick={() => onUpdateSetting('about_us_vision', vision)}
-              disabled={vision === settings.about_us_vision}
-              className="w-full h-10 font-bold bg-emerald-600 hover:bg-emerald-700"
-            >
-              <Save className="h-4 w-4 mr-2" /> Guardar Visão
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="border-blue-200/50">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2"><Shield className="h-4 w-4 text-blue-500" /> Política de Privacidade</CardTitle>
-            <CardDescription className="text-xs">Tratamento de dados.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Textarea 
-              value={privacy}
-              placeholder="Escreva a política..."
-              onChange={(e) => setPrivacy(e.target.value)}
-              className="min-h-[200px] text-sm resize-none focus:ring-blue-500/20"
-            />
-            <div className="space-y-1.5">
-              <Label className="text-[10px] uppercase font-bold text-muted-foreground">Email de Contacto</Label>
-              <Input 
-                value={privacyEmail}
-                onChange={(e) => setPrivacyEmail(e.target.value)}
-                placeholder="Ex: privacidade@sakaservice.com"
-                className="h-9 text-xs"
-              />
-            </div>
-            <Button 
-              onClick={async () => {
-                await onUpdateSetting('privacy_policy_content', privacy);
-                await onUpdateSetting('privacy_policy_email', privacyEmail);
-              }}
-              disabled={privacy === settings.privacy_policy_content && privacyEmail === settings.privacy_policy_email}
-              className="w-full h-10 font-bold bg-blue-600 hover:bg-blue-700"
-            >
-              <Save className="h-4 w-4 mr-2" /> Guardar Privacidade
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="border-slate-200/50">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2"><FileText className="h-4 w-4 text-slate-500" /> Termos de Serviço</CardTitle>
-            <CardDescription className="text-xs">Regras de uso.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Textarea 
-              value={terms}
-              placeholder="Escreva os termos..."
-              onChange={(e) => setTerms(e.target.value)}
-              className="min-h-[200px] text-sm resize-none focus:ring-slate-500/20"
-            />
-            <div className="space-y-1.5">
-              <Label className="text-[10px] uppercase font-bold text-muted-foreground">Email de Contacto</Label>
-              <Input 
-                value={termsEmail}
-                onChange={(e) => setTermsEmail(e.target.value)}
-                placeholder="Ex: termos@sakaservice.com"
-                className="h-9 text-xs"
-              />
-            </div>
-            <Button 
-              onClick={async () => {
-                await onUpdateSetting('terms_service_content', terms);
-                await onUpdateSetting('terms_service_email', termsEmail);
-              }}
-              disabled={terms === settings.terms_service_content && termsEmail === settings.terms_service_email}
-              className="w-full h-10 font-bold bg-slate-700 hover:bg-slate-800"
-            >
-              <Save className="h-4 w-4 mr-2" /> Guardar Termos
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-      
-      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-amber-800 text-xs flex items-start gap-3">
-        <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-        <p className="leading-relaxed">
-          As alterações feitas nestes campos refletem-se instantaneamente nas páginas públicas correspondentes. 
-          Pode usar parágrafos simples. A formatação rica (HTML) será renderizada se suportada pelas páginas.
-        </p>
-      </div>
-    </div>
-  </div>
   );
 }
 
@@ -2330,8 +2511,55 @@ function VerificationItem({ pro, mutation, featuredMutation, deleteMutation, can
   const [reason, setReason] = useState("");
   const queryClient = useQueryClient();
 
+  const [docUrls, setDocUrls] = useState({
+    id_front: pro.id_card_front_url,
+    id_back: pro.id_card_back_url,
+    certificate: pro.certificate_url,
+    video: pro.activity_video_url,
+    payment: pro.payment_proof_url
+  });
+
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  useEffect(() => {
+    const refreshUrls = async () => {
+      setIsRefreshing(true);
+      const newUrls = { ...docUrls };
+
+      if (pro.id_card_front_url) {
+        const fresh = await getFreshSignedUrl(pro.id_card_front_url);
+        if (fresh) newUrls.id_front = fresh;
+      }
+
+      if (pro.id_card_back_url) {
+        const fresh = await getFreshSignedUrl(pro.id_card_back_url);
+        if (fresh) newUrls.id_back = fresh;
+      }
+
+      if (pro.certificate_url) {
+        const fresh = await getFreshSignedUrl(pro.certificate_url);
+        if (fresh) newUrls.certificate = fresh;
+      }
+
+      if (pro.activity_video_url) {
+        const fresh = await getFreshSignedUrl(pro.activity_video_url);
+        if (fresh) newUrls.video = fresh;
+      }
+
+      if (pro.payment_proof_url) {
+        const fresh = await getFreshSignedUrl(pro.payment_proof_url);
+        if (fresh) newUrls.payment = fresh;
+      }
+
+      setDocUrls(newUrls);
+      setIsRefreshing(false);
+    };
+
+    refreshUrls();
+  }, [pro.id]);
+
   const rejectMutation = useMutation({
-    mutationFn: ({ id, reason }: { id: string, reason: string }) => 
+    mutationFn: ({ id, reason }: { id: string, reason: string }) =>
       adminRejectVerification(id, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pendingVerifications'] });
@@ -2344,267 +2572,254 @@ function VerificationItem({ pro, mutation, featuredMutation, deleteMutation, can
     }
   });
 
+  const [isExpanded, setIsExpanded] = useState(false);
+
   return (
-    <div className="bg-card border rounded-2xl p-6 shadow-md overflow-hidden relative border-gradient-hero">
-    {pro.featured && (
-      <div className="absolute top-0 right-0 bg-yellow-400 text-yellow-900 text-[10px] font-bold px-3 py-1 rounded-bl-lg flex items-center gap-1 shadow-sm">
-        <Star className="h-3 w-3 fill-current" /> TOP PROFISSIONAL
-      </div>
-    )}
-    <div className="flex flex-col lg:flex-row gap-8">
-      <div className="flex-1 space-y-4">
-        <div className="flex items-center gap-4">
-          <img src={pro.avatar || "https://zldaauprystajzxfypmc.supabase.co/storage/v1/object/public/uploads/Logo%20Oku%20Saka%20e%20Sakaservice.png"} alt={pro.name} className="h-16 w-16 rounded-full object-cover bg-white" />
-          <div>
-            <h2 className="text-xl font-bold flex items-center gap-2">
-              {pro.name}
-              {pro.verification_status === 'ativo' && <Check className="h-4 w-4 text-green-500" />}
-              {pro.featured && <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />}
-            </h2>
-            <p className="text-sm text-muted-foreground">{pro.title}</p>
-            <div className="flex gap-2 mt-1">
-              <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${
-                pro.verification_status === 'ativo' ? 'bg-green-500/10 text-green-600' : 
-                pro.verification_status === 'suspenso' ? 'bg-orange-500/10 text-orange-600' : 'bg-red-500/10 text-red-600'
-              }`}>
-                {pro.verification_status === 'pending_review' ? 'Aguardando Verificação' : 
-                 pro.verification_status === 'ativo' ? 'Ativo' : 
-                 pro.verification_status === 'suspenso' ? 'Suspenso' : 
-                 pro.verification_status === 'removido' ? 'Removido' : 
-                 pro.verification_status || 'Incompleto'}
-              </span>
-              <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-secondary text-secondary-foreground">
-                Email: {pro.email}
-              </span>
-              <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${pro.verified_at ? 'bg-blue-500/10 text-blue-600' : 'bg-muted text-muted-foreground'}`}>
-                {pro.verified_at ? `ATIVADO EM: ${new Date(pro.verified_at).toLocaleDateString()}` : 'DATA ATIVAÇÃO: N/A'}
-              </span>
-              <span className={`text-[10px] uppercase font-black px-1.5 py-0.5 rounded flex items-center gap-1 ${
-                pro.subscription_status === 'active' 
-                ? (pro.subscription_end_date && Math.ceil((new Date(pro.subscription_end_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) <= 5 
-                   ? 'bg-red-500 text-white animate-pulse' 
-                   : 'bg-emerald-500 text-white')
-                : 'bg-amber-100 text-amber-700'
-              }`}>
-                <Clock className="h-3 w-3" />
-                {(() => {
-                  const finalDate = pro.subscription_end_date || pro.end_date;
-                  if (pro.subscription_status === 'active' || finalDate) {
-                    if (!finalDate) return 'ATIVO';
-                    const diff = new Date(finalDate).getTime() - new Date().getTime();
-                    const daysRemaining = Math.ceil(diff / (1000 * 60 * 60 * 24));
-                    return daysRemaining > 0 ? `${daysRemaining} DIAS` : 'EXPIRA HOJE';
-                  }
-                  return pro.subscription_status === 'pending' ? 'PAGAMENTO PENDENTE' : 'SEM SUBSCRICAO';
-                })()}
-              </span>
-              {pro.subscription_plan && (
-                <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-primary text-primary-foreground">
-                  PLANO: {pro.subscription_plan}
-                </span>
-              )}
-              {pro.featured && (
-                <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-yellow-500/10 text-yellow-700">
-                  Featured Pro
-                </span>
-              )}
+    <div className="bg-card border rounded-2xl overflow-hidden shadow-sm relative border-gradient-hero transition-all duration-300 hover:shadow-md">
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full flex items-center justify-between p-4 hover:bg-secondary/5 transition-colors text-left group"
+      >
+        <div className="flex items-center gap-3">
+          <span className="text-base font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors">{pro.name}</span>
+          {pro.verification_status === 'ativo' && (
+            <CheckCircle className="h-4 w-4 text-emerald-500 fill-emerald-500/10" title="Verificado" />
+          )}
+        </div>
+        <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
+      </button>
+
+      {isExpanded && (
+        <div className="p-6 pt-0 border-t animate-in fade-in slide-in-from-top-2 duration-300 bg-slate-50/50">
+          <div className="mt-8">
+            <div className="flex items-center gap-4 mb-6">
+              {pro.avatar ? (
+                <img 
+                  src={pro.avatar} 
+                  alt={pro.name} 
+                  className="h-16 w-16 rounded-full object-cover bg-white border shadow-sm" 
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                    (e.target as HTMLImageElement).parentElement?.classList.add('flex');
+                    (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                  }}
+                />
+              ) : null}
+              <div className={`${pro.avatar ? 'hidden' : 'flex'} h-16 w-16 rounded-full bg-primary items-center justify-center text-white font-black text-xl border-2 border-white shadow-sm shrink-0`}>
+                {pro.name.charAt(0).toUpperCase()}{pro.name.trim().charAt(pro.name.trim().length - 1).toUpperCase()}
+              </div>
+              <div>
+                <h2 className="text-xl font-bold flex items-center gap-2 text-slate-900 dark:text-white">
+                  {pro.name}
+                  <a
+                    href={`https://supabase.com/dashboard/project/zldaauprystajzxfypmc/storage/buckets/professional-documents/${pro.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Abrir pasta no Supabase Storage"
+                    className="p-1 rounded-md hover:bg-primary/10 text-primary/40 hover:text-primary transition-colors"
+                  >
+                    <Monitor className="h-4 w-4" />
+                  </a>
+                </h2>
+                <p className="text-sm font-medium text-black dark:text-black">{pro.title || pro.category || 'Novo Membro'}</p>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                    pro.subscription_status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-700'
+                  }`}>
+                    {pro.subscription_status === 'active' ? 'Ativo' : 'Pendente'}
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold uppercase">
+                    PLANO: {pro.subscription_plan || 'N/A'}
+                  </span>
+                  {pro.subscription_end_date && (
+                    <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold uppercase">
+                      {Math.max(0, Math.ceil((new Date(pro.subscription_end_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))} DIAS RESTANTES
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {pro.featured && (
+              <div className="bg-yellow-400/10 text-yellow-700 text-[10px] font-bold px-3 py-2 rounded-lg flex items-center gap-2 mb-6 border border-yellow-200">
+                <Star className="h-3 w-3 fill-current" /> ESTE PROFISSIONAL ESTÁ EM DESTAQUE (TOP PROFISSIONAL)
+              </div>
+            )}
+
+            <div className="flex flex-col lg:flex-row gap-8">
+              <div className="flex-1 space-y-4">
+                <div className="flex flex-wrap gap-2 mb-6">
+                  <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${pro.verification_status === 'ativo' ? 'bg-green-500/10 text-green-600' :
+                      pro.verification_status === 'suspenso' ? 'bg-orange-500/10 text-orange-600' : 'bg-red-500/10 text-red-600'
+                    }`}>
+                    {pro.verification_status === 'pending_review' ? 'Aguardando Verificação' :
+                      pro.verification_status === 'ativo' ? 'Ativo' :
+                        pro.verification_status === 'suspenso' ? 'Suspenso' : pro.verification_status || 'Incompleto'}
+                  </span>
+                  <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-secondary text-secondary-foreground">
+                    Email: {pro.email}
+                  </span>
+                  <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${pro.verified_at ? 'bg-blue-500/10 text-blue-600' : 'bg-muted text-muted-foreground'}`}>
+                    {pro.verified_at ? `ATIVADO EM: ${new Date(pro.verified_at).toLocaleDateString()}` : 'DATA ATIVAÇÃO: N/A'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {/* Documents content here... I'll keep it abbreviated for the replace tool if it's too long, but I need to be sure about the divs */}
+                  <div className="space-y-2">
+                    <p className="text-xs font-bold uppercase text-slate-900 dark:text-white flex items-center gap-1">
+                      <Shield className="h-3 w-3" /> Bilhete de Identidade
+                    </p>
+                    {docUrls.id_front ? (
+                      <a href={docUrls.id_front} target="_blank" rel="noopener noreferrer" className="block group relative">
+                        <div className="h-40 w-full overflow-hidden rounded-xl border bg-muted/20 flex items-center justify-center">
+                          <img src={docUrls.id_front} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
+                        </div>
+                      </a>
+                    ) : <div className="h-40 border border-dashed rounded-xl flex items-center justify-center text-[10px] font-bold text-black bg-muted/10">DOCUMENTO EM FALTA</div>}
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="text-xs font-bold uppercase text-slate-900 dark:text-white flex items-center gap-1">
+                      <ImageIcon className="h-3 w-3" /> Vídeo / Atividade
+                    </p>
+                    {docUrls.video ? (
+                      <div className="h-40 w-full overflow-hidden rounded-xl border bg-black flex items-center justify-center relative group">
+                        <video src={docUrls.video} className="h-full w-full object-contain" controls />
+                      </div>
+                    ) : <div className="h-40 border border-dashed rounded-xl flex items-center justify-center text-[10px] font-bold text-black bg-muted/10">VÍDEO NÃO CARREGADO</div>}
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="text-xs font-bold uppercase text-slate-900 dark:text-white flex items-center gap-1">
+                      <FileText className="h-3 w-3" /> Certificado / Habilitações
+                    </p>
+                    {docUrls.certificate ? (
+                      <a href={docUrls.certificate} target="_blank" rel="noopener noreferrer" className="block group relative">
+                        <div className="h-40 w-full overflow-hidden rounded-xl border bg-muted/20 flex items-center justify-center">
+                          {docUrls.certificate.toLowerCase().includes('.pdf') ? (
+                            <div className="text-center">
+                              <FileText className="h-8 w-8 mx-auto text-muted-foreground mb-1" />
+                              <span className="text-[10px] font-bold">VER PDF</span>
+                            </div>
+                          ) : (
+                            <img src={docUrls.certificate} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
+                          )}
+                        </div>
+                      </a>
+                    ) : <div className="h-40 border border-dashed rounded-xl flex items-center justify-center text-[10px] font-bold text-black bg-muted/10">CERTIFICADO EM FALTA</div>}
+                  </div>
+
+                  <div className="space-y-2 rounded-xl bg-white dark:bg-slate-900 p-4 border shadow-sm flex flex-col justify-center">
+                    <p className="text-xs font-bold uppercase text-slate-900 dark:text-white mb-3">Resumo da Verificação</p>
+                    <div className="space-y-2 text-xs text-slate-900 dark:text-slate-200">
+                      <div className="flex justify-between"><span>BI:</span> <span className={pro.id_card_front_url ? "text-green-600 dark:text-green-400 font-bold" : "text-red-600"}>{pro.id_card_front_url ? 'OK' : 'FALTA'}</span></div>
+                      <div className="flex justify-between"><span>Certificado:</span> <span className={pro.certificate_url ? "text-green-600 dark:text-green-400 font-bold" : "text-red-600"}>{pro.certificate_url ? 'OK' : 'FALTA'}</span></div>
+                      <div className="flex justify-between"><span>Vídeo:</span> <span className={pro.activity_video_url ? "text-green-600 dark:text-green-400 font-bold" : "text-red-600"}>{pro.activity_video_url ? 'OK' : 'FALTA'}</span></div>
+                      <div className="flex justify-between"><span>Comprovativo:</span> <span className={pro.payment_proof_url ? "text-blue-600 dark:text-blue-400 font-bold" : "text-amber-600"}>{pro.payment_proof_url ? 'ENVIADO' : 'PENDENTE'}</span></div>
+                      <div className="flex justify-between border-t pt-2 mt-2"><span>Nº ID:</span> <span className="font-mono font-bold text-black dark:text-white">{pro.id_number || 'FALTA'}</span></div>
+                    </div>
+                  </div>
+
+                  {docUrls.payment && (
+                    <div className="space-y-2 md:col-span-2 lg:col-span-3">
+                      <p className="text-xs font-bold uppercase text-primary flex items-center gap-1">
+                        <Receipt className="h-3 w-3" /> Comprovativo de Pagamento Enviado
+                      </p>
+                      <div className="h-40 w-full overflow-hidden rounded-xl border bg-white flex items-center justify-center relative group">
+                        {docUrls.payment.toLowerCase().includes('.pdf') ? (
+                          <div className="text-center">
+                            <FileText className="h-10 w-10 mx-auto text-primary mb-2" />
+                            <span className="text-[10px] font-bold text-primary">VER COMPROVATIVO PDF</span>
+                          </div>
+                        ) : (
+                          <img src={docUrls.payment} className="h-full w-full object-contain" />
+                        )}
+                        <a href={docUrls.payment} target="_blank" rel="noopener noreferrer" className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-xl">
+                          <ExternalLink className="h-6 w-6 text-white" />
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Portfolio Preview Section */}
+                {pro.portfolios && pro.portfolios.length > 0 && (
+                  <div className="mt-8 border-t pt-6">
+                    <p className="text-xs font-bold uppercase text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                      <ImageIcon className="h-4 w-4" /> Portfólio do Profissional ({pro.portfolios.length} itens)
+                    </p>
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                      {pro.portfolios.map((item: any, idx: number) => {
+                        const isVideo = item.video_url || (item.image && (item.image.toLowerCase().includes('.mp4') || item.image.toLowerCase().includes('.mov') || item.image.toLowerCase().includes('video')));
+                        return (
+                          <div key={idx} className="group relative aspect-square rounded-lg border overflow-hidden bg-black flex items-center justify-center">
+                            {isVideo ? (
+                              <div className="h-full w-full flex flex-col items-center justify-center bg-slate-900">
+                                <video src={item.video_url || item.image} className="h-full w-full object-cover opacity-50" />
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                  <Play className="h-8 w-8 text-white fill-white/20" />
+                                </div>
+                              </div>
+                            ) : (
+                              <img src={item.image} className="h-full w-full object-cover transition-transform group-hover:scale-110" />
+                            )}
+                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-2 text-center">
+                              <span className="text-[10px] font-bold text-white line-clamp-2">{item.title}</span>
+                              <a href={item.video_url || item.image} target="_blank" rel="noopener noreferrer" className="mt-2 p-1 bg-white/20 rounded-md hover:bg-white/40 transition-colors">
+                                <ExternalLink className="h-3 w-3 text-white" />
+                              </a>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="lg:w-64 flex flex-col gap-3 border-t lg:border-t-0 lg:border-l lg:pl-8 pt-6 lg:pt-0">
+                {pro.verification_status !== 'ativo' && (
+                  <Button
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 font-bold flex items-center gap-2"
+                    onClick={() => mutation.mutate({ id: pro.id, status: 'ativo' })}
+                  >
+                    <CheckCircle className="h-4 w-4" /> Atribuir Selo Verificado
+                  </Button>
+                )}
+                {pro.verification_status === 'ativo' && (
+                  <Button
+                    variant="outline"
+                    className="w-full border-amber-500 text-amber-600 hover:bg-amber-50 font-bold flex items-center gap-2"
+                    onClick={() => mutation.mutate({ id: pro.id, status: 'suspenso' })}
+                  >
+                    <Pause className="h-4 w-4" /> Remover Selo Verificado
+                  </Button>
+                )}
+                {canManage && (
+                  <>
+                    <Button variant="outline" className="w-full font-bold border-destructive text-destructive" onClick={() => setIsRejecting(true)}>
+                      Rejeitar Documentos
+                    </Button>
+                    <Button variant="secondary" className="w-full font-bold" onClick={() => featuredMutation.mutate({ id: pro.id, featured: !pro.featured })}>
+                      {pro.featured ? 'Remover Top' : 'Tornar Top Pro'}
+                    </Button>
+                    <Button variant="outline" className="w-full font-bold" asChild>
+                      <Link to={`/admin/verifications?tab=notifications&replyTo=${pro.id}`}>Contactar</Link>
+                    </Button>
+                    <Button variant="destructive" className="w-full font-bold" onClick={() => deleteMutation.mutate(pro.id)}>
+                      Eliminar Definitivamente
+                    </Button>
+                  </>
+                )}
+                <Link to={`/professional/${pro.id}`} className="text-xs text-center text-primary hover:underline mt-2">
+                  Ver perfil público →
+                </Link>
+              </div>
             </div>
           </div>
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div className="space-y-2">
-            <p className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
-              <Shield className="h-3 w-3" /> Bilhete de Identidade
-            </p>
-            {pro.id_card_front_url ? (
-              <a href={pro.id_card_front_url} target="_blank" rel="noopener noreferrer" className="block group relative">
-                <div className="h-40 w-full overflow-hidden rounded-xl border bg-muted/20 flex items-center justify-center">
-                  {pro.id_card_front_url.toLowerCase().endsWith('.pdf') ? (
-                    <div className="text-center">
-                      <FileText className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
-                      <span className="text-[10px] font-bold">VER PDF</span>
-                    </div>
-                  ) : (
-                    <img src={pro.id_card_front_url} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
-                  )}
-                </div>
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-xl">
-                  <ExternalLink className="h-6 w-6 text-white" />
-                </div>
-              </a>
-            ) : <div className="h-40 border border-dashed rounded-xl flex items-center justify-center text-[10px] text-muted-foreground bg-muted/10">DOCUMENTO EM FALTA</div>}
-            {pro.id_number && (
-              <p className="text-[10px] font-mono mt-1 text-center bg-secondary py-1 rounded">Nº: {pro.id_number}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <p className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
-              <ImageIcon className="h-3 w-3" /> Vídeo / Atividade
-            </p>
-            {pro.activity_video_url ? (
-              <div className="space-y-2">
-                <div className="h-40 w-full overflow-hidden rounded-xl border bg-black flex items-center justify-center relative group">
-                  {pro.activity_video_url ? (
-                    <video 
-                      src={pro.activity_video_url.includes('drive.google.com') 
-                           ? pro.activity_video_url.replace('view?usp=sharing', 'preview') 
-                           : pro.activity_video_url} 
-                      className="h-full w-full object-contain"
-                      controls
-                    />
-                  ) : (
-                    <div className="text-center text-white">
-                      <FileText className="h-10 w-10 mx-auto mb-2 opacity-50" />
-                      <span className="text-[10px] font-bold">FORMATO DRIVE</span>
-                    </div>
-                  )}
-                  <a 
-                    href={pro.activity_video_url} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-xl z-20"
-                  >
-                    <ExternalLink className="h-5 w-5 text-white" />
-                  </a>
-                </div>
-              </div>
-            ) : <div className="h-40 border border-dashed rounded-xl flex items-center justify-center text-[10px] text-muted-foreground bg-muted/10">VÍDEO NÃO CARREGADO</div>}
-          </div>
-
-          <div className="space-y-2 rounded-xl bg-muted/20 p-4 border flex flex-col justify-center">
-             <p className="text-xs font-bold uppercase text-muted-foreground mb-3">Resumo da Verificação</p>
-             <div className="space-y-3">
-               <div className="flex justify-between items-center text-xs">
-                 <span>BI carregado:</span>
-                 {pro.id_card_front_url ? <Check className="h-4 w-4 text-green-500" /> : <X className="h-4 w-4 text-red-500" />}
-               </div>
-               <div className="flex justify-between items-center text-xs">
-                 <span>Certificado:</span>
-                 {pro.certificate_url ? <Check className="h-4 w-4 text-green-500" /> : <X className="h-4 w-4 text-red-500" />}
-               </div>
-               <div className="flex justify-between items-center text-xs">
-                 <span>Vídeo Atividade:</span>
-                 {pro.activity_video_url ? <Check className="h-4 w-4 text-green-500" /> : <X className="h-4 w-4 text-red-500" />}
-               </div>
-               <div className="flex justify-between items-center text-xs">
-                 <span>Nº Identificação:</span>
-                 <span className="font-mono">{pro.id_number ? 'OK' : 'FALTA'}</span>
-               </div>
-             </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="lg:w-64 flex flex-col justify-center gap-3 border-t lg:border-t-0 lg:border-l lg:pl-8 pt-6 lg:pt-0">
-        {pro.verification_status !== 'ativo' && !pro.rejection_reason && (
-          <Button 
-            className="w-full bg-green-600 hover:bg-green-700 h-11 text-white font-bold" 
-            onClick={() => mutation.mutate({ id: pro.id, status: 'ativo' })}
-            disabled={mutation.isPending}
-          >
-            <RotateCcw className="mr-2 h-5 w-5" /> Aprovar e Ativar
-          </Button>
-        )}
-
-        {(pro.verification_status === 'pending_review' || pro.id_card_front_url) && !pro.rejection_reason && (
-          <div className="space-y-2">
-            {!isRejecting ? (
-              <Button 
-                variant="outline"
-                className="w-full h-11 font-bold border-destructive text-destructive hover:bg-destructive/5"
-                onClick={() => setIsRejecting(true)}
-              >
-                <X className="mr-2 h-5 w-5" /> Rejeitar Documentos
-              </Button>
-            ) : (
-              <div className="space-y-2 p-3 bg-destructive/5 rounded-xl border border-destructive/20 animate-in zoom-in-95">
-                <textarea 
-                  placeholder="Motivo da rejeição (ex: BI ilegível)..."
-                  className="w-full text-xs p-2 rounded-lg border bg-background h-20 outline-none focus:ring-1 focus:ring-destructive"
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                />
-                <div className="flex gap-2">
-                  <Button 
-                    size="sm" 
-                    variant="destructive" 
-                    className="flex-1 font-bold"
-                    onClick={() => {
-                      if (!reason.trim()) return toast.error("Por favor, insira um motivo.");
-                      rejectMutation.mutate({ id: pro.id, reason });
-                    }}
-                    disabled={rejectMutation.isPending}
-                  >
-                    Confirmar
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant="ghost" 
-                    className="px-2"
-                    onClick={() => setIsRejecting(false)}
-                  >
-                    Sair
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-        
-        {canManage && (
-          <>
-            <Button 
-              variant={pro.featured ? "outline" : "secondary"}
-              className={`w-full h-11 font-bold ${pro.featured ? "border-yellow-500 text-yellow-600 hover:bg-yellow-50" : "bg-yellow-500 hover:bg-yellow-600 text-white"}`}
-              onClick={() => featuredMutation.mutate({ id: pro.id, featured: !pro.featured })}
-              disabled={featuredMutation.isPending}
-            >
-              <Star className={`mr-2 h-5 w-5 ${pro.featured ? "fill-yellow-500" : ""}`} /> 
-              {pro.featured ? 'Remover Top' : 'Tornar Top Pro'}
-            </Button>
-
-            {pro.verification_status === 'ativo' && (
-              <Button 
-                variant="outline" 
-                className="w-full h-11 font-bold border-orange-500 text-orange-600 hover:bg-orange-50"
-                onClick={() => mutation.mutate({ id: pro.id, status: 'suspenso' })}
-                disabled={mutation.isPending}
-              >
-                <Pause className="mr-2 h-5 w-5" /> Suspender
-              </Button>
-            )}
-
-            <Button 
-              variant="outline"
-              className="w-full h-11 font-bold border-primary text-primary hover:bg-primary/5 gap-2"
-              asChild
-            >
-              <Link to={`/admin/verifications?tab=notifications&replyTo=${pro.id}&notifTitle=${encodeURIComponent(pro.name)}`}>
-                <Mail className="h-4 w-4" /> Contactar Profissional
-              </Link>
-            </Button>
-
-            <Button 
-              variant="destructive" 
-              className="w-full h-11 font-bold"
-              onClick={() => {
-                if (confirm("TEM A CERTEZA? Esta ação é definitiva e removerá todos os dados (fotos, portfólio e avaliações) permanentemente!")) {
-                  deleteMutation.mutate(pro.id);
-                }
-              }}
-              disabled={deleteMutation.isPending}
-            >
-              <X className="mr-2 h-5 w-5" /> Eliminar Definitivamente
-            </Button>
-          </>
-        )}
-        <Link to={`/professional/${pro.id}`} className="text-xs text-center text-primary hover:underline">
-          Ver perfil público →
-        </Link>
-      </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -2612,7 +2827,7 @@ function VerificationItem({ pro, mutation, featuredMutation, deleteMutation, can
 // Subscription Management Panel Component
 function SubscriptionManagementPanel({ pendingSubs, allSubs, loading }: { pendingSubs: any[], allSubs: any[], loading: boolean }) {
   const [subView, setSubView] = useState<'pending' | 'all'>('pending');
-  
+
   if (loading) return <div className="flex justify-center py-20 text-muted-foreground">A carregar dados de pagamentos...</div>;
 
   const currentSubs = subView === 'pending' ? pendingSubs : allSubs;
@@ -2627,13 +2842,13 @@ function SubscriptionManagementPanel({ pendingSubs, allSubs, loading }: { pendin
           <p className="text-sm text-muted-foreground">Valide comprovativos de transferência e controle o acesso dos profissionais.</p>
         </div>
         <div className="flex bg-muted p-1 rounded-lg">
-          <button 
+          <button
             onClick={() => setSubView('pending')}
             className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${subView === 'pending' ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
           >
             Pendentes ({pendingSubs.length})
           </button>
-          <button 
+          <button
             onClick={() => setSubView('all')}
             className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${subView === 'all' ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
           >
@@ -2689,10 +2904,9 @@ function SubscriptionItem({ sub }: { sub: any }) {
   };
 
   return (
-    <div className={`bg-card border rounded-2xl p-6 shadow-sm overflow-hidden border-l-4 ${
-      sub.status === 'active' ? 'border-l-green-500' : 
-      sub.status === 'pending' ? 'border-l-amber-500' : 'border-l-destructive'
-    }`}>
+    <div className={`bg-card border rounded-2xl p-6 shadow-sm overflow-hidden border-l-4 ${sub.status === 'active' ? 'border-l-green-500' :
+        sub.status === 'pending' ? 'border-l-amber-500' : 'border-l-destructive'
+      }`}>
       <div className="flex flex-col lg:flex-row gap-8 items-center">
         {/* Info Profissional */}
         <div className="flex items-center gap-4 flex-1">
@@ -2703,9 +2917,8 @@ function SubscriptionItem({ sub }: { sub: any }) {
             <h4 className="font-bold truncate">{pro?.name || "Nome não disponível"}</h4>
             <p className="text-xs text-muted-foreground truncate">{pro?.email || "Sem email"}</p>
             <div className="flex gap-2 mt-1">
-              <span className={`text-[10px] uppercase font-black px-1.5 py-0.5 rounded ${
-                (sub.approved_plan || sub.selected_plan || sub.plan) === 'trimestral' ? 'bg-primary/10 text-primary' : 'bg-secondary text-secondary-foreground'
-              }`}>
+              <span className={`text-[10px] uppercase font-black px-1.5 py-0.5 rounded ${(sub.approved_plan || sub.selected_plan || sub.plan) === 'trimestral' ? 'bg-primary/10 text-primary' : 'bg-secondary text-secondary-foreground'
+                }`}>
                 Plano: {sub.approved_plan || sub.selected_plan || sub.plan || 'N/A'}
               </span>
               <span className="text-[10px] text-muted-foreground font-medium">Fatura {sub.id?.split('-')[0].toUpperCase()}</span>
@@ -2722,7 +2935,7 @@ function SubscriptionItem({ sub }: { sub: any }) {
           <div className="space-y-1">
             <p className="text-[10px] font-bold text-muted-foreground uppercase">Definir Plano Final</p>
             {sub.status === 'pending' ? (
-              <select 
+              <select
                 className="text-xs font-bold p-1 rounded border bg-background"
                 value={approvedPlan}
                 onChange={(e) => setApprovedPlan(e.target.value as any)}
@@ -2749,9 +2962,9 @@ function SubscriptionItem({ sub }: { sub: any }) {
           <div className="space-y-1">
             <p className="text-[10px] font-bold text-muted-foreground uppercase">Comprovativo</p>
             {sub.payment_proof_url ? (
-              <a 
-                href={sub.payment_proof_url} 
-                target="_blank" 
+              <a
+                href={sub.payment_proof_url}
+                target="_blank"
                 rel="noopener noreferrer"
                 className="text-primary text-xs font-bold flex items-center gap-1 hover:underline"
               >
@@ -2767,10 +2980,9 @@ function SubscriptionItem({ sub }: { sub: any }) {
           </div>
           <div className="space-y-1">
             <p className="text-[10px] font-bold text-muted-foreground uppercase">Status</p>
-            <span className={`text-[9px] uppercase font-bold px-1 py-0.5 rounded ${
-              sub.status === 'active' ? 'bg-green-500 text-white' : 
-              sub.status === 'pending' ? 'bg-amber-500 text-white' : 'bg-red-500 text-white'
-            }`}>
+            <span className={`text-[9px] uppercase font-bold px-1 py-0.5 rounded ${sub.status === 'active' ? 'bg-green-500 text-white' :
+                sub.status === 'pending' ? 'bg-amber-500 text-white' : 'bg-red-500 text-white'
+              }`}>
               {sub.status === 'active' ? 'Ativo' : sub.status === 'pending' ? 'Pendente' : 'Bloqueado'}
             </span>
           </div>
@@ -2828,7 +3040,7 @@ function PropertiesApprovalPanel({ isAdmin }: { isAdmin: boolean }) {
   });
 
   const rejectMutation = useMutation({
-    mutationFn: ({ id, reason }: { id: string, reason: string }) => 
+    mutationFn: ({ id, reason }: { id: string, reason: string }) =>
       import("@/data/api").then(api => api.updatePropertyStatus(id, 'rejected', reason)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pendingProperties'] });
@@ -2898,9 +3110,9 @@ function PropertiesApprovalPanel({ isAdmin }: { isAdmin: boolean }) {
                     <div>
                       <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Comprovativo</p>
                       {prop.comprovativo_url ? (
-                        <a 
-                          href={prop.comprovativo_url} 
-                          target="_blank" 
+                        <a
+                          href={prop.comprovativo_url}
+                          target="_blank"
                           rel="noopener noreferrer"
                           className="text-primary text-xs font-bold flex items-center gap-1 hover:underline"
                         >
@@ -2913,17 +3125,17 @@ function PropertiesApprovalPanel({ isAdmin }: { isAdmin: boolean }) {
                   </div>
 
                   <div className="flex flex-wrap gap-2 pt-2 border-t mt-auto">
-                    <Button 
-                      size="sm" 
+                    <Button
+                      size="sm"
                       className="bg-green-600 hover:bg-green-700 text-white font-bold gap-2"
                       onClick={() => approveMutation.mutate(prop.id)}
                       disabled={approveMutation.isPending}
                     >
                       <Check className="h-4 w-4" /> Aprovar Anúncio
                     </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
+                    <Button
+                      size="sm"
+                      variant="outline"
                       className="border-destructive text-destructive hover:bg-destructive/5 font-bold"
                       onClick={() => {
                         const reason = prompt("Razão da rejeição?");
@@ -2934,9 +3146,9 @@ function PropertiesApprovalPanel({ isAdmin }: { isAdmin: boolean }) {
                       <X className="h-4 w-4" /> Rejeitar
                     </Button>
                     <Button variant="ghost" size="sm" asChild className="ml-auto text-muted-foreground h-8 text-xs font-medium">
-                        <Link to={`/imoveis/${prop.id}`} target="_blank" className="flex items-center gap-1">
-                            <ExternalLink className="h-3 w-3" /> Pré-visualizar
-                        </Link>
+                      <Link to={`/imoveis/${prop.id}`} target="_blank" className="flex items-center gap-1">
+                        <ExternalLink className="h-3 w-3" /> Pré-visualizar
+                      </Link>
                     </Button>
                   </div>
                 </div>

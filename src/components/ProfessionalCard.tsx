@@ -44,11 +44,21 @@ const ProfessionalCard = ({ professional, index = 0 }: Props) => {
         <div className="flex flex-col gap-3 sm:gap-5">
           <div className="flex items-center gap-2 sm:gap-4">
             <div className="relative shrink-0">
-              <img
-                src={professional.avatar}
-                alt={professional.name}
-                className="h-10 w-10 sm:h-16 sm:w-16 rounded-full object-cover ring-2 sm:ring-4 ring-secondary/50 transition-all duration-300 group-hover:ring-primary/20 bg-white"
-              />
+              {professional.avatar ? (
+                <img
+                  src={professional.avatar}
+                  alt={professional.name}
+                  className="h-10 w-10 sm:h-16 sm:w-16 rounded-full object-cover ring-2 sm:ring-4 ring-secondary/50 transition-all duration-300 group-hover:ring-primary/20 bg-white"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                    (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                    (e.target as HTMLImageElement).nextElementSibling?.classList.add('flex');
+                  }}
+                />
+              ) : null}
+              <div className={`${professional.avatar ? 'hidden' : 'flex'} h-10 w-10 sm:h-16 sm:w-16 rounded-full bg-primary items-center justify-center text-white font-black text-[10px] sm:text-xl border-2 border-white shadow-sm shrink-0`}>
+                {professional.name.charAt(0).toUpperCase()}{professional.name.trim().charAt(professional.name.trim().length - 1).toUpperCase()}
+              </div>
               <div className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 sm:h-6 sm:w-6 items-center justify-center rounded-full bg-background ring-1 sm:ring-2 ring-border">
                 <Star className="h-2 w-2 sm:h-3 sm:w-3 fill-accent text-accent" />
               </div>

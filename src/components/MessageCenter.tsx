@@ -49,8 +49,15 @@ const MessageList = ({ messages, isLoading, user, onMessageClick }: any) => {
           className={`cursor-pointer border-b px-4 py-4 transition-colors hover:bg-secondary/30 border-gradient-hero ${msg.status === 'unread' && msg.receiver_id === user?.id ? 'bg-primary/5 border-l-2 border-l-primary' : ''}`}
         >
           <div className="flex gap-3">
-            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-primary shrink-0 shadow-inner">
-              <User className="h-5 w-5" />
+            <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center text-white font-black text-xs shrink-0 shadow-sm border border-white uppercase">
+              {msg.sender_name ? (
+                <>
+                  {msg.sender_name.charAt(0)}
+                  {msg.sender_name.trim().charAt(msg.sender_name.trim().length - 1)}
+                </>
+              ) : (
+                <User className="h-5 w-5" />
+              )}
             </div>
             <div className="flex-1 overflow-hidden">
               <div className="flex items-center justify-between mb-1">

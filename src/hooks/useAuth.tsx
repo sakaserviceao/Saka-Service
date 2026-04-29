@@ -10,6 +10,7 @@ type AuthContextType = {
   isLoading: boolean;
   isProfessional: boolean;
   refreshProfile: () => Promise<void>;
+  checkSession: () => Promise<Session | null>;
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -19,6 +20,7 @@ const AuthContext = createContext<AuthContextType>({
   isLoading: true,
   isProfessional: false,
   refreshProfile: async () => {},
+  checkSession: async () => null,
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
@@ -42,6 +44,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       await checkProfessionalStatus(user.id);
     }
   }, [user, checkProfessionalStatus]);
+
+  const checkSession = useCallback(async () => {
+    const { data: { session }, error } = await supabase.auth.getSession();
+    if (error) {
+      console.error("Saka Auth: Session check error:", error);
+      if (error.message.includes("JWT") || error.message.includes("exp")) {
+        await signOut();
+      }
+      return null;
+    }
+    setSession(session);
+    setUser(session?.user ?? null);
+    return session;
+  }, []);
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -81,7 +97,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, signOut, isLoading, isProfessional, refreshProfile }}>
+    <AuthContext.Provider value={{ user, session, signOut, isLoading, isProfessional, refreshProfile, checkSession }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,5 +1,6 @@
 import { supabase, supabasePublic } from '../lib/supabase';
 export { supabase, supabasePublic };
+import { toast } from "sonner";
 
 // Helper typings para reusar as que já existiam
 import type { Professional, Category, SiteSetting, Imovel } from './mockData';
@@ -82,11 +83,13 @@ const mapProfessional = (pro: any): Professional => {
     category: pro.category || "other",
     secondary_category_1: pro.secondary_category_1 || "",
     secondary_category_2: pro.secondary_category_2 || "",
-    portfolio: pro.portfolios || [],
+    portfolios: pro.portfolios || pro.portfolio || [],
+    portfolio: pro.portfolios || pro.portfolio || [],
     reviews: reviews,
     subscription_status: pro.subscription_status || pro.status || 'pending',
     subscription_plan: pro.subscription_plan || pro.approved_plan || pro.selected_plan || 'MENSAL',
-    subscription_end_date: pro.subscription_end_date || pro.end_date || '2026-05-07T23:59:59.000Z'
+    subscription_end_date: pro.subscription_end_date || pro.end_date || '2026-05-07T23:59:59.000Z',
+    latest_payment_proof: pro.latest_payment_proof || pro.payment_proof_url || ""
   };
 };
 
@@ -121,17 +124,33 @@ export const searchProfessionals = async (query: string): Promise<Professional[]
 };
 
 export const getProfessionalById = async (id: string): Promise<Professional | null> => {
-  const { data, error } = await supabasePublic
-    .from('professionals')
-    .select('*, portfolios(*), reviews(*)')
-    .eq('id', id)
-    .single();
+  try {
+    const { data, error } = await supabase
+      .from('professionals')
+      .select('*, portfolios(*), reviews(*)')
+      .eq('id', id)
+      .single();
 
-  if (error) {
-    console.error('Error fetching professional:', error);
+    if (error) throw error;
+    if (!data) return null;
+
+    // Fallback if portfolios join is empty but they might exist
+    if (!data.portfolios || data.portfolios.length === 0) {
+      const { data: manualPortfolios } = await supabase
+        .from('portfolios')
+        .select('*')
+        .eq('professional_id', id);
+      
+      if (manualPortfolios && manualPortfolios.length > 0) {
+        data.portfolios = manualPortfolios;
+      }
+    }
+
+    return mapProfessional(data);
+  } catch (error) {
+    console.error("Error fetching professional:", error);
     return null;
   }
-  return data ? mapProfessional(data) : null;
 };
 
 export const getSiteSettings = async (): Promise<Record<string, string>> => {
@@ -270,6 +289,42 @@ export const uploadVerificationDocument = async (file: File, userId: string, typ
   return data.signedUrl;
 };
 
+/**
+ * Generates a fresh signed URL for a file in a private bucket.
+ * Useful for documents that expire after a certain time.
+ */
+export const getFreshSignedUrl = async (path: string, bucket: string = 'professional-documents', expiresIn: number = 3600): Promise<string | null> => {
+  try {
+    // If the path is a full URL with a token, we extract the path part
+    let actualPath = path;
+    if (path.includes('?token=')) {
+      const url = new URL(path);
+      const pathParts = url.pathname.split(`${bucket}/`);
+      if (pathParts.length > 1) {
+        actualPath = decodeURIComponent(pathParts[1]);
+      }
+    } else if (path.includes(`${bucket}/`)) {
+      // Handle cases where it's a full URL without token but we need the path
+      const parts = path.split(`${bucket}/`);
+      actualPath = decodeURIComponent(parts[1]);
+    }
+
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .createSignedUrl(actualPath, expiresIn);
+
+    if (error) {
+      console.error('Saka API: Error refreshing signed URL:', error);
+      return null;
+    }
+
+    return data.signedUrl;
+  } catch (err) {
+    console.error('Saka API: Fatal error in getFreshSignedUrl:', err);
+    return null;
+  }
+};
+
 
 export const submitVerification = async (userId: string, data: any) => {
   const { error } = await supabase
@@ -311,7 +366,7 @@ export const uploadImage = async (file: File): Promise<string | null> => {
     .upload(filePath, file);
 
   if (uploadError) {
-    console.error('Error uploading image:', uploadError);
+    console.error('Error uploading file:', uploadError);
     throw uploadError;
   }
 
@@ -507,7 +562,7 @@ export const addReview = async (reviewData: {
     .single();
 
   if (error) {
-    console.error('Error adding review:', error);
+    handleAuthError(error, 'Erro ao adicionar avaliação');
     throw error;
   }
   return data;
@@ -522,7 +577,7 @@ export const updateReview = async (reviewId: string, updateData: any) => {
     .single();
 
   if (error) {
-    console.error('Error updating review:', error);
+    handleAuthError(error, 'Erro ao atualizar avaliação');
     throw error;
   }
   return data;
@@ -535,7 +590,7 @@ export const deleteReview = async (reviewId: string) => {
     .eq('id', reviewId);
 
   if (error) {
-    console.error('Error deleting review:', error);
+    handleAuthError(error, 'Erro ao eliminar avaliação');
     throw error;
   }
 };
@@ -548,7 +603,7 @@ export const addServiceHire = async (professional_id: string, user_id: string) =
     .single();
 
   if (error) {
-    console.error('Error adding hire:', error);
+    handleAuthError(error, 'Erro ao registar contratação');
     throw error;
   }
   return data;
@@ -563,7 +618,7 @@ export const updateServiceHireStatus = async (hire_id: string, status: 'pending'
     .select();
 
   if (error) {
-    console.error('Error updating hire status:', error);
+    handleAuthError(error, 'Erro ao atualizar estado do serviço');
     throw error;
   }
 
@@ -621,7 +676,7 @@ export const getAdmins = async () => {
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.error('Error fetching admins:', error);
+    handleAuthError(error, 'Erro ao procurar administradores');
     throw error;
   }
   return data || [];
@@ -639,7 +694,7 @@ export const addAdmin = async (email: string) => {
     .single();
 
   if (error) {
-    console.error('Error adding admin:', error);
+    handleAuthError(error, 'Erro ao adicionar administrador');
     throw error;
   }
   return data;
@@ -652,7 +707,7 @@ export const removeAdmin = async (email: string) => {
     .eq('email', email);
 
   if (error) {
-    console.error('Error removing admin:', error);
+    handleAuthError(error, 'Erro ao remover administrador');
     throw error;
   }
   return true;
@@ -826,7 +881,7 @@ export const updateSiteSetting = async (key: string, value: string) => {
     .single();
 
   if (error) {
-    console.error(`Error updating setting ${key}:`, error);
+    handleAuthError(error, `Erro ao atualizar configuração ${key}`);
     throw error;
   }
 
@@ -835,6 +890,28 @@ export const updateSiteSetting = async (key: string, value: string) => {
   }
 
   return data;
+};
+
+// Centralized error handler for Auth/JWT issues
+export const handleAuthError = (error: any, customMessage?: string) => {
+  console.error("Saka API Error:", error);
+  
+  const isJwtError = error.message?.includes("JWT") || 
+                     error.message?.includes("exp") || 
+                     error.code === 'PGRST301' || 
+                     error.status === 401;
+
+  if (isJwtError) {
+    toast.error("Sessão expirada. Por favor, recarregue a página ou faça login novamente.", {
+      description: "O seu token de acesso não é mais válido.",
+      duration: 5000,
+    });
+    // Optional: window.location.href = '/login'; or trigger a custom event
+  } else if (customMessage) {
+    toast.error(customMessage, {
+      description: error.message
+    });
+  }
 };
 
 export const createCategory = async (category: Partial<Category>) => {
@@ -860,7 +937,7 @@ export const updateCategory = async (id: string, categoryData: Partial<Category>
     .single();
 
   if (error) {
-    console.error('Error updating category:', error);
+    handleAuthError(error, 'Erro ao atualizar categoria');
     throw error;
   }
 
@@ -1060,7 +1137,7 @@ export const submitPropertyListing = async (propertyData: any, photos: File[], r
     .single();
 
   if (error) {
-    console.error('Error submitting property:', error);
+    handleAuthError(error, 'Erro ao submeter imóvel');
     throw error;
   }
   return data;
@@ -1109,6 +1186,15 @@ export const createSubscriptionRequest = async (subscriptionData: any) => {
     console.error('Error creating subscription request:', error);
     throw error;
   }
+
+  // Update professional profile with the latest proof URL for quick access in admin
+  if (dataToInsert.payment_proof_url) {
+    await supabase
+      .from('professionals')
+      .update({ latest_payment_proof: dataToInsert.payment_proof_url })
+      .eq('id', dataToInsert.professional_id);
+  }
+
   return data;
 };
 
@@ -1157,7 +1243,7 @@ export const markNotificationAsRead = async (id: string) => {
     .eq('id', id);
 
   if (error) {
-    console.error('Error marking notification as read:', error);
+    handleAuthError(error, 'Erro ao marcar notificação como lida');
     throw error;
   }
   return true;
@@ -1171,7 +1257,7 @@ export const createNotification = async (notificationData: any) => {
     .single();
 
   if (error) {
-    console.error('Error creating notification in API:', error);
+    handleAuthError(error, 'Erro ao criar notificação');
     throw error;
   }
   return data;
@@ -1184,7 +1270,7 @@ export const deleteNotification = async (id: string) => {
     .eq('id', id);
 
   if (error) {
-    console.error('Error deleting notification:', error);
+    handleAuthError(error, 'Erro ao eliminar notificação');
     throw error;
   }
   return true;
@@ -1212,7 +1298,7 @@ export const updateEmailTemplate = async (id: string, templateData: any) => {
     .single();
 
   if (error) {
-    console.error('Error updating email template:', error);
+    handleAuthError(error, 'Erro ao atualizar modelo de email');
     throw error;
   }
   return data;

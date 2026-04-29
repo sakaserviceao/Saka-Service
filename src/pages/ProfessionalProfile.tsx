@@ -1,6 +1,6 @@
 import { useParams, Link } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { ArrowLeft, Star, MapPin, Phone, Mail, Linkedin, Edit, Send, Clock, ThumbsUp, ThumbsDown, UserCheck, AlertTriangle, CheckCircle, Trash2, Image as ImageIcon, UploadCloud, FileText } from "lucide-react";
+import { ArrowLeft, Star, MapPin, Phone, Mail, Linkedin, Edit, Send, Clock, ThumbsUp, ThumbsDown, UserCheck, AlertTriangle, CheckCircle, ShieldCheck, Trash2, Image as ImageIcon, UploadCloud, FileText, Download, ExternalLink } from "lucide-react";
 import { motion } from "framer-motion";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,8 @@ import {
   updateServiceHireStatus,
   deleteServiceHire,
   sendServiceMessage,
-  uploadServiceAttachment
+  uploadServiceAttachment,
+  getFreshSignedUrl
 } from "@/data/api";
 import { useAuth } from "@/hooks/useAuth";
 import { VerificationBadge } from "@/components/VerificationBadge";
@@ -67,6 +68,10 @@ const ProfessionalProfile = () => {
   const [editWouldRecommend, setEditWouldRecommend] = useState(true);
   const [isUpdatingReview, setIsUpdatingReview] = useState(false);
 
+  // Verification Video Signed URL
+  const [signedVerificationVideo, setSignedVerificationVideo] = useState<string | null>(null);
+
+
   const { data: pro, isLoading: isProLoading } = useQuery({
     queryKey: ['professional', id],
     queryFn: () => getProfessionalById(id || ""),
@@ -96,6 +101,15 @@ const ProfessionalProfile = () => {
   const isAdmin = ['franciscobeneditomucamba@gmail.com', 'sakaservice.ao@gmail.com', 'podosk2010@hotmail.com', 'francisco.mucamba@gmail.com'].includes(user?.email || '');
   const isPubliclyVisible = pro?.subscription_status === 'active' && pro?.verification_status === 'ativo';
 
+  const isVideoUrl = (url: string) => {
+    if (!url) return false;
+    const videoExtensions = ['.mp4', '.mov', '.webm', '.ogg', '.m4v', '.3gp', '.avi', '.mkv', '.wmv'];
+    const urlLower = url.toLowerCase();
+    // Detetamos se é vídeo pela extensão ou se o campo video_url foi explicitamente usado
+    return videoExtensions.some(ext => urlLower.includes(ext)) || urlLower.includes('video') || urlLower.includes('mimetype=video');
+  };
+
+
   const hasHired = hires.length > 0;
   const isServiceActive = lastHire?.status === 'pending';
   const isServiceCompleted = lastHire?.status === 'completed';
@@ -107,6 +121,17 @@ const ProfessionalProfile = () => {
       recordProfileVisit(pro.id, user?.id);
     }
   }, [pro?.id, user?.id]);
+
+  useEffect(() => {
+    const fetchSignedVideo = async () => {
+      if (pro?.activity_video_url) {
+        // Only try to sign if it looks like a storage path or a private URL
+        const fresh = await getFreshSignedUrl(pro.activity_video_url);
+        if (fresh) setSignedVerificationVideo(fresh);
+      }
+    };
+    fetchSignedVideo();
+  }, [pro?.activity_video_url]);
 
   if (isProLoading) {
     return (
@@ -365,11 +390,23 @@ const ProfessionalProfile = () => {
           className="rounded-2xl border border-border bg-card p-6 shadow-card md:p-8"
         >
           <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-center">
-            <img
-              src={pro.avatar}
-              alt={pro.name}
-              className="h-20 w-20 rounded-full object-cover ring-4 ring-primary/20 md:h-24 md:w-24 bg-white"
-            />
+            <div className="relative shrink-0">
+              {pro.avatar ? (
+                <img
+                  src={pro.avatar}
+                  alt={pro.name}
+                  className="h-20 w-20 rounded-full object-cover ring-4 ring-primary/20 md:h-24 md:w-24 bg-white"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                    (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                    (e.target as HTMLImageElement).nextElementSibling?.classList.add('flex');
+                  }}
+                />
+              ) : null}
+              <div className={`${pro.avatar ? 'hidden' : 'flex'} h-20 w-20 md:h-24 md:w-24 rounded-full bg-primary items-center justify-center text-white font-black text-2xl md:text-3xl border-4 border-white shadow-sm shrink-0 uppercase`}>
+                {pro.name.charAt(0)}{pro.name.trim().charAt(pro.name.trim().length - 1)}
+              </div>
+            </div>
             
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
@@ -523,30 +560,47 @@ const ProfessionalProfile = () => {
         </motion.div>
 
         {/* Portfolio Section */}
-        {pro.portfolios && pro.portfolios.length > 0 && (
+        {((pro.portfolios && pro.portfolios.length > 0) || pro.activity_video_url) && (
           <motion.section
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
             className="mt-8 space-y-10"
           >
+            {/* Help Message for Owners with Empty Portfolios */}
+            {isOwner && (!pro.portfolios || pro.portfolios.length === 0) && !pro.activity_video_url && (
+              <div className="p-8 border-2 border-dashed border-primary/30 rounded-2xl bg-primary/5 text-center space-y-4">
+                <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+                  <UploadCloud className="h-8 w-8 text-primary" />
+                </div>
+                <h3 className="text-xl font-bold">O seu portfólio está vazio</h3>
+                <p className="text-muted-foreground max-w-md mx-auto">Para que os clientes vejam o seu trabalho e o vídeo do seu portfólio, precisa de os adicionar na página de edição.</p>
+                <Button asChild>
+                  <Link to="/perfil-editar">Adicionar Vídeo e Fotos</Link>
+                </Button>
+              </div>
+            )}
+
+
             {/* Pinned Services (Grandes Serviços) */}
-            {pro.portfolios.filter((p: any) => p.is_pinned).length > 0 && (
+            {(pro.portfolios || []).filter((p: any) => p && p.is_pinned === true).length > 0 && (
               <div className="space-y-4">
                 <div className="flex items-center gap-2 border-b pb-2">
                   <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
                   <h2 className="text-xl font-bold text-foreground uppercase tracking-tight">Grandes Serviços</h2>
                 </div>
                 <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                  {pro.portfolios.filter((p: any) => p.is_pinned).map((item: any, i: number) => (
+                  {(pro.portfolios || []).filter((p: any) => p && p.is_pinned === true).map((item: any, i: number) => (
                     <div key={i} className="group overflow-hidden rounded-2xl border-2 border-primary/20 bg-card shadow-lg hover:border-primary transition-all duration-300">
                       <div className="aspect-video overflow-hidden bg-black flex items-center justify-center relative">
-                        {item.video_url ? (
+                        {item.video_url || isVideoUrl(item.image) ? (
                           <video 
-                            src={item.video_url} 
+                            src={item.video_url || item.image} 
                             controls 
+                            playsInline
+                            preload="metadata"
                             className="h-full w-full object-contain"
-                            poster={item.image} 
+                            poster={(!isVideoUrl(item.image) ? item.image : undefined) || undefined} 
                           />
                         ) : (
                           <img
@@ -570,26 +624,29 @@ const ProfessionalProfile = () => {
             )}
 
             {/* Other Portfolio Items */}
-            {pro.portfolios.filter((p: any) => !p.is_pinned).length > 0 && (
+            {(pro.portfolios || []).filter((p: any) => p && p.is_pinned !== true).length > 0 && (
               <div className="space-y-4">
                 <h2 className="text-xl font-bold text-foreground border-b pb-2 opacity-80 flex items-center gap-2">
                    <ImageIcon className="h-5 w-5" /> Galeria do Portfólio
                 </h2>
                 <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
-                  {pro.portfolios.filter((p: any) => !p.is_pinned).map((item: any, i: number) => (
-                    <div key={i} className="group overflow-hidden rounded-xl border border-border bg-card shadow-sm hover:shadow-md transition-all">
+                  {(pro.portfolios || []).filter((p: any) => p && p.is_pinned !== true).map((item: any, i: number) => (
+                    <div key={item.id || i} className="group overflow-hidden rounded-xl border border-border bg-card shadow-sm hover:shadow-md transition-all">
                       <div className="aspect-video overflow-hidden bg-black flex items-center justify-center">
-                        {item.video_url ? (
+                        {item.video_url || isVideoUrl(item.image) ? (
                           <video 
-                            src={item.video_url} 
+                            src={item.video_url || item.image} 
                             controls 
+                            playsInline
+                            preload="none"
                             className="h-full w-full object-contain"
-                            poster={item.image} 
+                            poster={(!isVideoUrl(item.image) ? item.image : undefined) || undefined} 
                           />
                         ) : (
                           <img
                             src={item.image || "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&h=400&fit=crop"}
                             alt={item.title}
+                            loading="lazy"
                             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                           />
                         )}
@@ -600,6 +657,38 @@ const ProfessionalProfile = () => {
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+            {/* Vídeo de Verificação (se disponível e não houver outros vídeos no portfólio) */}
+            {pro.activity_video_url && !pro.portfolios?.some((p: any) => p.video_url) && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 border-b pb-2 opacity-80">
+                  <ShieldCheck className="h-5 w-5 text-primary" />
+                  <h2 className="text-xl font-bold text-foreground uppercase tracking-tight">Vídeo de Demonstração</h2>
+                </div>
+                <div className="max-w-3xl mx-auto overflow-hidden rounded-2xl border bg-black shadow-lg">
+                  <div className="aspect-video">
+                    <video 
+                      src={signedVerificationVideo || pro.activity_video_url} 
+                      controls 
+                      playsInline
+                      muted
+                      preload="metadata"
+                      className="h-full w-full object-contain"
+                    />
+                  </div>
+                  <div className="p-4 bg-card flex flex-col items-center gap-2">
+                    <p className="text-xs text-muted-foreground text-center">Este vídeo foi carregado pelo profissional como prova de competência técnica durante o processo de verificação.</p>
+                    <a 
+                      href={signedVerificationVideo || pro.activity_video_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-[10px] font-bold text-primary flex items-center gap-1 hover:underline"
+                    >
+                      <Download className="h-3 w-3" /> Descarregar/Abrir Vídeo Original
+                    </a>
+                  </div>
                 </div>
               </div>
             )}

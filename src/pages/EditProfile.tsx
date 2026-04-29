@@ -219,9 +219,11 @@ const EditProfile = () => {
   };
 
   const handleNewPortfolioChange = (index: number, field: string, value: any) => {
-    const updated = [...newPortfolios];
-    updated[index] = { ...updated[index], [field]: value };
-    setNewPortfolios(updated);
+    setNewPortfolios(prev => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
   };
 
   const addNewPortfolio = () => {
@@ -267,68 +269,74 @@ const EditProfile = () => {
 
     setLoading(true);
     try {
-      let finalAvatarUrl = existingAvatar;
+      toast.loading("A preparar ficheiros e a iniciar upload...", { id: "save" });
+
+      // 1. Avatar
+      let avatarUrl = existingAvatar;
       if (avatarFile) {
-        toast.info("A carregar nova foto de perfil...");
-        const url = await uploadImage(avatarFile);
-        if (url) finalAvatarUrl = url;
+        avatarUrl = await uploadImage(avatarFile) || existingAvatar;
       }
 
-      await updateProfessionalProfile(user.id, {
-        ...formData,
-        avatar: finalAvatarUrl,
+      // 2. Portfolios (Upload em Paralelo com contador)
+      const uploadPromises = newPortfolios.map(async (p) => {
+        if (p.imageFile || p.videoFile) {
+          const isVideo = !!p.videoFile;
+          const file = p.videoFile || p.imageFile;
+          if (!file) return null;
+
+          if (file.size > 20 * 1024 * 1024) {
+            toast.error(`O ficheiro ${file.name} é muito grande (>20MB). Pode demorar muito.`);
+          }
+
+          try {
+            const url = await uploadImage(file);
+            if (url) {
+              return {
+                title: p.title || (isVideo ? "Vídeo do Portfólio" : "Trabalho do Portfólio"),
+                description: p.description || "",
+                image: url,
+                video_url: isVideo ? url : "",
+                is_pinned: p.is_pinned || false,
+                professional_id: user.id
+              };
+            }
+          } catch (err) {
+            console.error("Erro no upload:", err);
+            return null;
+          }
+        }
+        return null;
       });
 
-      const validNewPortfolios = [];
-      const totalVideos = existingPortfolios.filter(p => p.video_url).length;
-      let newVideosCount = 0;
+      let seconds = 0;
+      const interval = setInterval(() => {
+        seconds++;
+        toast.loading(`A carregar média... (${seconds}s decorridos)`, { id: "save" });
+      }, 1000);
 
-      for (const p of newPortfolios) {
-        if (p.title && (p.imageFile || p.videoFile)) {
-          if (p.videoFile) newVideosCount++;
-        }
+      const results = await Promise.all(uploadPromises);
+      clearInterval(interval);
+      const validPortfolios = results.filter(r => r !== null);
+
+      // 3. Save to DB
+      toast.loading("A gravar na base de dados...", { id: "save" });
+      
+      const dbPromises = [];
+      dbPromises.push(updateProfessionalProfile(user.id, { ...formData, avatar: avatarUrl }));
+      
+      if (validPortfolios.length > 0) {
+        dbPromises.push(addPortfolios(validPortfolios));
       }
 
-      if (totalVideos + newVideosCount > 1) {
-        setLoading(false);
-        return toast.error("Só é permitido carregar 1 vídeo no portfólio.");
-      }
+      await Promise.all(dbPromises);
 
-      for (const p of newPortfolios) {
-        if (p.title && (p.imageFile || p.videoFile)) {
-          toast.info(`A carregar novo portfolio: ${p.title}...`);
-
-          let mediaUrl = "";
-          let isVideo = false;
-
-          if (p.videoFile) {
-            mediaUrl = await uploadImage(p.videoFile) || "";
-            isVideo = true;
-          } else if (p.imageFile) {
-            mediaUrl = await uploadImage(p.imageFile) || "";
-          }
-
-          if (mediaUrl) {
-            validNewPortfolios.push({
-              title: p.title,
-              description: p.description,
-              image: isVideo ? "" : mediaUrl,
-              video_url: isVideo ? mediaUrl : "",
-              is_pinned: p.is_pinned,
-              professional_id: user.id
-            });
-          }
-        }
-      }
-
-      if (validNewPortfolios.length > 0) {
-        await addPortfolios(validNewPortfolios);
-      }
-
-      toast.success("Perfil de Profissional atualizado com sucesso!");
-      navigate(`/professional/${user.id}`);
+      toast.success(`Tudo guardado! (${validPortfolios.length} itens novos)`, { id: "save" });
+      setTimeout(() => {
+        window.location.href = `/professional/${user.id}?t=${Date.now()}`;
+      }, 1000);
     } catch (error: any) {
-      toast.error(error.message || "Erro ao atualizar perfil.");
+      console.error("ERRO DETALHADO:", error);
+      toast.error("FALHA: " + (error.message || "Verifique o tamanho do vídeo"), { id: "save" });
     } finally {
       setLoading(false);
     }
@@ -441,11 +449,23 @@ const EditProfile = () => {
                   <h2 className="text-xl font-semibold border-b pb-2">Informação Básica (Pública)</h2>
 
                   <div className="space-y-2 pb-4 flex items-center gap-4">
-                    <img 
-                      src={existingAvatar || "https://zldaauprystajzxfypmc.supabase.co/storage/v1/object/public/uploads/Logo%20Oku%20Saka%20e%20Sakaservice.png"} 
-                      alt="Current" 
-                      className="w-16 h-16 rounded-full object-cover border bg-white" 
-                    />
+                    <div className="relative shrink-0">
+                      {existingAvatar ? (
+                        <img 
+                          src={existingAvatar} 
+                          alt="Current" 
+                          className="w-16 h-16 rounded-full object-cover border bg-white" 
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                            (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                            (e.target as HTMLImageElement).nextElementSibling?.classList.add('flex');
+                          }}
+                        />
+                      ) : null}
+                      <div className={`${existingAvatar ? 'hidden' : 'flex'} h-16 w-16 rounded-full bg-primary items-center justify-center text-white font-black text-xl border-2 border-white shadow-sm shrink-0 uppercase`}>
+                        {formData.name.charAt(0)}{formData.name.trim().charAt(formData.name.trim().length - 1)}
+                      </div>
+                    </div>
                     <div className="flex-1">
                       <Label htmlFor="avatar" className="flex items-center gap-2"><UploadCloud className="h-4 w-4" /> Alterar Foto de Perfil</Label>
                       <Input id="avatar" type="file" accept="image/*" onChange={(e) => setAvatarFile(e.target.files?.[0] || null)} />
@@ -576,8 +596,9 @@ const EditProfile = () => {
                           </div>
 
                           {port.video_url ? (
-                            <div className="h-32 w-full bg-black flex items-center justify-center">
-                              <UploadCloud className="h-8 w-8 text-white/40" />
+                            <div className="h-32 w-full bg-black flex items-center justify-center relative">
+                              <video src={port.video_url} className="h-full w-full object-contain opacity-60" />
+                              <UploadCloud className="absolute h-6 w-6 text-white/60" />
                             </div>
                           ) : (
                             <img src={port.image} alt={port.title} className="h-32 w-full object-cover" />
@@ -652,6 +673,23 @@ const EditProfile = () => {
                             type="file"
                             accept="video/*"
                             onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+
+                              // 1. Verificar plano (Exclusivo Semestral/Anual)
+                              const planName = (subscription?.plan_name || "").toUpperCase();
+                              const isEligible = planName.includes('SEMESTRAL') || planName.includes('ANUAL');
+
+                              if (!isEligible) {
+                                toast.error("Upgrade Necessário: O upload de vídeo é um benefício exclusivo para planos Semestrais ou Anuais.", {
+                                  duration: 5000,
+                                  icon: '⭐'
+                                });
+                                e.target.value = "";
+                                return;
+                              }
+
+                              // 2. Verificar limite de quantidade
                               const hasExistingVideo = existingPortfolios.some(p => p.video_url);
                               const hasOtherNewVideo = newPortfolios.some((p, idx) => p.videoFile && idx !== index);
 
@@ -661,9 +699,8 @@ const EditProfile = () => {
                                 return;
                               }
 
-                              const file = e.target.files?.[0] || null;
-                              if (file && file.size > 10 * 1024 * 1024) {
-                                toast.error("O vídeo excede o limite de 10MB.");
+                              if (file && file.size > 20 * 1024 * 1024) {
+                                toast.error("O vídeo excede o limite de 20MB.");
                                 e.target.value = "";
                                 return;
                               }

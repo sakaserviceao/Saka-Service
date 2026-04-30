@@ -99,7 +99,7 @@ const ProfessionalProfile = () => {
 
   const isOwner = user?.id === pro?.id;
   const isAdmin = ['franciscobeneditomucamba@gmail.com', 'sakaservice.ao@gmail.com', 'podosk2010@hotmail.com', 'francisco.mucamba@gmail.com'].includes(user?.email || '');
-  const isPubliclyVisible = pro?.subscription_status === 'active' && pro?.verification_status === 'ativo';
+  const isPubliclyVisible = pro?.subscription_status === 'active' && (pro?.verification_status === 'ativo' || pro?.verification_status === 'ativo_sem_selo');
 
   const isVideoUrl = (url: string) => {
     if (!url) return false;
@@ -416,7 +416,7 @@ const ProfessionalProfile = () => {
               </div>
               <h1 className="text-3xl font-bold text-foreground md:text-4xl leading-tight">
                 {pro.name}
-                <VerificationBadge verified={pro.verification_status === 'ativo' || pro.subscription_status === 'active'} size="lg" className="ml-2 inline-flex translate-y-[-2px]" />
+                <VerificationBadge verified={pro.verification_status === 'ativo'} size="lg" className="ml-2 inline-flex translate-y-[-2px]" />
                 {(isOwner || isAdmin) && (
                   <span className={`text-[10px] uppercase font-black px-2 py-1 rounded flex items-center gap-1 shadow-sm ${
                     pro.subscription_status === 'active' 
@@ -603,11 +603,13 @@ const ProfessionalProfile = () => {
                             poster={(!isVideoUrl(item.image) ? item.image : undefined) || undefined} 
                           />
                         ) : (
-                          <img
-                            src={item.image || "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&h=400&fit=crop"}
-                            alt={item.title}
-                            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                          />
+                          <a href={item.image} target="_blank" rel="noopener noreferrer" className="block h-full w-full cursor-zoom-in">
+                            <img
+                              src={item.image || "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&h=400&fit=crop"}
+                              alt={item.title}
+                              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                            />
+                          </a>
                         )}
                         <div className="absolute top-3 left-3 bg-primary text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-sm">
                           DESTAQUE
@@ -643,12 +645,14 @@ const ProfessionalProfile = () => {
                             poster={(!isVideoUrl(item.image) ? item.image : undefined) || undefined} 
                           />
                         ) : (
-                          <img
-                            src={item.image || "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&h=400&fit=crop"}
-                            alt={item.title}
-                            loading="lazy"
-                            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                          />
+                          <a href={item.image} target="_blank" rel="noopener noreferrer" className="block h-full w-full cursor-zoom-in">
+                            <img
+                              src={item.image || "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&h=400&fit=crop"}
+                              alt={item.title}
+                              loading="lazy"
+                              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                            />
+                          </a>
                         )}
                       </div>
                       <div className="p-4">

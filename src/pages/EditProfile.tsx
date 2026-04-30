@@ -619,7 +619,10 @@ const EditProfile = () => {
 
                 <div className="space-y-4">
                   <div className="flex items-center justify-between border-b pb-2">
-                    <h2 className="text-xl font-semibold text-primary">Atualizar Portifolio</h2>
+                    <div>
+                      <h2 className="text-xl font-semibold text-primary">Atualizar Portfólio</h2>
+                      <p className="text-xs text-muted-foreground mt-1">💡 Recomendamos a inserção de imagens na horizontal para melhor apresentação.</p>
+                    </div>
                     <Button type="button" variant="outline" size="sm" onClick={addNewPortfolio} className="gap-2">
                       <Plus className="h-4 w-4" /> Mais Fotos
                     </Button>
@@ -731,14 +734,16 @@ const EditProfile = () => {
                   <Save className="h-5 w-5 mr-2" /> {loading ? "A Atualizar..." : "Guardar Edições"}
                 </Button>
 
-                {((missingDocs && settings.require_professional_verification !== 'false') || verificationStatus === 'pending_review' || verificationStatus === 'rejeitado') && (
+                {((missingDocs && settings.require_professional_verification !== 'false') || verificationStatus === 'pending_review' || verificationStatus === 'rejeitado' || verificationStatus === 'ativo_sem_selo') && verificationStatus !== 'ativo' && (
                   <div className="mt-8 rounded-2xl border border-primary/20 bg-primary/5 p-6 flex flex-col md:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
                     <div className="flex items-center gap-3">
-                      <ShieldCheck className={`h-10 w-10 ${verificationStatus === "ativo" ? "text-green-500" : "text-orange-500 hover:animate-pulse"}`} />
+                      <ShieldCheck className={`h-10 w-10 ${verificationStatus === "ativo" || verificationStatus === "ativo_sem_selo" ? "text-green-500" : "text-orange-500 hover:animate-pulse"}`} />
                       <div>
                         <h3 className="font-bold text-lg">
                           Estado de Verificação: {verificationStatus === "ativo" ? (
                             <span className="text-green-600">Verificado</span>
+                          ) : verificationStatus === "ativo_sem_selo" ? (
+                            <span className="text-green-600">Ativo (Sem Selo)</span>
                           ) : verificationStatus === "rejeitado" ? (
                             <span className="text-red-500">Rejeitado</span>
                           ) : (
@@ -748,11 +753,13 @@ const EditProfile = () => {
                         <p className="text-sm text-muted-foreground">
                           {verificationStatus === "ativo"
                             ? "O seu perfil está verificado e transmite confiança total aos clientes."
-                            : verificationStatus === "rejeitado"
-                              ? "Os seus documentos foram rejeitados. Por favor, submeta novamente documentos válidos."
-                              : missingDocs && settings.require_professional_verification !== 'false'
-                                ? (settings.msg_verification_pending || "Faltam carregar os seus documentos para obter o selo de Verificado")
-                                : "Os seus documentos estão a ser analisados manualmente pela nossa equipa."
+                            : verificationStatus === "ativo_sem_selo"
+                              ? "O seu perfil está ativo e visível, mas precisa enviar documentos válidos para obter o Selo Verificado."
+                              : verificationStatus === "rejeitado"
+                                ? "Os seus documentos foram rejeitados. Por favor, submeta novamente documentos válidos."
+                                : missingDocs && settings.require_professional_verification !== 'false'
+                                  ? (settings.msg_verification_pending || "Faltam carregar os seus documentos para obter o selo de Verificado")
+                                  : "Os seus documentos estão a ser analisados manualmente pela nossa equipa."
                           }
                         </p>
                       </div>

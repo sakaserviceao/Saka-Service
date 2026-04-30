@@ -55,7 +55,7 @@ const DynamicCTA = () => {
   } else if (isProfessional) {
     const isProfileIncomplete = !pro?.description || !pro?.avatar || !pro?.id_number;
     const hasNoServices = !pro?.portfolios || pro.portfolios.length === 0;
-    const isActive = pro?.verification_status === 'ativo';
+    const isActive = pro?.verification_status === 'ativo' || pro?.verification_status === 'ativo_sem_selo';
 
     if (isProfileIncomplete) {
       currentState = {

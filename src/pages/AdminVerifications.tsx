@@ -2649,11 +2649,12 @@ function VerificationItem({ pro, mutation, featuredMutation, deleteMutation, can
             <div className="flex flex-col lg:flex-row gap-8">
               <div className="flex-1 space-y-4">
                 <div className="flex flex-wrap gap-2 mb-6">
-                  <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${pro.verification_status === 'ativo' ? 'bg-green-500/10 text-green-600' :
+                  <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${pro.verification_status === 'ativo' || pro.verification_status === 'ativo_sem_selo' ? 'bg-green-500/10 text-green-600' :
                       pro.verification_status === 'suspenso' ? 'bg-orange-500/10 text-orange-600' : 'bg-red-500/10 text-red-600'
                     }`}>
                     {pro.verification_status === 'pending_review' ? 'Aguardando Verificação' :
-                      pro.verification_status === 'ativo' ? 'Ativo' :
+                      pro.verification_status === 'ativo' ? 'Ativo (Verificado)' :
+                        pro.verification_status === 'ativo_sem_selo' ? 'Ativo (Sem Selo)' :
                         pro.verification_status === 'suspenso' ? 'Suspenso' : pro.verification_status || 'Incompleto'}
                   </span>
                   <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-secondary text-secondary-foreground">
@@ -2779,21 +2780,30 @@ function VerificationItem({ pro, mutation, featuredMutation, deleteMutation, can
               </div>
 
               <div className="lg:w-64 flex flex-col gap-3 border-t lg:border-t-0 lg:border-l lg:pl-8 pt-6 lg:pt-0">
-                {pro.verification_status !== 'ativo' && (
-                  <Button
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 font-bold flex items-center gap-2"
-                    onClick={() => mutation.mutate({ id: pro.id, status: 'ativo' })}
-                  >
-                    <CheckCircle className="h-4 w-4" /> Atribuir Selo Verificado
-                  </Button>
+                {pro.verification_status !== 'ativo' && pro.verification_status !== 'ativo_sem_selo' && (
+                  <>
+                    <Button
+                      className="w-full bg-emerald-600 hover:bg-emerald-700 font-bold flex items-center gap-2"
+                      onClick={() => mutation.mutate({ id: pro.id, status: 'ativo' })}
+                    >
+                      <CheckCircle className="h-4 w-4" /> Atribuir Selo Verificado
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="w-full border-primary text-primary font-bold flex items-center gap-2 mt-2"
+                      onClick={() => mutation.mutate({ id: pro.id, status: 'ativo_sem_selo' })}
+                    >
+                      <CheckCircle className="h-4 w-4" /> Ativar Sem Selo
+                    </Button>
+                  </>
                 )}
-                {pro.verification_status === 'ativo' && (
+                {(pro.verification_status === 'ativo' || pro.verification_status === 'ativo_sem_selo') && (
                   <Button
                     variant="outline"
                     className="w-full border-amber-500 text-amber-600 hover:bg-amber-50 font-bold flex items-center gap-2"
                     onClick={() => mutation.mutate({ id: pro.id, status: 'suspenso' })}
                   >
-                    <Pause className="h-4 w-4" /> Remover Selo Verificado
+                    <Pause className="h-4 w-4" /> Suspender Conta
                   </Button>
                 )}
                 {canManage && (
@@ -2807,7 +2817,15 @@ function VerificationItem({ pro, mutation, featuredMutation, deleteMutation, can
                     <Button variant="outline" className="w-full font-bold" asChild>
                       <Link to={`/admin/verifications?tab=notifications&replyTo=${pro.id}`}>Contactar</Link>
                     </Button>
-                    <Button variant="destructive" className="w-full font-bold" onClick={() => deleteMutation.mutate(pro.id)}>
+                    <Button 
+                      variant="destructive" 
+                      className="w-full font-bold" 
+                      onClick={() => {
+                        if (window.confirm(`Tem a certeza absoluta que deseja eliminar definitivamente o perfil de ${pro.name}?\n\nEsta ação apagará todo o histórico, imagens e a conta (e-mail) do profissional. NÃO é possível desfazer!`)) {
+                          deleteMutation.mutate(pro.id);
+                        }
+                      }}
+                    >
                       Eliminar Definitivamente
                     </Button>
                   </>

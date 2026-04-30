@@ -39,7 +39,7 @@ const SearchPage = () => {
   }, [selectedCategory, categories]);
 
   const results = useMemo(() => {
-    let filtered = searchResults;
+    let filtered = [...searchResults];
     
     // Filter by 'rated' parameter (Avaliações Verificadas)
     if (searchParams.get("rated") === "true") {
@@ -54,6 +54,32 @@ const SearchPage = () => {
     if (selectedCategory) {
       filtered = filtered.filter((p: any) => p.category === selectedCategory);
     }
+
+    // Sort by subscription plan (ANUAL > SEMESTRAL ou DESTAQUE > Outros)
+    filtered.sort((a: any, b: any) => {
+      const getPlanWeight = (pro: any) => {
+        const p = (pro.subscription_plan || "").toUpperCase();
+        if (p === 'ANUAL') return 3;
+        if (p === 'SEMESTRAL' || pro.featured) return 2;
+        return 1;
+      };
+      
+      const weightA = getPlanWeight(a);
+      const weightB = getPlanWeight(b);
+      
+      // Descending order (highest weight first)
+      if (weightA !== weightB) {
+        return weightB - weightA;
+      }
+      
+      // Secondary sort: keep featured first if weights are equal
+      if (a.featured && !b.featured) return -1;
+      if (!a.featured && b.featured) return 1;
+      
+      // Fallback: higher rating first
+      return (b.rating || 0) - (a.rating || 0);
+    });
+
     return filtered;
   }, [searchResults, selectedCategory, searchParams]);
 

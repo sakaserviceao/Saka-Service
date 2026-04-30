@@ -21,6 +21,9 @@ const BecomePro = () => {
   const [hasExistingProfile, setHasExistingProfile] = useState(false);
 
   const isVerificationRequired = getSetting('require_professional_verification', 'true') === 'true';
+  const isBiRequired = getSetting('require_bi_verification', 'true') === 'true';
+  const isCertificateRequired = getSetting('require_certificate_verification', 'true') === 'true';
+  const isVideoRequired = getSetting('require_video_verification', 'false') === 'true';
 
   const [formData, setFormData] = useState({
     name: "",
@@ -183,8 +186,13 @@ const BecomePro = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.id_number || !idCardFile || !certificateFile) {
-      return toast.error("Por favor, preencha o número do BI e carregue os documentos obrigatórios.");
+    
+    if (isBiRequired && (!formData.id_number || !idCardFile)) {
+      return toast.error("Por favor, preencha o número do BI e carregue o Bilhete de Identidade.");
+    }
+    
+    if (isCertificateRequired && !certificateFile) {
+      return toast.error("Por favor, carregue o Certificado Profissional.");
     }
 
     setLoading(true);
@@ -198,12 +206,18 @@ const BecomePro = () => {
       }
 
       // 2. Upload do BI (Frente/Verso Único)
-      toast.info("A carregar Bilhete de Identidade...");
-      const idCardUrl = await uploadImage(idCardFile);
+      let idCardUrl = "";
+      if (isBiRequired && idCardFile) {
+        toast.info("A carregar Bilhete de Identidade...");
+        idCardUrl = await uploadImage(idCardFile) || "";
+      }
 
       // 3. Upload do Certificado
-      toast.info("A carregar Certificado Profissional...");
-      const certificateUrl = await uploadImage(certificateFile);
+      let certificateUrl = "";
+      if (isCertificateRequired && certificateFile) {
+        toast.info("A carregar Certificado Profissional...");
+        certificateUrl = await uploadImage(certificateFile) || "";
+      }
 
       // 4. Criar/Atualizar o Perfil Profissional
       await createProfessionalProfile({
@@ -392,55 +406,69 @@ const BecomePro = () => {
               </div>
 
               <div className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="id_number">Número do Bilhete de Identidade (BI)</Label>
-                  <Input 
-                    id="id_number" 
-                    name="id_number" 
-                    value={formData.id_number} 
-                    onChange={handleChange} 
-                    placeholder="Ex: 000000000LA000" 
-                    required 
-                    className="h-12 text-lg font-mono tracking-widest"
-                  />
-                </div>
+                {isBiRequired && (
+                  <div className="space-y-2">
+                    <Label htmlFor="id_number">Número do Bilhete de Identidade (BI)</Label>
+                    <Input 
+                      id="id_number" 
+                      name="id_number" 
+                      value={formData.id_number} 
+                      onChange={handleChange} 
+                      placeholder="Ex: 000000000LA000" 
+                      required 
+                      className="h-12 text-lg font-mono tracking-widest"
+                    />
+                  </div>
+                )}
 
                 <div className="space-y-4 pt-4">
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-2 text-base font-bold">
-                      <FileText className="h-5 w-5 text-primary" /> Bilhete de Identidade (Frente e Verso)
-                    </Label>
-                    <p className="text-xs text-muted-foreground mb-2">Carregue um ficheiro único (Foto ou PDF) que mostre nitidamente a frente e o verso do seu BI.</p>
-                    <div className="border-2 border-dashed border-muted-foreground/20 rounded-xl p-6 flex flex-col items-center hover:bg-secondary/10 transition-colors cursor-pointer relative">
-                      <Input 
-                        type="file" 
-                        accept="image/*,application/pdf" 
-                        onChange={(e) => setIdCardFile(e.target.files?.[0] || null)} 
-                        className="absolute inset-0 opacity-0 cursor-pointer"
-                        required
-                      />
-                      <UploadCloud className={`h-12 w-12 mb-2 ${idCardFile ? 'text-green-500' : 'text-muted-foreground'}`} />
-                      <span className="text-sm font-medium">{idCardFile ? idCardFile.name : "Clique para selecionar o BI"}</span>
+                  {isBiRequired && (
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2 text-base font-bold">
+                        <FileText className="h-5 w-5 text-primary" /> Bilhete de Identidade (Frente e Verso)
+                      </Label>
+                      <p className="text-xs text-muted-foreground mb-2">Carregue um ficheiro único (Foto ou PDF) que mostre nitidamente a frente e o verso do seu BI.</p>
+                      <div className="border-2 border-dashed border-muted-foreground/20 rounded-xl p-6 flex flex-col items-center hover:bg-secondary/10 transition-colors cursor-pointer relative">
+                        <Input 
+                          type="file" 
+                          accept="image/*,application/pdf" 
+                          onChange={(e) => setIdCardFile(e.target.files?.[0] || null)} 
+                          className="absolute inset-0 opacity-0 cursor-pointer"
+                          required
+                        />
+                        <UploadCloud className={`h-12 w-12 mb-2 ${idCardFile ? 'text-green-500' : 'text-muted-foreground'}`} />
+                        <span className="text-sm font-medium">{idCardFile ? idCardFile.name : "Clique para selecionar o BI"}</span>
+                      </div>
                     </div>
-                  </div>
+                  )}
 
-                  <div className="space-y-2 pt-4">
-                    <Label className="flex items-center gap-2 text-base font-bold">
-                      <ShieldCheck className="h-5 w-5 text-primary" /> Certificado / Diploma Profissional
-                    </Label>
-                    <p className="text-xs text-muted-foreground mb-2">Comprovativo de habilitações ou certificado de formação na área.</p>
-                    <div className="border-2 border-dashed border-muted-foreground/20 rounded-xl p-6 flex flex-col items-center hover:bg-secondary/10 transition-colors cursor-pointer relative">
-                      <Input 
-                        type="file" 
-                        accept="image/*,application/pdf" 
-                        onChange={(e) => setCertificateFile(e.target.files?.[0] || null)} 
-                        className="absolute inset-0 opacity-0 cursor-pointer"
-                        required
-                      />
-                      <UploadCloud className={`h-12 w-12 mb-2 ${certificateFile ? 'text-green-500' : 'text-muted-foreground'}`} />
-                      <span className="text-sm font-medium">{certificateFile ? certificateFile.name : "Clique para selecionar o Certificado"}</span>
+                  {isCertificateRequired && (
+                    <div className="space-y-2 pt-4">
+                      <Label className="flex items-center gap-2 text-base font-bold">
+                        <ShieldCheck className="h-5 w-5 text-primary" /> Certificado / Diploma Profissional
+                      </Label>
+                      <p className="text-xs text-muted-foreground mb-2">Comprovativo de habilitações ou certificado de formação na área.</p>
+                      <div className="border-2 border-dashed border-muted-foreground/20 rounded-xl p-6 flex flex-col items-center hover:bg-secondary/10 transition-colors cursor-pointer relative">
+                        <Input 
+                          type="file" 
+                          accept="image/*,application/pdf" 
+                          onChange={(e) => setCertificateFile(e.target.files?.[0] || null)} 
+                          className="absolute inset-0 opacity-0 cursor-pointer"
+                          required
+                        />
+                        <UploadCloud className={`h-12 w-12 mb-2 ${certificateFile ? 'text-green-500' : 'text-muted-foreground'}`} />
+                        <span className="text-sm font-medium">{certificateFile ? certificateFile.name : "Clique para selecionar o Certificado"}</span>
+                      </div>
                     </div>
-                  </div>
+                  )}
+
+                  {!isBiRequired && !isCertificateRequired && !isVideoRequired && (
+                    <div className="text-center p-8 bg-green-50/50 rounded-xl border border-green-100">
+                      <Check className="h-12 w-12 text-green-500 mx-auto mb-4" />
+                      <h3 className="text-lg font-bold text-green-800">Verificação Simplificada</h3>
+                      <p className="text-black mt-2">A plataforma de momento não exige o carregamento de documentos adicionais. Pode avançar e finalizar o seu registo!</p>
+                    </div>
+                  )}
                 </div>
               </div>
 

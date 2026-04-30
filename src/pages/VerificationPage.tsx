@@ -19,6 +19,9 @@ const VerificationPage = () => {
   const [loading, setLoading] = useState(false);
 
   const isVerificationRequired = getSetting('require_professional_verification', 'true') === 'true';
+  const isBiRequired = getSetting('require_bi_verification', 'true') === 'true';
+  const isCertificateRequired = getSetting('require_certificate_verification', 'true') === 'true';
+  const isVideoRequired = getSetting('require_video_verification', 'false') === 'true';
   const [userProfile, setUserProfile] = useState<any>(null);
   const [rejectionReason, setRejectionReason] = useState<string | null>(null);
   const [idNumber, setIdNumber] = useState("");
@@ -62,22 +65,24 @@ const VerificationPage = () => {
     const biRegex = /^\d{9}[A-Z]{2}\d{3}$/;
 
     if (step === 1) {
-      if (!idNumber) {
-        return toast.error("Por favor, introduza o seu número de BI.");
-      }
-      if (!biRegex.test(idNumber)) {
-        return toast.error("Formato de BI inválido. O formato correto é: 000000000LA000");
-      }
-      if (!files.id_card) {
-        return toast.error("Por favor, faça upload do seu Bilhete de Identidade (Frente e Verso).");
+      if (isBiRequired) {
+        if (!idNumber) {
+          return toast.error("Por favor, introduza o seu número de BI.");
+        }
+        if (!biRegex.test(idNumber)) {
+          return toast.error("Formato de BI inválido. O formato correto é: 000000000LA000");
+        }
+        if (!files.id_card) {
+          return toast.error("Por favor, faça upload do seu Bilhete de Identidade (Frente e Verso).");
+        }
       }
     }
     
     if (step === 2) {
-      if (verificationType === 'certificate' && !files.certificate) {
+      if (verificationType === 'certificate' && isCertificateRequired && !files.certificate) {
         return toast.error("Por favor, faça upload do seu Certificado de Habilitações.");
       }
-      if (verificationType === 'video' && !files.activity_video) {
+      if (verificationType === 'video' && isVideoRequired && !files.activity_video) {
         return toast.error("Por favor, faça upload do vídeo exercendo a atividade.");
       }
     }
@@ -95,7 +100,7 @@ const VerificationPage = () => {
       toast.info("A enviar documentos para análise segura...");
       
       const [idCardUrl, certUrl, videoUrl] = await Promise.all([
-        uploadVerificationDocument(files.id_card!, user.id, 'id_front'),
+        files.id_card ? uploadVerificationDocument(files.id_card, user.id, 'id_front') : Promise.resolve(null),
         files.certificate ? uploadVerificationDocument(files.certificate, user.id, 'certificate') : Promise.resolve(null),
         files.activity_video ? uploadVerificationDocument(files.activity_video, user.id, 'activity_video') : Promise.resolve(null)
       ]);
@@ -147,59 +152,83 @@ const VerificationPage = () => {
             </div>
           ) : step === 1 && (
             <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-bold">Número do BI</label>
-                <input 
-                  type="text" 
-                  value={idNumber}
-                  onChange={(e) => setIdNumber(e.target.value)}
-                  placeholder="000000000LA000"
-                  className="w-full h-12 rounded-xl border bg-background px-4 outline-none focus:ring-2 focus:ring-primary/20"
-                />
-              </div>
-              <DocumentUpload 
-                label="Bilhete de Identidade (Frente e Verso)" 
-                description="Carregue uma foto ou PDF do seu documento."
-                onFileSelect={(file) => handleFileSelect('id_card', file)}
-              />
+              {isBiRequired ? (
+                <>
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold">Número do BI</label>
+                    <input 
+                      type="text" 
+                      value={idNumber}
+                      onChange={(e) => setIdNumber(e.target.value)}
+                      placeholder="000000000LA000"
+                      className="w-full h-12 rounded-xl border bg-background px-4 outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+                  <DocumentUpload 
+                    label="Bilhete de Identidade (Frente e Verso)" 
+                    description="Carregue uma foto ou PDF do seu documento."
+                    onFileSelect={(file) => handleFileSelect('id_card', file)}
+                  />
+                </>
+              ) : (
+                <div className="text-center py-8">
+                  <ShieldCheck className="h-12 w-12 text-primary/50 mx-auto mb-4" />
+                  <h3 className="text-lg font-bold">Documento de Identidade Opcional</h3>
+                  <p className="text-muted-foreground mt-2">A plataforma não exige o carregamento do seu Bilhete de Identidade de momento. Pode avançar para o próximo passo.</p>
+                </div>
+              )}
             </div>
           )}
 
           {step === 2 && (
             <div className="space-y-6">
-              <div className="bg-secondary/20 p-4 rounded-xl border border-primary/10 mb-2">
-                <p className="text-sm font-semibold mb-3">Como deseja comprovar a sua atividade?</p>
-                <div className="flex gap-4">
-                  <button 
-                    onClick={() => setVerificationType('certificate')}
-                    className={`flex-1 p-3 rounded-lg border-2 transition-all text-sm font-bold ${verificationType === 'certificate' ? 'border-primary bg-primary/5 text-primary' : 'border-muted bg-card text-muted-foreground'}`}
-                  >
-                    Certificado / Diploma
-                  </button>
-                  <button 
-                    onClick={() => setVerificationType('video')}
-                    className={`flex-1 p-3 rounded-lg border-2 transition-all text-sm font-bold ${verificationType === 'video' ? 'border-primary bg-primary/5 text-primary' : 'border-muted bg-card text-muted-foreground'}`}
-                  >
-                    Vídeo de Atividade
-                  </button>
+              {(!isCertificateRequired && !isVideoRequired) ? (
+                <div className="text-center py-8">
+                  <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-4" />
+                  <h3 className="text-lg font-bold">Documentos Profissionais Opcionais</h3>
+                  <p className="text-muted-foreground mt-2">Não são exigidos documentos adicionais para comprovar a sua atividade. Pode finalizar a verificação!</p>
                 </div>
-              </div>
-
-              {verificationType === 'certificate' ? (
-                <DocumentUpload 
-                  label="Certificado ou Diploma" 
-                  description="Carregue o comprovativo das suas qualificações profissionais."
-                  onFileSelect={(file) => handleFileSelect('certificate', file)}
-                  maxSize={10}
-                />
               ) : (
-                <DocumentUpload 
-                  label="Vídeo Exercendo a Atividade" 
-                  description="Grave ou carregue um vídeo curto comprovando as suas habilidades."
-                  onFileSelect={(file) => handleFileSelect('activity_video', file)}
-                  accept="video/*"
-                  maxSize={10}
-                />
+                <>
+                  <div className="bg-secondary/20 p-4 rounded-xl border border-primary/10 mb-2">
+                    <p className="text-sm font-semibold mb-3">Como deseja comprovar a sua atividade?</p>
+                    <div className="flex gap-4">
+                      {isCertificateRequired && (
+                        <button 
+                          onClick={() => setVerificationType('certificate')}
+                          className={`flex-1 p-3 rounded-lg border-2 transition-all text-sm font-bold ${verificationType === 'certificate' ? 'border-primary bg-primary/5 text-primary' : 'border-muted bg-card text-muted-foreground'}`}
+                        >
+                          Certificado / Diploma
+                        </button>
+                      )}
+                      {isVideoRequired && (
+                        <button 
+                          onClick={() => setVerificationType('video')}
+                          className={`flex-1 p-3 rounded-lg border-2 transition-all text-sm font-bold ${verificationType === 'video' ? 'border-primary bg-primary/5 text-primary' : 'border-muted bg-card text-muted-foreground'}`}
+                        >
+                          Vídeo de Atividade
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {verificationType === 'certificate' && isCertificateRequired ? (
+                    <DocumentUpload 
+                      label="Certificado ou Diploma" 
+                      description="Carregue o comprovativo das suas qualificações profissionais."
+                      onFileSelect={(file) => handleFileSelect('certificate', file)}
+                      maxSize={10}
+                    />
+                  ) : verificationType === 'video' && isVideoRequired ? (
+                    <DocumentUpload 
+                      label="Vídeo Exercendo a Atividade" 
+                      description="Grave ou carregue um vídeo curto comprovando as suas habilidades."
+                      onFileSelect={(file) => handleFileSelect('activity_video', file)}
+                      accept="video/*"
+                      maxSize={10}
+                    />
+                  ) : null}
+                </>
               )}
             </div>
           )}

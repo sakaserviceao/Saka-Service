@@ -476,6 +476,12 @@ export const deleteProfessional = async (id: string) => {
       throw new Error("A base de dados recusou a eliminação. Verifique as permissões de RLS para administradores.");
     }
 
+    // 4. Delete the user from auth.users (requires RPC with SECURITY DEFINER)
+    const { error: authError } = await supabase.rpc('delete_auth_user', { user_id: id });
+    if (authError) {
+      console.warn("O perfil foi eliminado, mas ocorreu um erro ao eliminar a conta (email) no auth.users. Verifique se criou a função RPC no Supabase.", authError);
+    }
+
     return true;
   } catch (error) {
     console.error('Error deleting professional:', error);

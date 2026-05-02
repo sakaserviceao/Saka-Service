@@ -7,6 +7,8 @@ import Footer from "@/components/Footer";
 import ProfessionalCard from "@/components/ProfessionalCard";
 import { searchProfessionals, getCategories, logSearch } from "@/data/api";
 
+import { SEO } from "@/components/SEO";
+
 const SearchPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialQuery = searchParams.get("q") || "";
@@ -90,6 +92,11 @@ const SearchPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO 
+        title={initialQuery ? `Resultados para "${initialQuery}"` : "Pesquisar Profissionais"}
+        description="Encontre os melhores profissionais e serviços para as suas necessidades no Saka Service."
+        url="https://saka-service.com/search"
+      />
       <Navbar />
       <div className="container py-8">
         <h1 className="text-2xl font-bold text-foreground md:text-3xl">Encontre Profissionais</h1>

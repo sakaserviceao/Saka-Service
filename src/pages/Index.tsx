@@ -15,6 +15,8 @@ import { getCategories, getFeaturedProfessionals, getPlatformStats } from "@/dat
 import { useTheme } from "@/hooks/useTheme";
 import { useSettings } from "@/hooks/useSettings";
 
+import { SEO } from "@/components/SEO";
+
 const Index = () => {
   const navigate = useNavigate();
   const { data: featured = [] } = useQuery({
@@ -57,6 +59,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <SEO />
       <Navbar />
       <HeroSection />
 

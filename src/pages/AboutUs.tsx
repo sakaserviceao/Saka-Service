@@ -5,6 +5,8 @@ import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { getPlatformStats, getSiteSettings } from "@/data/api";
 
+import { SEO } from "@/components/SEO";
+
 const AboutUs = () => {
   const { data: stats = { activePros: 0 } } = useQuery({
     queryKey: ['platformStats'],
@@ -27,6 +29,11 @@ const AboutUs = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <SEO 
+        title="Sobre a Saka Service"
+        description="A maior plataforma de serviços e imóveis em Angola. Conheça a nossa visão, missão e equipa."
+        url="https://saka-service.com/about-us"
+      />
       <Navbar />
       <main className="flex-1">
         {/* Hero Section */}

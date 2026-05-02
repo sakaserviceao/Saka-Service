@@ -56,10 +56,15 @@ const App = () => {
 
   useEffect(() => {
     // Registar visita à plataforma uma vez por sessão
-    const sessionVisited = sessionStorage.getItem('saka_visited');
-    if (!sessionVisited && isConfigured) {
-      recordPlatformVisit();
-      sessionStorage.setItem('saka_visited', 'true');
+    // Protegido com try-catch porque bots (como o Googlebot) podem não suportar sessionStorage
+    try {
+      const sessionVisited = sessionStorage.getItem('saka_visited');
+      if (!sessionVisited && isConfigured) {
+        recordPlatformVisit();
+        sessionStorage.setItem('saka_visited', 'true');
+      }
+    } catch (error) {
+      console.warn("Saka Service: sessionStorage not available (likely a bot or private mode)");
     }
   }, []);
 

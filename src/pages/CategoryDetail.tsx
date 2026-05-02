@@ -7,6 +7,8 @@ import ProfessionalCard from "@/components/ProfessionalCard";
 import { getCategories, getProfessionalsByCategory } from "@/data/api";
 import CategoryIcon from "@/components/CategoryIcon";
 
+import { SEO } from "@/components/SEO";
+
 const CategoryDetail = () => {
   const { id } = useParams<{ id: string }>();
 
@@ -38,6 +40,11 @@ const CategoryDetail = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO 
+        title={category ? `Profissionais de ${category.name}` : "Categoria de Serviços"}
+        description={category ? `Encontre os melhores profissionais de ${category.name} no Saka Service. Profissionais avaliados e prontos para trabalhar.` : undefined}
+        url={`https://saka-service.com/category/${id}`}
+      />
       <Navbar />
       <div className="container py-12">
         <Link to="/categories" className="mb-6 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">

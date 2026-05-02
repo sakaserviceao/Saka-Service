@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { cn } from "@/lib/utils";
-
+import { SEO } from "@/components/SEO";
 const ImovelDetail = () => {
   const { id } = useParams<{ id: string }>();
 
@@ -63,6 +63,13 @@ const ImovelDetail = () => {
 
   return (
     <div className="min-h-screen bg-background pb-12">
+      <SEO 
+        title={`${property.tipologia} em ${property.localizacao} - Arrendar Imóvel`}
+        description={property.descricao ? property.descricao.substring(0, 150) + "..." : `Excelente ${property.tipologia} disponível em ${property.localizacao}.`}
+        image={property.imagens?.[0] || "https://saka-service.com/og-image.png"}
+        url={`https://saka-service.com/imoveis/${property.id}`}
+        type="article"
+      />
       <Navbar />
       
       <div className="container py-8">

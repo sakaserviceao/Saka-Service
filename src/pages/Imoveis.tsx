@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Search, SlidersHorizontal, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
 
+import { SEO } from "@/components/SEO";
+
 const tipologias: (ImovelTipologia | "Todos")[] = ["Todos", "T1", "T2", "T3", "T4", "T5+"];
 
 const Imoveis = () => {
@@ -28,6 +30,11 @@ const Imoveis = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO 
+        title="Imóveis para Arrendar em Luanda"
+        description="Encontre o seu próximo lar ou escritório em Luanda com a Saka Service."
+        url="https://saka-service.com/imoveis"
+      />
       <Navbar />
       
       {/* Hero Header */}

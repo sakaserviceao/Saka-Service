@@ -7,6 +7,8 @@ import Footer from "@/components/Footer";
 import CategoryCard from "@/components/CategoryCard";
 import { getCategories } from "@/data/api";
 
+import { SEO } from "@/components/SEO";
+
 const Categories = () => {
   const navigate = useNavigate();
   const { data: categories = [] } = useQuery({
@@ -16,6 +18,11 @@ const Categories = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO 
+        title="Categorias de Serviços e Profissionais"
+        description="Explore a nossa lista completa de categorias de serviços disponíveis em Angola no Saka Service."
+        url="https://saka-service.com/categories"
+      />
       <Navbar />
       <div className="container py-16">
         <div className="mb-12 max-w-2xl">

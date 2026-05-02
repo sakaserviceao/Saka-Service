@@ -40,6 +40,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 
+import { SEO } from "@/components/SEO";
+
 const ProfessionalProfile = () => {
   const { id } = useParams<{ id: string }>();
   const { user, isLoading: isAuthLoading } = useAuth();
@@ -358,6 +360,13 @@ const ProfessionalProfile = () => {
 
   return (
     <div className="min-h-screen bg-background pb-12">
+      <SEO 
+        title={`${pro.name} - ${pro.title}`}
+        description={pro.description ? pro.description.substring(0, 150) + "..." : `Perfil do profissional ${pro.name} no Saka Service`}
+        image={pro.avatar || "https://saka-service.com/og-image.png"}
+        url={`https://saka-service.com/professional/${pro.id}`}
+        type="profile"
+      />
       <Navbar />
       <div className="container max-w-4xl py-8">
         <Link to="/" className="mb-6 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">

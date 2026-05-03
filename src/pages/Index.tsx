@@ -11,6 +11,7 @@ import ProfessionalCard from "@/components/ProfessionalCard";
 import CategoryCard from "@/components/CategoryCard";
 import HomeBanner from "@/components/HomeBanner";
 import DynamicCTA from "@/components/DynamicCTA";
+import { TestimonialsSection } from "@/components/TestimonialsSection";
 import { getCategories, getFeaturedProfessionals, getPlatformStats } from "@/data/api";
 import { useTheme } from "@/hooks/useTheme";
 import { useSettings } from "@/hooks/useSettings";
@@ -242,6 +243,8 @@ const Index = () => {
           </div>
         </section>
       )}
+
+      <TestimonialsSection />
 
       <Footer />
     </div>

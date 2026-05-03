@@ -69,7 +69,7 @@ const EditProfile = () => {
   const [existingPortfolios, setExistingPortfolios] = useState<any[]>([]);
   const [newPortfolios, setNewPortfolios] = useState<{ title: string; description: string; imageFile: File | null; videoFile: File | null; is_pinned: boolean }[]>([]);
 
-  const [verificationStatus, setVerificationStatus] = useState<string>("ativo");
+  const [verificationStatus, setVerificationStatus] = useState<string>("pending_review");
   const [missingDocs, setMissingDocs] = useState(false);
   const [subscription, setSubscription] = useState<any>(null);
   const [subscriptionStatus, setSubscriptionStatus] = useState<string>("pending");
@@ -136,7 +136,7 @@ const EditProfile = () => {
             linkedin_url: proData.linkedin_url || "",
           });
           setExistingAvatar(proData.avatar || "");
-          setVerificationStatus(proData.verification_status || "ativo");
+          setVerificationStatus(proData.verification_status || "pending_review");
 
           if (!proData.id_card_front_url || (!proData.certificate_url && !proData.activity_video_url)) {
             setMissingDocs(true);

@@ -29,7 +29,7 @@ import {
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
 import { Button } from "@/components/ui/button";
-import { Check, X, ExternalLink, Shield, ShieldCheck, Users, FileText, ArrowLeft, Search, AlertCircle, Star, Pause, RotateCcw, Settings, Plus, Trash2, Mail, BarChart3, TrendingUp, Home, Calendar, Eye, LayoutGrid, Save, Image as ImageIcon, CreditCard, Receipt, Clock, CheckCircle, Sparkles, Bell, Megaphone, Info, FileCode, Target, Monitor, Zap, ChevronDown, ArrowDownAZ, Play, Video } from "lucide-react";
+import { Check, X, ExternalLink, Shield, ShieldCheck, Users, FileText, ArrowLeft, Search, AlertCircle, Star, Pause, RotateCcw, Settings, Plus, Trash2, Mail, BarChart3, TrendingUp, Home, Calendar, Eye, LayoutGrid, Save, Image as ImageIcon, CreditCard, Receipt, Clock, CheckCircle, Sparkles, Bell, Megaphone, Info, FileCode, Target, Monitor, Zap, ChevronDown, ArrowDownAZ, Play, Video, Quote } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -1000,7 +1000,8 @@ function PlatformManagementPanel({ settings, categories }: { settings: any, cate
     categories: false,
     identity: false,
     footer: false,
-    emails: false
+    emails: false,
+    testimonials: false
   });
 
   const toggleSection = (section: string) => {
@@ -1472,6 +1473,134 @@ function PlatformManagementPanel({ settings, categories }: { settings: any, cate
                     className="w-full p-4 rounded-xl border bg-background resize-none text-sm leading-tight"
                     onBlur={(e) => handleUpdateSetting('payment_success_message', e.target.value)}
                   />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 4.5. Testimonials Management */}
+      <div className="bg-card border rounded-2xl overflow-hidden shadow-sm border-l-4 border-l-primary">
+        <button
+          onClick={() => toggleSection('testimonials')}
+          className="w-full flex items-center justify-between p-5 hover:bg-secondary/10 transition-colors text-left"
+        >
+          <h3 className="text-lg font-bold flex items-center gap-3">
+            <Quote className="h-5 w-5 text-primary" /> O Que Dizem de Nós (Testemunhos)
+          </h3>
+          <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform duration-300 ${expandedSections.testimonials ? 'rotate-180' : ''}`} />
+        </button>
+        {expandedSections.testimonials && (
+          <div className="p-6 pt-0 border-t animate-in fade-in slide-in-from-top-2">
+            <div className="space-y-6 mt-6">
+              <div className="flex items-center justify-between p-4 rounded-xl bg-primary/5 border border-primary/10">
+                <div className="flex flex-col">
+                  <span className="font-bold">Exibir Secção de Testemunhos na Home</span>
+                  <span className="text-[10px] text-muted-foreground uppercase">show_testimonials</span>
+                </div>
+                <Button
+                  size="sm"
+                  variant={settings.show_testimonials === 'true' ? 'default' : 'destructive'}
+                  onClick={() => handleUpdateSetting('show_testimonials', settings.show_testimonials === 'true' ? 'false' : 'true')}
+                >
+                  {settings.show_testimonials === 'true' ? 'Ativado' : 'Desativado'}
+                </Button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Lista de Testemunhos</h4>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="h-8 gap-2"
+                    onClick={() => {
+                      const current = JSON.parse(settings.testimonials_json || "[]");
+                      const newItem = { name: "Novo Nome", role: "Cliente", text: "Escreva o testemunho aqui...", avatar: "" };
+                      handleUpdateSetting('testimonials_json', JSON.stringify([...current, newItem]));
+                    }}
+                  >
+                    <Plus className="h-4 w-4" /> Adicionar Testemunho
+                  </Button>
+                </div>
+
+                <div className="grid gap-4">
+                  {(() => {
+                    let testimonials = [];
+                    try {
+                      testimonials = JSON.parse(settings.testimonials_json || "[]");
+                    } catch (e) {
+                      testimonials = [];
+                    }
+                    
+                    if (testimonials.length === 0) {
+                      return <div className="text-center py-8 border border-dashed rounded-xl text-muted-foreground text-sm">Nenhum testemunho configurado. Clique em "Adicionar" para começar.</div>;
+                    }
+
+                    return testimonials.map((t: any, idx: number) => (
+                      <div key={idx} className="p-4 rounded-xl border bg-background space-y-4 relative group">
+                        <Button 
+                          size="icon" 
+                          variant="ghost" 
+                          className="absolute top-2 right-2 h-8 w-8 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => {
+                            const current = [...testimonials];
+                            current.splice(idx, 1);
+                            handleUpdateSetting('testimonials_json', JSON.stringify(current));
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold uppercase text-muted-foreground">Nome</label>
+                            <input 
+                              type="text" 
+                              value={t.name}
+                              onChange={(e) => {
+                                const current = [...testimonials];
+                                current[idx].name = e.target.value;
+                                // We use onBlur for actual saving to avoid too many DB calls
+                              }}
+                              onBlur={(e) => {
+                                const current = [...testimonials];
+                                current[idx].name = e.target.value;
+                                handleUpdateSetting('testimonials_json', JSON.stringify(current));
+                              }}
+                              className="w-full h-9 px-3 rounded-lg border bg-muted/20 text-sm"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold uppercase text-muted-foreground">Cargo / Role</label>
+                            <input 
+                              type="text" 
+                              value={t.role}
+                              onBlur={(e) => {
+                                const current = [...testimonials];
+                                current[idx].role = e.target.value;
+                                handleUpdateSetting('testimonials_json', JSON.stringify(current));
+                              }}
+                              className="w-full h-9 px-3 rounded-lg border bg-muted/20 text-sm"
+                            />
+                          </div>
+                          <div className="md:col-span-2 space-y-1">
+                            <label className="text-[10px] font-bold uppercase text-muted-foreground">Testemunho</label>
+                            <textarea 
+                              rows={2}
+                              defaultValue={t.text}
+                              onBlur={(e) => {
+                                const current = [...testimonials];
+                                current[idx].text = e.target.value;
+                                handleUpdateSetting('testimonials_json', JSON.stringify(current));
+                              }}
+                              className="w-full p-3 rounded-lg border bg-muted/20 text-sm resize-none"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ));
+                  })()}
                 </div>
               </div>
             </div>
@@ -2510,6 +2639,7 @@ function VerificationItem({ pro, mutation, featuredMutation, deleteMutation, can
   const [isRejecting, setIsRejecting] = useState(false);
   const [reason, setReason] = useState("");
   const queryClient = useQueryClient();
+  const [isValidated, setIsValidated] = useState(false);
 
   const [docUrls, setDocUrls] = useState({
     id_front: pro.id_card_front_url,
@@ -2782,20 +2912,54 @@ function VerificationItem({ pro, mutation, featuredMutation, deleteMutation, can
               <div className="lg:w-64 flex flex-col gap-3 border-t lg:border-t-0 lg:border-l lg:pl-8 pt-6 lg:pt-0">
                 {pro.verification_status !== 'ativo' && pro.verification_status !== 'ativo_sem_selo' && (
                   <>
-                    <Button
-                      className="w-full bg-emerald-600 hover:bg-emerald-700 font-bold flex items-center gap-2"
-                      onClick={() => mutation.mutate({ id: pro.id, status: 'ativo' })}
-                    >
-                      <CheckCircle className="h-4 w-4" /> Atribuir Selo Verificado
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="w-full border-primary text-primary font-bold flex items-center gap-2 mt-2"
-                      onClick={() => mutation.mutate({ id: pro.id, status: 'ativo_sem_selo' })}
-                    >
-                      <CheckCircle className="h-4 w-4" /> Ativar Sem Selo
-                    </Button>
+                    <div className="flex items-start gap-2 mb-2 p-3 bg-amber-50/50 border border-amber-200 rounded-lg">
+                      <input 
+                        type="checkbox" 
+                        id={`val-${pro.id}`} 
+                        className="mt-1 h-4 w-4 text-amber-600 rounded border-amber-300 focus:ring-amber-500"
+                        checked={isValidated}
+                        onChange={(e) => setIsValidated(e.target.checked)}
+                      />
+                      <label htmlFor={`val-${pro.id}`} className="text-xs font-medium text-amber-900 cursor-pointer leading-tight">
+                        Confirmo que os documentos anexos são válidos e autênticos.
+                      </label>
+                    </div>
+
+                    {isValidated ? (
+                      <>
+                        <Button
+                          className="w-full bg-emerald-600 hover:bg-emerald-700 font-bold flex items-center gap-2"
+                          onClick={() => mutation.mutate({ id: pro.id, status: 'ativo' })}
+                        >
+                          <CheckCircle className="h-4 w-4" /> Atribuir Selo Verificado
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="w-full border-primary text-primary font-bold flex items-center gap-2 mt-2"
+                          onClick={() => mutation.mutate({ id: pro.id, status: 'ativo_sem_selo' })}
+                        >
+                          <CheckCircle className="h-4 w-4" /> Ativar Sem Selo
+                        </Button>
+                      </>
+                    ) : (
+                      <div className="text-[10px] text-center text-muted-foreground uppercase font-bold p-2 bg-slate-50 rounded border border-dashed">
+                        Valide os documentos para ativar
+                      </div>
+                    )}
                   </>
+                )}
+                {pro.verification_status === 'ativo' && (
+                  <Button
+                    variant="outline"
+                    className="w-full border-rose-500 text-rose-600 hover:bg-rose-50 font-bold flex items-center gap-2 mb-2"
+                    onClick={() => {
+                      if (window.confirm(`Deseja remover o selo de verificado de ${pro.name}? O perfil continuará ativo mas sem o ícone de verificação.`)) {
+                        mutation.mutate({ id: pro.id, status: 'ativo_sem_selo' });
+                      }
+                    }}
+                  >
+                    <X className="h-4 w-4" /> Remover Selo Verificado
+                  </Button>
                 )}
                 {(pro.verification_status === 'ativo' || pro.verification_status === 'ativo_sem_selo') && (
                   <Button
@@ -2804,6 +2968,19 @@ function VerificationItem({ pro, mutation, featuredMutation, deleteMutation, can
                     onClick={() => mutation.mutate({ id: pro.id, status: 'suspenso' })}
                   >
                     <Pause className="h-4 w-4" /> Suspender Conta
+                  </Button>
+                )}
+                {(pro.verification_status === 'ativo' || pro.verification_status === 'ativo_sem_selo') && (
+                  <Button
+                    variant="outline"
+                    className="w-full border-slate-500 text-slate-600 hover:bg-slate-50 font-bold flex items-center gap-2 mt-2"
+                    onClick={() => {
+                      if (window.confirm(`Deseja remover a ativação de ${pro.name} e colocá-lo novamente em revisão?`)) {
+                        mutation.mutate({ id: pro.id, status: 'pending_review' });
+                      }
+                    }}
+                  >
+                    <RotateCcw className="h-4 w-4" /> Voltar para Pendente
                   </Button>
                 )}
                 {canManage && (

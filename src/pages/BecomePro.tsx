@@ -144,7 +144,7 @@ const BecomePro = () => {
         id: user.id,
         ...formData,
         avatar: uploadedAvatarUrl || (hasExistingProfile ? undefined : ""),
-        verification_status: 'ativo' // Se não exige docs, assume-se que fica ativo
+        verification_status: 'pending_review' // Alterado para garantir que o selo não seja automático
       });
 
       // 3. Upload das imagens de portfolio

@@ -237,7 +237,7 @@ export const createProfessionalProfile = async (profileData: any) => {
     .from('professionals')
     .upsert([{
       ...profileData,
-      verification_status: profileData.verification_status || 'ativo'
+      verification_status: profileData.verification_status || 'pending_review'
     }])
     .select()
     .single();

@@ -45,8 +45,8 @@ export interface Subscription {
   professional_id: string;
   user_id?: string; // Aliasing professional_id as requested
   status: 'pending' | 'active' | 'expired' | 'blocked';
-  selected_plan: 'trimestral' | 'semestral' | 'anual' | string;
-  approved_plan?: 'trimestral' | 'semestral' | 'anual' | string;
+  selected_plan: 'mensal' | 'trimestral' | 'semestral' | 'anual' | string;
+  approved_plan?: 'mensal' | 'trimestral' | 'semestral' | 'anual' | string;
   amount: number;
   start_date?: string;
   end_date?: string;

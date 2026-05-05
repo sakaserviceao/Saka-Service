@@ -17,6 +17,19 @@ import { getSiteSettings } from "@/data/api";
 
 const DEFAULT_PLANS = [
   {
+    id: "mensal",
+    name: "Mensal",
+    defaultPrice: "2.500 Kz",
+    defaultAmount: 2500,
+    period: "por 1 mês",
+    description: "Ideal para experimentar as vantagens da plataforma.",
+    features: [
+      "Perfil visível publicamente",
+      "Aparecer em resultados de busca",
+      "Link direto para WhatsApp",
+    ]
+  },
+  {
     id: "trimestral",
     name: "Trimestral",
     defaultPrice: "6.500 Kz",
@@ -78,7 +91,8 @@ const SubscriptionPlans = () => {
 
   const plans = DEFAULT_PLANS.map(p => {
     let dbPrice = p.defaultPrice;
-    if (p.id === 'trimestral') dbPrice = settings.price_trimestral;
+    if (p.id === 'mensal') dbPrice = settings.price_mensal;
+    else if (p.id === 'trimestral') dbPrice = settings.price_trimestral;
     else if (p.id === 'semestral') dbPrice = settings.price_semestral;
     else if (p.id === 'anual') dbPrice = settings.price_anual;
     
@@ -132,7 +146,7 @@ const SubscriptionPlans = () => {
 
       await createSubscriptionRequest({
         user_id: user.id,
-        selected_plan: selectedPlan as 'trimestral' | 'semestral' | 'anual',
+        selected_plan: selectedPlan as 'mensal' | 'trimestral' | 'semestral' | 'anual',
         amount: plan.amount,
         payment_method: paymentMethod,
         payment_proof_url: proofUrl,
@@ -272,14 +286,16 @@ const SubscriptionPlans = () => {
                         <p><span className="text-muted-foreground font-medium">Titular:</span> {settings.bank_holder || "Saka Service Lda."}</p>
                       </div>
 
-                      <div className="pt-4 border-t border-border/50 space-y-2">
-                        <p className="font-bold text-primary flex items-center gap-2">
-                          <Landmark className="h-4 w-4" /> Dados Bancários 2 (Alternativo):
-                        </p>
-                        <p><span className="text-muted-foreground font-medium">Banco:</span> {settings.bank2_name || "BFA"}</p>
-                        <p><span className="text-muted-foreground font-medium">IBAN:</span> {settings.bank2_iban || "AO06 0006 0000 1234 5678 9012 3"}</p>
-                        <p><span className="text-muted-foreground font-medium">Titular:</span> {settings.bank2_holder || "Saka Service Lda."}</p>
-                      </div>
+                      {settings.show_alternative_bank === 'true' && (
+                        <div className="pt-4 border-t border-border/50 space-y-2">
+                          <p className="font-bold text-primary flex items-center gap-2">
+                            <Landmark className="h-4 w-4" /> Dados Bancários 2 (Alternativo):
+                          </p>
+                          <p><span className="text-muted-foreground font-medium">Banco:</span> {settings.bank2_name || "BFA"}</p>
+                          <p><span className="text-muted-foreground font-medium">IBAN:</span> {settings.bank2_iban || "AO06 0006 0000 1234 5678 9012 3"}</p>
+                          <p><span className="text-muted-foreground font-medium">Titular:</span> {settings.bank2_holder || "Saka Service Lda."}</p>
+                        </div>
+                      )}
                     </div>
 
                     <div className="space-y-3">

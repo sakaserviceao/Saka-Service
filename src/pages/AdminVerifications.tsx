@@ -1213,7 +1213,52 @@ function PlatformManagementPanel({ settings, categories }: { settings: any, cate
               </div>
 
               {/* Individual Plans */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                {/* Mensal */}
+                <div className="space-y-4 p-4 rounded-2xl border bg-muted/5">
+                  <h4 className="font-bold text-primary flex items-center gap-2">
+                    Plano Mensal
+                  </h4>
+                  <div className="space-y-3">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase text-muted-foreground">Preço (Numérico)</label>
+                      <input
+                        type="number"
+                        defaultValue={settings.price_mensal || "2500"}
+                        className="w-full h-9 px-3 rounded-lg border bg-background font-bold"
+                        onBlur={(e) => handleUpdateSetting('price_mensal', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase text-muted-foreground">Descrição Curta</label>
+                      <textarea
+                        rows={2}
+                        defaultValue={settings.pricing_mensal_desc || "Ideal para experimentar as vantagens da plataforma."}
+                        className="w-full p-2 text-xs rounded-lg border bg-background resize-none"
+                        onBlur={(e) => handleUpdateSetting('pricing_mensal_desc', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase text-muted-foreground">Funcionalidades (Uma por linha)</label>
+                      <textarea
+                        rows={4}
+                        defaultValue={settings.pricing_mensal_features || "Perfil visível publicamente\nAparecer em resultados de busca\nLink direto para WhatsApp"}
+                        className="w-full p-2 text-xs rounded-lg border bg-background font-mono"
+                        onBlur={(e) => handleUpdateSetting('pricing_mensal_features', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase text-muted-foreground">Badge / Selo</label>
+                      <input
+                        type="text"
+                        defaultValue={settings.pricing_mensal_badge || ""}
+                        className="w-full h-9 px-3 text-xs rounded-lg border bg-background"
+                        onBlur={(e) => handleUpdateSetting('pricing_mensal_badge', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 {/* Trimestral */}
                 <div className="space-y-4 p-4 rounded-2xl border bg-muted/5">
                   <h4 className="font-bold text-primary flex items-center gap-2">
@@ -1667,7 +1712,8 @@ function PlatformManagementPanel({ settings, categories }: { settings: any, cate
                 { label: "Obrigar Comprovativo de Pagamento", key: "require_payment_proof" },
                 { label: "Obrigar BI / Identidade", key: "require_bi_verification" },
                 { label: "Obrigar Certificado Profissional", key: "require_certificate_verification" },
-                { label: "Obrigar Vídeo de Identidade", key: "require_video_verification" }
+                { label: "Obrigar Vídeo de Identidade", key: "require_video_verification" },
+                { label: "Mostrar Banco Alternativo (Dados 2)", key: "show_alternative_bank" }
               ].map((f) => (
                 <div key={f.key} className="flex items-center justify-between p-4 rounded-xl border bg-background hover:border-primary/30 transition-colors">
                   <div className="flex flex-col">
@@ -3070,7 +3116,7 @@ function SubscriptionManagementPanel({ pendingSubs, allSubs, loading }: { pendin
 
 function SubscriptionItem({ sub }: { sub: any }) {
   const queryClient = useQueryClient();
-  const [approvedPlan, setApprovedPlan] = useState<'trimestral' | 'semestral' | 'anual'>(sub.selected_plan || 'trimestral');
+  const [approvedPlan, setApprovedPlan] = useState<'mensal' | 'trimestral' | 'semestral' | 'anual'>(sub.selected_plan || 'trimestral');
   const pro = sub.professionals;
 
   const handleApprove = async () => {

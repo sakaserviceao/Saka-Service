@@ -978,11 +978,13 @@ export const getAllSubscriptions = async () => {
   return data || [];
 };
 
-export const approveSubscription = async (id: string, approvedPlan: 'trimestral' | 'semestral' | 'anual') => {
+export const approveSubscription = async (id: string, approvedPlan: 'mensal' | 'trimestral' | 'semestral' | 'anual') => {
   const startDate = new Date();
   const endDate = new Date();
   
-  if (approvedPlan === 'trimestral') {
+  if (approvedPlan === 'mensal') {
+    endDate.setMonth(startDate.getMonth() + 1);
+  } else if (approvedPlan === 'trimestral') {
     endDate.setMonth(startDate.getMonth() + 3);
   } else if (approvedPlan === 'semestral') {
     endDate.setMonth(startDate.getMonth() + 6);

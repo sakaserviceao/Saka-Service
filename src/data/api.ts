@@ -10,7 +10,9 @@ export const getProfessionalsByCategory = async (categoryId: string): Promise<Pr
   const { data, error } = await supabasePublic
     .from('professionals')
     .select('*, portfolios(*), reviews(*)')
-    .or(`category.eq.${categoryId},secondary_category_1.eq.${categoryId},secondary_category_2.eq.${categoryId}`);
+    .or(`category.eq.${categoryId},secondary_category_1.eq.${categoryId},secondary_category_2.eq.${categoryId}`)
+    .order('featured', { ascending: false })
+    .order('subscription_end_date', { ascending: false, nullsFirst: false });
 
   if (error) {
     return [];
@@ -23,7 +25,9 @@ export const getProfessionalsByCategory = async (categoryId: string): Promise<Pr
       const { data: retryData } = await supabasePublic
         .from('professionals')
         .select('*, portfolios(*), reviews(*)')
-        .or(`category.eq.${categories.name},secondary_category_1.eq.${categories.name},secondary_category_2.eq.${categories.name}`);
+        .or(`category.eq.${categories.name},secondary_category_1.eq.${categories.name},secondary_category_2.eq.${categories.name}`)
+        .order('featured', { ascending: false })
+        .order('subscription_end_date', { ascending: false, nullsFirst: false });
 
       if (retryData && retryData.length > 0) {
         return retryData.map(mapProfessional);
@@ -99,6 +103,7 @@ export const getFeaturedProfessionals = async (): Promise<Professional[]> => {
       .from('professionals')
       .select('*, portfolios(*), reviews(*)')
       .eq('featured', true)
+      .order('subscription_end_date', { ascending: false, nullsFirst: false })
       .limit(10);
 
     if (error) {
@@ -115,7 +120,9 @@ export const searchProfessionals = async (query: string): Promise<Professional[]
   const { data, error } = await supabasePublic
     .from('professionals')
     .select('*, portfolios(*), reviews(*)')
-    .or(`name.ilike.%${query}%,title.ilike.%${query}%,description.ilike.%${query}%,location.ilike.%${query}%`);
+    .or(`name.ilike.%${query}%,title.ilike.%${query}%,description.ilike.%${query}%,location.ilike.%${query}%`)
+    .order('featured', { ascending: false })
+    .order('subscription_end_date', { ascending: false, nullsFirst: false });
   
   if (error) {
     return [];
@@ -409,7 +416,8 @@ export const getAllProfessionals = async () => {
   const { data, error } = await supabase
     .from('professionals')
     .select('*, portfolios(*), reviews(*)')
-    .order('created_at', { ascending: false });
+    .order('featured', { ascending: false })
+    .order('subscription_end_date', { ascending: false, nullsFirst: false });
 
   if (error) {
     console.error('Error fetching all professionals:', error);

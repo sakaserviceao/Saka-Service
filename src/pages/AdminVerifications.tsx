@@ -2696,43 +2696,53 @@ function VerificationItem({ pro, mutation, featuredMutation, deleteMutation, can
   });
 
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   useEffect(() => {
+    // SAKA OPTIMIZATION: Only fetch signed URLs if the item is expanded
+    // This prevents hundreds of requests on page load that cause the browser to hang.
+    if (!isExpanded) return;
+
     const refreshUrls = async () => {
       setIsRefreshing(true);
-      const newUrls = { ...docUrls };
+      try {
+        const newUrls = { ...docUrls };
 
-      if (pro.id_card_front_url) {
-        const fresh = await getFreshSignedUrl(pro.id_card_front_url);
-        if (fresh) newUrls.id_front = fresh;
+        if (pro.id_card_front_url) {
+          const fresh = await getFreshSignedUrl(pro.id_card_front_url);
+          if (fresh) newUrls.id_front = fresh;
+        }
+
+        if (pro.id_card_back_url) {
+          const fresh = await getFreshSignedUrl(pro.id_card_back_url);
+          if (fresh) newUrls.id_back = fresh;
+        }
+
+        if (pro.certificate_url) {
+          const fresh = await getFreshSignedUrl(pro.certificate_url);
+          if (fresh) newUrls.certificate = fresh;
+        }
+
+        if (pro.activity_video_url) {
+          const fresh = await getFreshSignedUrl(pro.activity_video_url);
+          if (fresh) newUrls.video = fresh;
+        }
+
+        if (pro.payment_proof_url) {
+          const fresh = await getFreshSignedUrl(pro.payment_proof_url);
+          if (fresh) newUrls.payment = fresh;
+        }
+
+        setDocUrls(newUrls);
+      } catch (err) {
+        console.error("Saka Admin: Error refreshing document URLs:", err);
+      } finally {
+        setIsRefreshing(false);
       }
-
-      if (pro.id_card_back_url) {
-        const fresh = await getFreshSignedUrl(pro.id_card_back_url);
-        if (fresh) newUrls.id_back = fresh;
-      }
-
-      if (pro.certificate_url) {
-        const fresh = await getFreshSignedUrl(pro.certificate_url);
-        if (fresh) newUrls.certificate = fresh;
-      }
-
-      if (pro.activity_video_url) {
-        const fresh = await getFreshSignedUrl(pro.activity_video_url);
-        if (fresh) newUrls.video = fresh;
-      }
-
-      if (pro.payment_proof_url) {
-        const fresh = await getFreshSignedUrl(pro.payment_proof_url);
-        if (fresh) newUrls.payment = fresh;
-      }
-
-      setDocUrls(newUrls);
-      setIsRefreshing(false);
     };
 
     refreshUrls();
-  }, [pro.id]);
+  }, [pro.id, isExpanded]);
 
   const rejectMutation = useMutation({
     mutationFn: ({ id, reason }: { id: string, reason: string }) =>
@@ -2748,7 +2758,6 @@ function VerificationItem({ pro, mutation, featuredMutation, deleteMutation, can
     }
   });
 
-  const [isExpanded, setIsExpanded] = useState(false);
 
   return (
     <div className="bg-card border rounded-2xl overflow-hidden shadow-sm relative border-gradient-hero transition-all duration-300 hover:shadow-md">
@@ -2874,7 +2883,9 @@ function VerificationItem({ pro, mutation, featuredMutation, deleteMutation, can
                     {docUrls.certificate ? (
                       <a href={docUrls.certificate} target="_blank" rel="noopener noreferrer" className="block group relative">
                         <div className="h-40 w-full overflow-hidden rounded-xl border bg-muted/20 flex items-center justify-center">
-                          {docUrls.certificate.toLowerCase().includes('.pdf') ? (
+                          {isRefreshing ? (
+                            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                          ) : docUrls.certificate.toLowerCase().includes('.pdf') ? (
                             <div className="text-center">
                               <FileText className="h-8 w-8 mx-auto text-muted-foreground mb-1" />
                               <span className="text-[10px] font-bold">VER PDF</span>
@@ -2975,14 +2986,22 @@ function VerificationItem({ pro, mutation, featuredMutation, deleteMutation, can
                       <>
                         <Button
                           className="w-full bg-emerald-600 hover:bg-emerald-700 font-bold flex items-center gap-2"
-                          onClick={() => mutation.mutate({ id: pro.id, status: 'ativo' })}
+                          onClick={() => {
+                            if (confirm(`Tem a certeza que deseja atribuir o SELO VERIFICADO a ${pro.name}? Esta ação é permanente e pública.`)) {
+                              mutation.mutate({ id: pro.id, status: 'ativo' });
+                            }
+                          }}
                         >
                           <CheckCircle className="h-4 w-4" /> Atribuir Selo Verificado
                         </Button>
                         <Button
                           variant="outline"
                           className="w-full border-primary text-primary font-bold flex items-center gap-2 mt-2"
-                          onClick={() => mutation.mutate({ id: pro.id, status: 'ativo_sem_selo' })}
+                          onClick={() => {
+                            if (confirm(`Ativar perfil de ${pro.name} SEM o selo de verificação?`)) {
+                              mutation.mutate({ id: pro.id, status: 'ativo_sem_selo' });
+                            }
+                          }}
                         >
                           <CheckCircle className="h-4 w-4" /> Ativar Sem Selo
                         </Button>

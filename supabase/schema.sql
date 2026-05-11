@@ -42,7 +42,7 @@ CREATE TABLE public.professionals (
     email TEXT,
     whatsapp TEXT,
     linkedin_url TEXT,
-    verification_status TEXT DEFAULT 'ativo',
+    verification_status TEXT DEFAULT 'pending_review', -- 'pending_review', 'ativo', 'suspenso', 'incompleto'
     total_views INTEGER DEFAULT 0,
     daily_views INTEGER DEFAULT 0,
     monthly_views INTEGER DEFAULT 0,

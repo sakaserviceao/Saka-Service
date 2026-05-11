@@ -39,8 +39,31 @@ export const getProfessionalsByCategory = async (categoryId: string): Promise<Pr
 };
 // Helper to map DB record to Professional interface
 const mapProfessional = (pro: any): Professional => {
+  if (!pro) return pro;
+  
   const reviews = pro.reviews || [];
   
+  // Quick return for profiles with no reviews to save processing
+  if (reviews.length === 0) {
+    return {
+      ...pro,
+      rating: pro.rating || 5.0,
+      reviewCount: pro.review_count || 0,
+      recommendation_percentage: 100,
+      avatar: pro.avatar || "https://zldaauprystajzxfypmc.supabase.co/storage/v1/object/public/uploads/Logo%20Oku%20Saka%20e%20Sakaservice.png",
+      category: pro.category || "other",
+      secondary_category_1: pro.secondary_category_1 || "",
+      secondary_category_2: pro.secondary_category_2 || "",
+      portfolios: pro.portfolios || pro.portfolio || [],
+      portfolio: pro.portfolios || pro.portfolio || [],
+      reviews: [],
+      subscription_status: pro.subscription_status || pro.status || 'pending',
+      subscription_plan: pro.subscription_plan || pro.approved_plan || pro.selected_plan || 'MENSAL',
+      subscription_end_date: pro.subscription_end_date || pro.end_date || '2026-05-07T23:59:59.000Z',
+      latest_payment_proof: pro.latest_payment_proof || pro.payment_proof_url || ""
+    };
+  }
+
   // Calculate average rating dynamically
   let calculatedRating = pro.rating;
   let recommendCount = 0;
@@ -49,34 +72,32 @@ const mapProfessional = (pro: any): Professional => {
   let cat_technical = 0;
   let structuredCount = 0;
 
-  if (reviews.length > 0) {
-     const sum = reviews.reduce((acc: number, curr: any) => {
-        // If it's a structured review, use the average of the 3 metrics
-        if (curr.punctuality_rating && curr.presentation_rating && curr.technical_rating) {
-           structuredCount++;
-           cat_punctuality += curr.punctuality_rating;
-           cat_presentation += curr.presentation_rating;
-           cat_technical += curr.technical_rating;
-           const avg = (curr.punctuality_rating + curr.presentation_rating + curr.technical_rating) / 3;
-           if (curr.would_recommend) recommendCount++;
-           return acc + avg;
-        }
-        // Fallback for legacy reviews
-        if (curr.would_recommend !== false) recommendCount++; // Assume recommended if not explicitly false
-        return acc + (curr.rating || 5);
-     }, 0);
-     
-     calculatedRating = Number((sum / reviews.length).toFixed(1));
+  // Single pass calculation
+  for (let i = 0; i < reviews.length; i++) {
+    const curr = reviews[i];
+    if (curr.punctuality_rating && curr.presentation_rating && curr.technical_rating) {
+      structuredCount++;
+      cat_punctuality += curr.punctuality_rating;
+      cat_presentation += curr.presentation_rating;
+      cat_technical += curr.technical_rating;
+    }
+    if (curr.would_recommend !== false) recommendCount++;
+  }
+  
+  if (structuredCount > 0) {
+    const sum = (cat_punctuality + cat_presentation + cat_technical) / 3;
+    calculatedRating = Number((sum / structuredCount).toFixed(1));
+  } else if (reviews.length > 0) {
+    const sum = reviews.reduce((acc: number, curr: any) => acc + (curr.rating || 5), 0);
+    calculatedRating = Number((sum / reviews.length).toFixed(1));
   }
 
-  const recPercentage = reviews.length > 0 
-    ? Math.round((recommendCount / reviews.length) * 100) 
-    : 100;
+  const recPercentage = Math.round((recommendCount / reviews.length) * 100);
 
   return {
     ...pro,
-    rating: calculatedRating || 5.0,
-    reviewCount: pro.review_count || reviews.length || 0,
+    rating: calculatedRating || pro.rating || 5.0,
+    reviewCount: pro.review_count || reviews.length,
     recommendation_percentage: recPercentage,
     category_ratings: structuredCount > 0 ? {
       punctuality: Number((cat_punctuality / structuredCount).toFixed(1)),

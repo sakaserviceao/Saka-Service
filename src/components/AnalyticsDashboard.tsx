@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase, getSearchAnalytics, getSiteStats } from '../data/api';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { ArrowUpRight, ArrowDownRight, Clock, Star, MessageSquare, TrendingUp, DollarSign, Users, Eye, CheckCircle, Search, MapPin, Globe } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Clock, Star, MessageSquare, TrendingUp, DollarSign, Users, Eye, CheckCircle, Search, MapPin, Globe, Loader2 } from 'lucide-react';
 
 interface KPIMetric {
   id: string;

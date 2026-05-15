@@ -29,7 +29,7 @@ import {
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
 import { Button } from "@/components/ui/button";
-import { Check, X, ExternalLink, Shield, ShieldCheck, Users, FileText, ArrowLeft, Search, AlertCircle, Star, Pause, RotateCcw, Settings, Plus, Trash2, Mail, BarChart3, TrendingUp, Home, Calendar, Eye, LayoutGrid, Save, Image as ImageIcon, CreditCard, Receipt, Clock, CheckCircle, Sparkles, Bell, Megaphone, Info, FileCode, Target, Monitor, Zap, ChevronDown, ArrowDownAZ, Play, Video, Quote } from "lucide-react";
+import { Check, X, ExternalLink, Shield, ShieldCheck, Users, FileText, ArrowLeft, Search, AlertCircle, Star, Pause, RotateCcw, Settings, Plus, Trash2, Mail, BarChart3, TrendingUp, Home, Calendar, Eye, LayoutGrid, Save, Image as ImageIcon, CreditCard, Receipt, Clock, CheckCircle, Sparkles, Bell, Megaphone, Info, FileCode, Target, Monitor, Zap, ChevronDown, ArrowDownAZ, Play, Video, Quote, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -171,7 +171,7 @@ const AdminVerifications = () => {
       case 'notifications':
         return perms.includes('notifications');
       case 'analytics':
-        return perms.includes('analytics');
+        return true; // Todo gestor pode aceder à sessão analítica
       default:
         return false;
     }
@@ -616,7 +616,25 @@ const AdminVerifications = () => {
             </div>
           )
         ) : viewMode === 'analytics' ? (
-          <AnalyticsDashboard />
+          <div className="space-y-6">
+            {isAdmin && (
+              <div className="flex justify-end px-4">
+                <div className="flex items-center gap-2 bg-card border rounded-full px-4 py-2 shadow-sm">
+                  <span className="text-sm font-medium">Mostrar Receita Corrente</span>
+                  <input
+                    type="checkbox"
+                    checked={settings.show_revenue_analytics !== 'false'}
+                    onChange={(e) => {
+                      updateSiteSetting('show_revenue_analytics', e.target.checked ? 'true' : 'false');
+                      queryClient.invalidateQueries({ queryKey: ['siteSettings'] });
+                    }}
+                    className="toggle h-5 w-10 cursor-pointer accent-primary"
+                  />
+                </div>
+              </div>
+            )}
+            <AnalyticsDashboard showRevenue={settings.show_revenue_analytics !== 'false'} />
+          </div>
         ) : viewMode === 'subscriptions' ? (
           <SubscriptionManagementPanel
             pendingSubs={pendingSubs}

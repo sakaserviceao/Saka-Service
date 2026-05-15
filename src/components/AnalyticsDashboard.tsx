@@ -10,7 +10,11 @@ interface KPIMetric {
   date: string;
 }
 
-export const AnalyticsDashboard: React.FC = () => {
+interface AnalyticsDashboardProps {
+  showRevenue?: boolean;
+}
+
+export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ showRevenue = true }) => {
   const [metrics, setMetrics] = useState<KPIMetric[]>([]);
   const [siteStats, setSiteStats] = useState<any>(null);
   const [searchStats, setSearchStats] = useState<any>(null);
@@ -23,29 +27,39 @@ export const AnalyticsDashboard: React.FC = () => {
   const fetchAllData = async () => {
     try {
       setLoading(true);
-      await Promise.all([
+      // Usamos allSettled para garantir que o componente carregue mesmo que uma tabela falhe
+      await Promise.allSettled([
         fetchMetrics(),
         fetchSiteStats(),
         fetchSearchStats()
       ]);
+    } catch (err) {
+      console.error("Critical error in Analytics fetchAllData:", err);
     } finally {
       setLoading(false);
     }
   };
 
   const fetchSiteStats = async () => {
-    const stats = await getSiteStats();
-    setSiteStats(stats);
+    try {
+      const stats = await getSiteStats();
+      setSiteStats(stats);
+    } catch (err) {
+      console.error("Error in fetchSiteStats:", err);
+    }
   };
 
   const fetchSearchStats = async () => {
-    const stats = await getSearchAnalytics();
-    setSearchStats(stats);
+    try {
+      const stats = await getSearchAnalytics();
+      setSearchStats(stats);
+    } catch (err) {
+      console.error("Error in fetchSearchStats:", err);
+    }
   };
 
   const fetchMetrics = async () => {
     try {
-      setLoading(true);
       // Busca os últimos 30 dias de métricas
       const { data, error } = await supabase
         .from('kpi_metrics')
@@ -53,17 +67,23 @@ export const AnalyticsDashboard: React.FC = () => {
         .order('date', { ascending: true })
         .limit(210); // 7 KPIs * 30 dias
 
-      if (error) throw error;
+      if (error) {
+        // Se a tabela não existir, não lançamos erro fatal para não travar o dashboard
+        if (error.code === 'PGRST116' || error.message?.includes('does not exist')) {
+          console.warn('Saka Analytics: Tabela kpi_metrics não encontrada. Execute as migrações SQL.');
+          return;
+        }
+        throw error;
+      }
       if (data) setMetrics(data);
     } catch (error) {
       console.error('Error fetching KPI metrics:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
   // Helper para obter o último valor de um KPI
   const getLatestValue = (kpiName: string): number => {
+    if (!metrics || metrics.length === 0) return 0;
     const kpiData = metrics.filter(m => m.kpi_name === kpiName);
     if (kpiData.length === 0) return 0;
     return kpiData[kpiData.length - 1].value;
@@ -71,23 +91,40 @@ export const AnalyticsDashboard: React.FC = () => {
 
   // Processamento de dados para gráficos (LineChart e BarChart)
   const getChartData = () => {
-    const dates = [...new Set(metrics.map(m => m.date))];
+    if (!metrics || metrics.length === 0) return [];
     
-    return dates.map(date => {
-      const dayMetrics = metrics.filter(m => m.date === date);
-      const dataPoint: any = { date: new Date(date).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' }) };
+    try {
+      const dates = [...new Set(metrics.map(m => m.date))].filter(Boolean);
       
-      dayMetrics.forEach(m => {
-        dataPoint[m.kpi_name] = Number(m.value).toFixed(2);
+      return dates.map(date => {
+        const dayMetrics = metrics.filter(m => m.date === date);
+        const dataPoint: any = { 
+          date: date ? new Date(date).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' }) : '---' 
+        };
+        
+        dayMetrics.forEach(m => {
+          dataPoint[m.kpi_name] = Number(m.value || 0).toFixed(2);
+        });
+        return dataPoint;
       });
-      return dataPoint;
-    });
+    } catch (err) {
+      console.error("Error processing chart data:", err);
+      return [];
+    }
   };
 
   const chartData = getChartData();
 
   if (loading) {
-    return <div className="p-8 text-center text-muted-foreground animate-pulse">Carregando métricas...</div>;
+    return (
+      <div className="p-12 flex flex-col items-center justify-center space-y-4">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <div className="text-muted-foreground animate-pulse font-medium">Carregando métricas executivas...</div>
+        <p className="text-xs text-muted-foreground max-w-xs text-center">
+          Se isto demorar muito, verifique se as tabelas de analytics foram criadas no Supabase.
+        </p>
+      </div>
+    );
   }
 
   const taxaResposta = getLatestValue('taxa_de_resposta');
@@ -166,14 +203,16 @@ export const AnalyticsDashboard: React.FC = () => {
         </div>
 
         {/* Receita Mensal */}
-        <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-6 flex flex-col gap-2">
-          <div className="flex justify-between items-center">
-            <h3 className="tracking-tight text-sm font-medium">Receita Corrente</h3>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+        {showRevenue && (
+          <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-6 flex flex-col gap-2">
+            <div className="flex justify-between items-center">
+              <h3 className="tracking-tight text-sm font-medium">Receita Corrente</h3>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <div className="text-2xl font-bold">{getLatestValue('receita_mensal').toLocaleString('pt-AO', { style: 'currency', currency: 'AOA' })}</div>
+            <p className="text-xs text-muted-foreground">total de subscrições ativas</p>
           </div>
-          <div className="text-2xl font-bold">{getLatestValue('receita_mensal').toLocaleString('pt-AO', { style: 'currency', currency: 'AOA' })}</div>
-          <p className="text-xs text-muted-foreground">total de subscrições ativas</p>
-        </div>
+        )}
       </div>
 
       {/* CHARTS SECTION */}

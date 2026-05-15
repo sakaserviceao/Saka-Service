@@ -163,7 +163,7 @@ const ProfessionalProfile = () => {
         <div className="container py-20 text-center">
           <h1 className="text-2xl font-bold">{!pro ? "Profissional não encontrado" : "Perfil Indisponível"}</h1>
           <p className="text-muted-foreground mt-2">
-            {!pro ? "Não foi possível encontrar o profissional solicitado." : "Este perfil ainda não está visível publicamente. Documentos e pagamento em validação."}
+            {!pro ? "Não foi possível encontrar o profissional solicitado." : "Este perfil ainda não está visível publicamente. A nossa equipa está a validar os documentos e as qualificações profissionais."}
           </p>
           <div className="mt-4 flex justify-center gap-2">
             <Link to="/" className="text-primary hover:underline">Voltar ao início</Link>

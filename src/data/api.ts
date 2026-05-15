@@ -833,24 +833,14 @@ export const logSearch = async (query: string, categoryId?: string, location?: s
 
 export const getSearchAnalytics = async () => {
   try {
-    // Buscar Top 5 Palavras
-    const { data: topQueries } = await supabase
+    // Buscar os últimos 2000 logs para processar estatísticas (evita lentidão em tabelas grandes)
+    const { data, error } = await supabase
       .from('search_logs')
-      .select('query')
-      .not('query', 'is', null)
-      .not('query', 'eq', '');
-    
-    // Buscar Top Categorias (contar via query ou processar aqui para simplificar)
-    const { data: topCategories } = await supabase
-      .from('search_logs')
-      .select('category_id')
-      .not('category_id', 'is', null);
+      .select('query, category_id, location_text')
+      .order('created_at', { ascending: false })
+      .limit(2000);
 
-    // Buscar Top Localizações
-    const { data: topLocations } = await supabase
-      .from('search_logs')
-      .select('location_text')
-      .not('location_text', 'is', null);
+    if (error) throw error;
 
     const processStats = (items: any[], key: string) => {
       const counts: Record<string, number> = {};
@@ -865,9 +855,9 @@ export const getSearchAnalytics = async () => {
     };
 
     return {
-      topQueries: processStats(topQueries || [], 'query'),
-      topCategories: processStats(topCategories || [], 'category_id'),
-      topLocations: processStats(topLocations || [], 'location_text')
+      topQueries: processStats(data || [], 'query'),
+      topCategories: processStats(data || [], 'category_id'),
+      topLocations: processStats(data || [], 'location_text')
     };
   } catch (err) {
     console.error('Error fetching search analytics:', err);

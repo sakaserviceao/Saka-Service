@@ -137,8 +137,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [checkProfessionalStatus]);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    setIsProfessional(false);
+    try {
+      // 1. Limpeza imediata do estado local para evitar UI "presa"
+      setUser(null);
+      setSession(null);
+      setIsProfessional(false);
+      
+      // 2. Limpeza física do token
+      localStorage.removeItem('supabase.auth.token');
+      // Adicional: limpar todos os dados do Supabase para garantir
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.includes('supabase') || key.includes('sb-'))) {
+          localStorage.removeItem(key);
+        }
+      }
+
+      // 3. Tentar avisar o servidor (sem esperar se demorar muito)
+      await Promise.race([
+        supabase.auth.signOut(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 2000))
+      ]).catch(err => console.warn("Saka Auth: SignOut server sync failed/timeout:", err));
+
+    } catch (error) {
+      console.error("Error during signOut:", error);
+    } finally {
+      // 4. Forçar recarregamento para garantir estado limpo do JS
+      window.location.href = '/';
+    }
   };
 
   return (

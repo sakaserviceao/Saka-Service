@@ -60,35 +60,80 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-      
-      if (currentUser) {
-        await checkProfessionalStatus(currentUser.id);
+    let mounted = true;
+
+    const initializeAuth = async () => {
+      try {
+        // Timeout de segurança: se o Supabase demorar mais de 10s, interrompemos o loading
+        const timeoutId = setTimeout(() => {
+          if (mounted && isLoading) {
+            console.warn("Saka Auth: Initialization timeout. Forcing loading end.");
+            setIsLoading(false);
+          }
+        }, 10000);
+
+        const { data: { session }, error } = await supabase.auth.getSession();
+        clearTimeout(timeoutId);
+
+        if (error) {
+          console.error("Saka Auth: Session error:", error);
+          if (error.message.includes("JWT") || error.message.includes("expired")) {
+            await signOut();
+          }
+        }
+
+        if (mounted) {
+          setSession(session);
+          const currentUser = session?.user ?? null;
+          setUser(currentUser);
+          
+          if (currentUser) {
+            await checkProfessionalStatus(currentUser.id);
+          }
+        }
+      } catch (err) {
+        console.error("Saka Auth: Fatal initialization error:", err);
+      } finally {
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
-      
-      setIsLoading(false);
-    });
+    };
+
+    initializeAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        setSession(session);
-        const currentUser = session?.user ?? null;
-        setUser(currentUser);
+      async (event, session) => {
+        console.log("Saka Auth Event:", event);
         
-        if (currentUser) {
-          await checkProfessionalStatus(currentUser.id);
-        } else {
+        if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+          // Limpeza profunda em caso de logout
+          localStorage.removeItem('supabase.auth.token');
+          setSession(null);
+          setUser(null);
           setIsProfessional(false);
+        } else {
+          setSession(session);
+          const currentUser = session?.user ?? null;
+          setUser(currentUser);
+          
+          if (currentUser) {
+            await checkProfessionalStatus(currentUser.id);
+          } else {
+            setIsProfessional(false);
+          }
         }
         
-        setIsLoading(false);
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, [checkProfessionalStatus]);
 
   const signOut = async () => {

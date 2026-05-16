@@ -264,7 +264,23 @@ const AdminVerifications = () => {
 
 
   // Restricted Access Check
-  if (isLoading) return <div className="flex justify-center py-20">Verificando permissões...</div>;
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-gray-50">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <p className="text-muted-foreground animate-pulse">Verificando permissões...</p>
+        <button 
+          onClick={() => {
+            localStorage.clear();
+            window.location.href = '/login';
+          }}
+          className="mt-8 text-xs text-primary hover:underline"
+        >
+          Demorando muito? Clique aqui para reiniciar a sessão
+        </button>
+      </div>
+    );
+  }
 
   // Restricted Access Check (Moved below queries)
   if (!isLoadingAdmins && !isAuthorized) {

@@ -525,19 +525,19 @@ const AdminVerifications = () => {
                               placeholder="Pesquisar por nome ou e-mail..."
                               value={proSearch}
                               onChange={(e) => setProSearch(e.target.value)}
-                              className="w-full h-10 pl-10 pr-4 rounded-lg border bg-white outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm"
+                              className="w-full h-10 pl-10 pr-4 rounded-lg border bg-white text-black placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm"
                             />
                           </div>
                           <select
                             value={proStatusFilter}
                             onChange={(e) => setProStatusFilter(e.target.value)}
-                            className="h-10 px-4 rounded-lg border bg-white outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm font-medium min-w-[200px]"
+                            className="h-10 px-4 rounded-lg border bg-white text-black outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm font-medium min-w-[200px]"
                           >
-                            <option value="all">Todos os Estados</option>
-                            <option value="ativo">Ativos / Verified</option>
-                            <option value="pending_review">Aguardando Verificação</option>
-                            <option value="suspenso">Suspensos</option>
-                            <option value="incompleto">Incompletos</option>
+                            <option value="all" className="text-black">Todos os Estados</option>
+                            <option value="ativo" className="text-black">Ativos / Verified</option>
+                            <option value="pending_review" className="text-black">Aguardando Verificação</option>
+                            <option value="suspenso" className="text-black">Suspensos</option>
+                            <option value="incompleto" className="text-black">Incompletos</option>
                           </select>
                           <div className="flex items-center gap-2 px-3 py-1 bg-white rounded-lg border text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                             <ArrowDownAZ className="h-4 w-4 text-primary" /> AZ
@@ -877,10 +877,10 @@ function ProfessionalManagementPanel({ allPros, onExportLog }: { allPros: any[],
                       <span className="text-[10px] text-muted-foreground">{pro.email}</span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${pro.verification_status === 'ativo' ? 'bg-green-100 text-green-700' :
-                          pro.verification_status === 'suspenso' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border border-transparent ${pro.verification_status === 'ativo' || pro.verification_status === 'ativo_sem_selo' ? 'bg-green-100 text-green-700 dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/30' :
+                          pro.verification_status === 'suspenso' ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400 dark:border-amber-500/30' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
                         }`}>
-                        {pro.verification_status}
+                        {pro.verification_status === 'ativo_sem_selo' ? 'Ativo (Sem Selo)' : pro.verification_status}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-xs text-muted-foreground font-medium">
@@ -2809,7 +2809,7 @@ function VerificationItem({ pro, mutation, featuredMutation, deleteMutation, can
       </button>
 
       {isExpanded && (
-        <div className="p-6 pt-0 border-t animate-in fade-in slide-in-from-top-2 duration-300 bg-slate-50/50">
+        <div className="p-6 pt-0 border-t animate-in fade-in slide-in-from-top-2 duration-300 bg-slate-50/50 dark:bg-[#111111]">
           <div className="mt-8">
             <div className="flex items-center gap-4 mb-6">
               {pro.avatar ? (
@@ -2840,7 +2840,7 @@ function VerificationItem({ pro, mutation, featuredMutation, deleteMutation, can
                     <Monitor className="h-4 w-4" />
                   </a>
                 </h2>
-                <p className="text-sm font-medium text-black dark:text-black">{pro.title || pro.category || 'Novo Membro'}</p>
+                <p className="text-sm font-medium text-slate-700 dark:text-white">{pro.title || pro.category || 'Novo Membro'}</p>
                 <div className="flex flex-wrap gap-2 mt-2">
                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
                     pro.subscription_status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-700'
@@ -2868,8 +2868,8 @@ function VerificationItem({ pro, mutation, featuredMutation, deleteMutation, can
             <div className="flex flex-col lg:flex-row gap-8">
               <div className="flex-1 space-y-4">
                 <div className="flex flex-wrap gap-2 mb-6">
-                  <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${pro.verification_status === 'ativo' || pro.verification_status === 'ativo_sem_selo' ? 'bg-green-500/10 text-green-600' :
-                      pro.verification_status === 'suspenso' ? 'bg-orange-500/10 text-orange-600' : 'bg-red-500/10 text-red-600'
+                  <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded border border-transparent ${pro.verification_status === 'ativo' || pro.verification_status === 'ativo_sem_selo' ? 'bg-green-500/10 text-green-600 dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/30 dark:shadow-[0_0_8px_rgba(0,0,0,0.4)] dark:drop-shadow-[0_1px_1.5px_rgba(0,0,0,0.95)]' :
+                      pro.verification_status === 'suspenso' ? 'bg-orange-500/10 text-orange-600 dark:bg-amber-500/20 dark:text-amber-400 dark:border-amber-500/30' : 'bg-red-500/10 text-red-600 dark:bg-rose-500/20 dark:text-rose-400 dark:border-rose-500/30'
                     }`}>
                     {pro.verification_status === 'pending_review' ? 'Aguardando Verificação' :
                       pro.verification_status === 'ativo' ? 'Ativo (Verificado)' :
@@ -2896,7 +2896,7 @@ function VerificationItem({ pro, mutation, featuredMutation, deleteMutation, can
                           <img src={docUrls.id_front} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
                         </div>
                       </a>
-                    ) : <div className="h-40 border border-dashed rounded-xl flex items-center justify-center text-[10px] font-bold text-black bg-muted/10">DOCUMENTO EM FALTA</div>}
+                    ) : <div className="h-40 border border-dashed rounded-xl flex items-center justify-center text-[10px] font-bold text-slate-500 dark:text-slate-400 bg-muted/10">DOCUMENTO EM FALTA</div>}
                   </div>
 
                   <div className="space-y-2">
@@ -2907,7 +2907,7 @@ function VerificationItem({ pro, mutation, featuredMutation, deleteMutation, can
                       <div className="h-40 w-full overflow-hidden rounded-xl border bg-black flex items-center justify-center relative group">
                         <video src={docUrls.video} className="h-full w-full object-contain" controls />
                       </div>
-                    ) : <div className="h-40 border border-dashed rounded-xl flex items-center justify-center text-[10px] font-bold text-black bg-muted/10">VÍDEO NÃO CARREGADO</div>}
+                    ) : <div className="h-40 border border-dashed rounded-xl flex items-center justify-center text-[10px] font-bold text-slate-500 dark:text-slate-400 bg-muted/10">VÍDEO NÃO CARREGADO</div>}
                   </div>
 
                   <div className="space-y-2">
@@ -2929,7 +2929,7 @@ function VerificationItem({ pro, mutation, featuredMutation, deleteMutation, can
                           )}
                         </div>
                       </a>
-                    ) : <div className="h-40 border border-dashed rounded-xl flex items-center justify-center text-[10px] font-bold text-black bg-muted/10">CERTIFICADO EM FALTA</div>}
+                    ) : <div className="h-40 border border-dashed rounded-xl flex items-center justify-center text-[10px] font-bold text-slate-500 dark:text-slate-400 bg-muted/10">CERTIFICADO EM FALTA</div>}
                   </div>
 
                   <div className="space-y-2 rounded-xl bg-white dark:bg-slate-900 p-4 border shadow-sm flex flex-col justify-center">
@@ -3106,7 +3106,7 @@ function VerificationItem({ pro, mutation, featuredMutation, deleteMutation, can
                     </Button>
                   </>
                 )}
-                <Link to={`/professional/${pro.id}`} className="text-xs text-center text-primary hover:underline mt-2">
+                <Link to={`/professional/${pro.id}`} className="text-xs text-center text-primary hover:underline mt-2 dark:drop-shadow-[0_1px_1.5px_rgba(0,0,0,0.95)]">
                   Ver perfil público →
                 </Link>
               </div>

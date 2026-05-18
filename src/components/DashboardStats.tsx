@@ -67,11 +67,11 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ stats }) => {
         {statItems.map((item, index) => (
           <motion.div
             key={item.label}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: index * 0.05, duration: 0.2 }}
           >
-            <Card className="border-border/50 shadow-sm overflow-hidden hover:shadow-md transition-shadow cursor-default">
+            <Card className="border-border/50 shadow-sm overflow-hidden hover:shadow-md transition-shadow cursor-default transform-gpu">
               <CardContent className="p-4 flex flex-col items-center text-center">
                 <div className={`p-2 rounded-lg ${item.bg} ${item.color} mb-3`}>
                   <item.icon className="h-5 w-5" />
@@ -89,11 +89,11 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ stats }) => {
       </div>
 
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.4 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.2, duration: 0.3 }}
       >
-        <Card className="border-border/50 shadow-sm">
+        <Card className="border-border/50 shadow-sm transform-gpu">
           <CardHeader className="pb-2">
             <CardTitle className="text-lg font-semibold flex items-center gap-2">
               <BarChart3 className="h-5 w-5 text-primary" />

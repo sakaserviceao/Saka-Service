@@ -136,7 +136,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, [checkProfessionalStatus]);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     try {
       // 1. Limpeza imediata do estado local para evitar UI "presa"
       setUser(null);
@@ -145,13 +145,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       // 2. Limpeza física do token
       localStorage.removeItem('supabase.auth.token');
-      // Adicional: limpar todos os dados do Supabase para garantir
+      localStorage.removeItem('saka_last_activity');
+      
+      // Adicional: limpar todos os dados do Supabase de forma segura e não destrutiva por concorrência
+      const keysToRemove: string[] = [];
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key && (key.includes('supabase') || key.includes('sb-'))) {
-          localStorage.removeItem(key);
+        if (key && (key.includes('supabase') || key.includes('sb-') || key === 'saka_last_activity')) {
+          keysToRemove.push(key);
         }
       }
+      keysToRemove.forEach(key => localStorage.removeItem(key));
 
       // 3. Tentar avisar o servidor (sem esperar se demorar muito)
       await Promise.race([
@@ -165,7 +169,98 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // 4. Forçar recarregamento para garantir estado limpo do JS
       window.location.href = '/';
     }
-  };
+  }, []);
+
+  // Efeito para deslogar o usuário após 1 hora de inatividade completa
+  useEffect(() => {
+    if (!user) {
+      localStorage.removeItem("saka_last_activity");
+      return;
+    }
+
+    let active = true;
+    const INACTIVITY_TIMEOUT = 60 * 60 * 1000; // 1 hora em milissegundos
+    let timerId: NodeJS.Timeout | null = null;
+
+    const checkInactivity = async () => {
+      const lastActivity = localStorage.getItem("saka_last_activity");
+      const now = Date.now();
+
+      if (lastActivity) {
+        const parsed = parseInt(lastActivity, 10);
+        if (!isNaN(parsed)) {
+          const diff = now - parsed;
+          if (diff >= INACTIVITY_TIMEOUT) {
+            if (active) {
+              console.log("Saka Auth: Logging out due to 1h inactivity on initial/visibility check.");
+              await signOut();
+            }
+            return true;
+          }
+        }
+      }
+      if (active) {
+        localStorage.setItem("saka_last_activity", now.toString());
+      }
+      return false;
+    };
+
+    const resetTimer = () => {
+      if (timerId) clearTimeout(timerId);
+
+      const now = Date.now();
+      const lastActivity = localStorage.getItem("saka_last_activity");
+      const parsed = lastActivity ? parseInt(lastActivity, 10) : NaN;
+
+      if (!lastActivity || isNaN(parsed) || now - parsed > 5000) {
+        localStorage.setItem("saka_last_activity", now.toString());
+      }
+
+      timerId = setTimeout(async () => {
+        if (active) {
+          console.log("Saka Auth: Inactivity limit reached (1h). Logging out...");
+          await signOut();
+        }
+      }, INACTIVITY_TIMEOUT);
+    };
+
+    checkInactivity().then((loggedOut) => {
+      if (!active || loggedOut) return;
+
+      resetTimer();
+
+      const events = ["mousedown", "keydown", "scroll", "touchstart", "click"];
+      const handleActivity = () => {
+        resetTimer();
+      };
+
+      events.forEach((event) => {
+        window.addEventListener(event, handleActivity, { passive: true });
+      });
+
+      const handleVisibilityChange = async () => {
+        if (document.visibilityState === "visible" && active) {
+          const loggedOut = await checkInactivity();
+          if (!loggedOut && active) {
+            resetTimer();
+          }
+        }
+      };
+      document.addEventListener("visibilitychange", handleVisibilityChange);
+
+      return () => {
+        events.forEach((event) => {
+          window.removeEventListener(event, handleActivity);
+        });
+        document.removeEventListener("visibilitychange", handleVisibilityChange);
+      };
+    });
+
+    return () => {
+      active = false;
+      if (timerId) clearTimeout(timerId);
+    };
+  }, [user, signOut]);
 
   return (
     <AuthContext.Provider value={{ user, session, signOut, isLoading, isProfessional, refreshProfile, checkSession }}>

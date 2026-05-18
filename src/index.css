@@ -141,6 +141,8 @@
   .dark .border-gradient-hero {
     border: 1px solid hsl(var(--border) / 0.5);
     background-image: none;
+    background-clip: unset;
+    background-origin: unset;
   }
 
   .shadow-card-hover {

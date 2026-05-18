@@ -741,13 +741,13 @@ const EditProfile = () => {
                       <div>
                         <h3 className="font-bold text-lg">
                           Estado de Verificação: {verificationStatus === "ativo" ? (
-                            <span className="text-green-600">Verificado</span>
+                            <span className="text-green-600 dark:text-emerald-400 dark:drop-shadow-[0_1px_1.5px_rgba(0,0,0,0.95)]">Verificado</span>
                           ) : verificationStatus === "ativo_sem_selo" ? (
-                            <span className="text-green-600">Ativo (Sem Selo)</span>
+                            <span className="text-green-600 dark:text-emerald-400 dark:drop-shadow-[0_1px_1.5px_rgba(0,0,0,0.95)]">Ativo (Sem Selo)</span>
                           ) : verificationStatus === "rejeitado" ? (
-                            <span className="text-red-500">Rejeitado</span>
+                            <span className="text-red-500 dark:text-rose-400 dark:drop-shadow-[0_1px_1.5px_rgba(0,0,0,0.95)]">Rejeitado</span>
                           ) : (
-                            <span className="text-orange-600">Pendente</span>
+                            <span className="text-orange-600 dark:text-amber-400 dark:drop-shadow-[0_1px_1.5px_rgba(0,0,0,0.95)]">Pendente</span>
                           )}
                         </h3>
                         <p className="text-sm text-muted-foreground">

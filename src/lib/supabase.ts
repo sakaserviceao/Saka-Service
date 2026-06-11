@@ -21,7 +21,14 @@ export const supabase = (isUrlValid && supabaseAnonKey)
         persistSession: true,
         detectSessionInUrl: true,
         autoRefreshToken: true,
-        lock: async (name, acquireLock) => {
+        lock: async (...args: any[]) => {
+          // Diferentes versões do Supabase JS passam argumentos diferentes.
+          // Pode ser (acquireLock) ou (name, acquireLock).
+          const acquireLock = args.find(a => typeof a === 'function');
+          const name = typeof args[0] === 'string' ? args[0] : 'lock:sb-auth-token';
+          
+          if (!acquireLock) return;
+
           if (typeof navigator !== 'undefined' && navigator.locks) {
             try {
               return await navigator.locks.request(name, { mode: 'exclusive' }, acquireLock);

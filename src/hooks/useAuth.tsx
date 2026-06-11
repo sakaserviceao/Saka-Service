@@ -88,7 +88,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setUser(currentUser);
           
           if (currentUser) {
-            await checkProfessionalStatus(currentUser.id);
+            checkProfessionalStatus(currentUser.id);
           }
         }
       } catch (err) {
@@ -118,7 +118,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setUser(currentUser);
           
           if (currentUser) {
-            await checkProfessionalStatus(currentUser.id);
+            checkProfessionalStatus(currentUser.id);
           } else {
             setIsProfessional(false);
           }

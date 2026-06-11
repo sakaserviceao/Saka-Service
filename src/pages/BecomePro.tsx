@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { getCategories, createProfessionalProfile, addPortfolios, uploadImage, getProfessionalById } from "@/data/api";
+import { getCategories, createProfessionalProfile, addPortfolios, uploadImage, getProfessionalById, uploadVerificationDocument } from "@/data/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -217,7 +217,7 @@ const BecomePro = () => {
       let idCardUrl = formData.id_card_front_url || "";
       if (isBiRequired && idCardFile) {
         toast.info("A carregar Bilhete de Identidade...");
-        const newUrl = await uploadImage(idCardFile);
+        const newUrl = await uploadVerificationDocument(idCardFile, user.id, 'id_front');
         if (newUrl) idCardUrl = newUrl;
       }
 
@@ -225,7 +225,7 @@ const BecomePro = () => {
       let certificateUrl = formData.certificate_url || "";
       if (isCertificateRequired && certificateFile) {
         toast.info("A carregar Certificado Profissional...");
-        const newUrl = await uploadImage(certificateFile);
+        const newUrl = await uploadVerificationDocument(certificateFile, user.id, 'certificate');
         if (newUrl) certificateUrl = newUrl;
       }
 

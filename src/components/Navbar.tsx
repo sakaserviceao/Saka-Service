@@ -102,36 +102,36 @@ const Navbar = () => {
                   <Button 
                     size="sm" 
                     variant="ghost" 
-                    className="text-primary hover:bg-primary/5 flex flex-col h-auto py-1 px-2 gap-0" 
+                    className="text-primary hover:bg-primary/5 gap-2" 
                     onClick={() => setSupportOpen(true)}
                   >
                     <Headphones className="h-4 w-4" />
-                    <span className="text-[10px] leading-tight">Suporte</span>
+                    <span>Suporte</span>
                   </Button>
-                  <Button size="sm" variant="ghost" className="text-primary hover:bg-primary/5 flex flex-col h-auto py-1 px-2 gap-0" asChild>
+                  <Button size="sm" variant="ghost" className="text-primary hover:bg-primary/5 gap-2" asChild>
                     <Link to="/planos">
                       <CreditCard className="h-4 w-4" />
-                      <span className="text-[10px] leading-tight">Planos</span>
+                      <span>Planos</span>
                     </Link>
                   </Button>
-                  <Button size="sm" variant="outline" className="border-primary text-primary hover:bg-primary/5 font-bold flex flex-col h-auto py-1 px-2 gap-0" asChild>
+                  <Button size="sm" variant="outline" className="border-primary text-primary hover:bg-primary/5 font-bold gap-2" asChild>
                     <Link to="/perfil-editar">
                       <User className="h-4 w-4" />
-                      <span className="text-[10px] leading-tight">{displayName} | Editar Perfil</span>
+                      <span>{displayName} | Editar Perfil</span>
                     </Link>
                   </Button>
                 </>
               ) : (
-                <Button size="sm" className={`bg-gradient-hero ${theme === 'dark' ? 'text-slate-100' : 'text-primary-foreground'} font-bold flex flex-col h-auto py-1 px-2 gap-0`} asChild>
+                <Button size="sm" className={`bg-gradient-hero ${theme === 'dark' ? 'text-slate-100' : 'text-primary-foreground'} font-bold gap-2`} asChild>
                   <Link to="/tornar-se-pro">
                     <Star className="h-4 w-4" />
-                    <span className="text-[10px] leading-tight">{displayName} | Profissional</span>
+                    <span>{displayName} | Profissional</span>
                   </Link>
                 </Button>
               )}
-              <Button variant="outline" size="sm" onClick={signOut} className="flex flex-col h-auto py-1 px-2 gap-0">
+              <Button variant="outline" size="sm" onClick={signOut} className="gap-2">
                 <LogOut className="h-4 w-4" />
-                <span className="text-[10px] leading-tight">Sair</span>
+                <span>Sair</span>
               </Button>
             </div>
           ) : (

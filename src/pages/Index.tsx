@@ -167,6 +167,32 @@ const Index = () => {
         </section>
       )}
 
+      {/* Saka Imóveis Section */}
+      {getSetting('show_imoveis', 'true') === 'true' && (
+        <section className="bg-primary/5 py-20 border-y border-primary/10">
+          <div className="container">
+            <div className="flex flex-col items-center text-center max-w-2xl mx-auto">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-bold mb-6">
+                <Home className="h-4 w-4" /> {getSetting('imoveis_badge', 'NOVIDADE')}
+              </div>
+              <h2 className="text-4xl font-bold tracking-tight text-foreground md:text-5xl mb-4">
+                {getSetting('imoveis_title', 'Procura casa para arrendar?')}
+              </h2>
+              <p className="text-lg text-muted-foreground mb-10">
+                {getSetting('imoveis_description', 'Explore imóveis disponíveis em Luanda, com informação clara e contacto direto com proprietários ou agentes verificados.')}
+              </p>
+              <Button 
+                size="lg" 
+                className="rounded-2xl h-14 px-8 text-lg font-bold gap-2 shadow-xl shadow-primary/20"
+                onClick={() => navigate("/imoveis")}
+              >
+                {getSetting('imoveis_button_text', 'Ver imóveis disponíveis')} <ArrowRight className="h-5 w-5" />
+              </Button>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Featured Professionals */}
       {getSetting('show_top_professionals', 'true') === 'true' && (
         <section className="bg-secondary/20 py-20">
@@ -205,32 +231,6 @@ const Index = () => {
           maxWidth={1280}
           className="mt-10 mb-6"
         />
-      )}
-
-      {/* Saka Imóveis Section */}
-      {getSetting('show_imoveis', 'true') === 'true' && (
-        <section className="bg-primary/5 py-20 border-y border-primary/10">
-          <div className="container">
-            <div className="flex flex-col items-center text-center max-w-2xl mx-auto">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-bold mb-6">
-                <Home className="h-4 w-4" /> {getSetting('imoveis_badge', 'NOVIDADE')}
-              </div>
-              <h2 className="text-4xl font-bold tracking-tight text-foreground md:text-5xl mb-4">
-                {getSetting('imoveis_title', 'Procura casa para arrendar?')}
-              </h2>
-              <p className="text-lg text-muted-foreground mb-10">
-                {getSetting('imoveis_description', 'Explore imóveis disponíveis em Luanda, com informação clara e contacto direto com proprietários ou agentes verificados.')}
-              </p>
-              <Button 
-                size="lg" 
-                className="rounded-2xl h-14 px-8 text-lg font-bold gap-2 shadow-xl shadow-primary/20"
-                onClick={() => navigate("/imoveis")}
-              >
-                {getSetting('imoveis_button_text', 'Ver imóveis disponíveis')} <ArrowRight className="h-5 w-5" />
-              </Button>
-            </div>
-          </div>
-        </section>
       )}
 
       {/* Dynamic CTA - Restored Previous Dimensions */}

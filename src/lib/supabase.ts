@@ -21,6 +21,18 @@ export const supabase = (isUrlValid && supabaseAnonKey)
         persistSession: true,
         detectSessionInUrl: true,
         autoRefreshToken: true,
+        lock: async (name, acquireLock) => {
+          if (typeof navigator !== 'undefined' && navigator.locks) {
+            try {
+              return await navigator.locks.request(name, { mode: 'exclusive' }, acquireLock);
+            } catch (err: any) {
+              console.warn('Saka Service: Supabase lock warning (fallback to direct execution):', err.message);
+              return await acquireLock();
+            }
+          } else {
+            return await acquireLock();
+          }
+        }
       },
     })
   : { auth: { getSession: async () => ({ data: { session: null } }), onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }) }, storage: {}, from: () => ({}) } as any;

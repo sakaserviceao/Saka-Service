@@ -36,6 +36,8 @@ const BecomePro = () => {
     whatsapp: "",
     linkedin_url: "",
     id_number: "",
+    id_card_front_url: "",
+    certificate_url: "",
   });
 
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -80,6 +82,8 @@ const BecomePro = () => {
             whatsapp: existingPro.whatsapp || "",
             linkedin_url: existingPro.linkedin_url || "",
             id_number: existingPro.id_number || "",
+            id_card_front_url: existingPro.id_card_front_url || "",
+            certificate_url: existingPro.certificate_url || "",
           });
         }
       } catch (err) {
@@ -187,11 +191,15 @@ const BecomePro = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (isBiRequired && (!formData.id_number || !idCardFile)) {
-      return toast.error("Por favor, preencha o número do BI e carregue o Bilhete de Identidade.");
+    if (isBiRequired && (!formData.id_number)) {
+      return toast.error("Por favor, preencha o número do BI.");
     }
     
-    if (isCertificateRequired && !certificateFile) {
+    if (isBiRequired && !idCardFile && !formData.id_card_front_url) {
+      return toast.error("Por favor, carregue o Bilhete de Identidade.");
+    }
+    
+    if (isCertificateRequired && !certificateFile && !formData.certificate_url) {
       return toast.error("Por favor, carregue o Certificado Profissional.");
     }
 
@@ -206,17 +214,19 @@ const BecomePro = () => {
       }
 
       // 2. Upload do BI (Frente/Verso Único)
-      let idCardUrl = "";
+      let idCardUrl = formData.id_card_front_url || "";
       if (isBiRequired && idCardFile) {
         toast.info("A carregar Bilhete de Identidade...");
-        idCardUrl = await uploadImage(idCardFile) || "";
+        const newUrl = await uploadImage(idCardFile);
+        if (newUrl) idCardUrl = newUrl;
       }
 
       // 3. Upload do Certificado
-      let certificateUrl = "";
+      let certificateUrl = formData.certificate_url || "";
       if (isCertificateRequired && certificateFile) {
         toast.info("A carregar Certificado Profissional...");
-        certificateUrl = await uploadImage(certificateFile) || "";
+        const newUrl = await uploadImage(certificateFile);
+        if (newUrl) certificateUrl = newUrl;
       }
 
       // 4. Criar/Atualizar o Perfil Profissional
@@ -434,10 +444,12 @@ const BecomePro = () => {
                           accept="image/*,application/pdf" 
                           onChange={(e) => setIdCardFile(e.target.files?.[0] || null)} 
                           className="absolute inset-0 opacity-0 cursor-pointer"
-                          required
+                          required={!formData.id_card_front_url}
                         />
-                        <UploadCloud className={`h-12 w-12 mb-2 ${idCardFile ? 'text-green-500' : 'text-muted-foreground'}`} />
-                        <span className="text-sm font-medium">{idCardFile ? idCardFile.name : "Clique para selecionar o BI"}</span>
+                        <UploadCloud className={`h-12 w-12 mb-2 ${idCardFile || formData.id_card_front_url ? 'text-green-500' : 'text-muted-foreground'}`} />
+                        <span className="text-sm font-medium">
+                          {idCardFile ? idCardFile.name : formData.id_card_front_url ? "Documento já guardado. Clique para substituir." : "Clique para selecionar o BI"}
+                        </span>
                       </div>
                     </div>
                   )}
@@ -454,10 +466,12 @@ const BecomePro = () => {
                           accept="image/*,application/pdf" 
                           onChange={(e) => setCertificateFile(e.target.files?.[0] || null)} 
                           className="absolute inset-0 opacity-0 cursor-pointer"
-                          required
+                          required={!formData.certificate_url}
                         />
-                        <UploadCloud className={`h-12 w-12 mb-2 ${certificateFile ? 'text-green-500' : 'text-muted-foreground'}`} />
-                        <span className="text-sm font-medium">{certificateFile ? certificateFile.name : "Clique para selecionar o Certificado"}</span>
+                        <UploadCloud className={`h-12 w-12 mb-2 ${certificateFile || formData.certificate_url ? 'text-green-500' : 'text-muted-foreground'}`} />
+                        <span className="text-sm font-medium">
+                          {certificateFile ? certificateFile.name : formData.certificate_url ? "Documento já guardado. Clique para substituir." : "Clique para selecionar o Certificado"}
+                        </span>
                       </div>
                     </div>
                   )}
